@@ -1,0 +1,89 @@
+package models.dao;
+
+import models.entity.KhachHang;
+import sql.DBConnection;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class KhachHangDAO {
+
+    public boolean insert(KhachHang kh) throws SQLException {
+        String sql = "INSERT INTO KhachHang (maKhachHang, tenKH, gioiTinh, diaChi, ngaySinh, sdt, tienSuBenh, diemTichLuy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, kh.getMaKhachHang());
+            stmt.setString(2, kh.getTenKH());
+            stmt.setString(3, kh.getGioiTinh());
+            stmt.setString(4, kh.getDiaChi());
+            stmt.setDate(5, kh.getNgaySinh());
+            stmt.setString(6, kh.getSdt());
+            stmt.setString(7, kh.getTienSuBenh());
+            stmt.setInt(8, kh.getDiemTichLuy());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean update(KhachHang kh) throws SQLException {
+        String sql = "UPDATE KhachHang SET tenKH = ?, gioiTinh = ?, diaChi = ?, sdt = ? WHERE maKhachHang = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, kh.getTenKH());
+            stmt.setString(2, kh.getGioiTinh());
+            stmt.setString(3, kh.getDiaChi());
+            stmt.setString(4, kh.getSdt());
+            stmt.setString(5, kh.getMaKhachHang());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean delete(String maKhachHang) throws SQLException {
+        String sql = "DELETE FROM KhachHang WHERE maKhachHang = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maKhachHang);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public List<KhachHang> findAll() throws SQLException {
+        String sql = "SELECT maKhachHang, tenKH, gioiTinh, diaChi, ngaySinh, sdt, tienSuBenh, diemTichLuy " +
+                     "FROM KhachHang ORDER BY maKhachHang";
+        List<KhachHang> customers = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                customers.add(mapCustomer(rs));
+            }
+        }
+        return customers;
+    }
+
+    public KhachHang findByPhoneOrId(String keyword) throws SQLException {
+        String sql = "SELECT maKhachHang, tenKH, gioiTinh, diaChi, ngaySinh, sdt, tienSuBenh, diemTichLuy " +
+                     "FROM KhachHang WHERE maKhachHang = ? OR sdt = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, keyword);
+            stmt.setString(2, keyword);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? mapCustomer(rs) : null;
+            }
+        }
+    }
+
+    private KhachHang mapCustomer(ResultSet rs) throws SQLException {
+        return new KhachHang(
+                rs.getString("maKhachHang"),
+                rs.getString("tenKH"),
+                rs.getString("gioiTinh"),
+                rs.getString("diaChi"),
+                rs.getDate("ngaySinh"),
+                rs.getString("sdt"),
+                rs.getString("tienSuBenh"),
+                rs.getInt("diemTichLuy")
+        );
+    }
+}
