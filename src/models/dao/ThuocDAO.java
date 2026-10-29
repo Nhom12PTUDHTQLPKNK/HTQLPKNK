@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.Thuoc;
 import sql.DBConnection;
 
@@ -37,7 +38,9 @@ public class ThuocDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, soLuongMoi);
             stmt.setString(2, maThuoc);
-            return stmt.executeUpdate() > 0;
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Tồn kho thuốc " + maThuoc + " = " + soLuongMoi);
+            return updated;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

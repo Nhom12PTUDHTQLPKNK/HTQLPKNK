@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -220,6 +221,7 @@ public class WorkProcessPanel extends JPanel {
             tableModel.setValueAt(date, selectedRowIndex, 3);
             JOptionPane.showMessageDialog(this, "Cập nhật ca trực thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Phân ca - mã " + id);
         clearForm();
     }
 
@@ -228,7 +230,9 @@ public class WorkProcessPanel extends JPanel {
         if (r != -1) {
             int modelRow = table.convertRowIndexToModel(r);
             if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa ca trực này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
                 tableModel.removeRow(modelRow);
+                AuditLog.event("DELETE", "Phân ca - mã " + id);
                 clearForm();
                 JOptionPane.showMessageDialog(this, "Đã xóa ca trực!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             }

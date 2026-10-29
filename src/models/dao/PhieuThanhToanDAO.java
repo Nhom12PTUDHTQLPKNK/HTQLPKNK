@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.PhieuThanhToan;
 import sql.DBConnection;
 
@@ -20,7 +21,9 @@ public class PhieuThanhToanDAO {
             stmt.setDouble(7, ptt.getDaThanhToan());
             stmt.setDouble(8, ptt.getSoTienConLai());
             stmt.setString(9, ptt.getGhiChu());
-            return stmt.executeUpdate() > 0;
+            boolean saved = stmt.executeUpdate() > 0;
+            if (saved) AuditLog.event("PAYMENT", "Phiếu thanh toán " + ptt.getMaPhieu());
+            return saved;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

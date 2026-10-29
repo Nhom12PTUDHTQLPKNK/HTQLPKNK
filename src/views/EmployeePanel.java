@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -308,6 +309,7 @@ public class EmployeePanel extends JPanel {
             tableModel.setValueAt(email, selectedRowIndex, 4);
             JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Nhân viên - mã " + id);
         clearForm();
     }
 
@@ -320,7 +322,9 @@ public class EmployeePanel extends JPanel {
         int modelRow = table.convertRowIndexToModel(viewRow);
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
+            String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
             tableModel.removeRow(modelRow);
+            AuditLog.event("DELETE", "Nhân viên - mã " + id);
             clearForm();
             JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
