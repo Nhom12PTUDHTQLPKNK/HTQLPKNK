@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -7,6 +8,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.time.LocalDate;
 
 public class ActivityLogPanel extends JPanel {
     private static final Color BLUE = new Color(0, 126, 255);
@@ -102,6 +104,7 @@ public class ActivityLogPanel extends JPanel {
         centerWrap.add(tabbedPane, BorderLayout.CENTER);
 
         add(centerWrap, BorderLayout.CENTER);
+        refreshTables();
     }
 
     /**
@@ -112,15 +115,8 @@ public class ActivityLogPanel extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        String[] columns = {"Mã Log", "Thời gian", "Tài khoản", "Vai trò", "Hành động", "Chi tiết nghiệp vụ"};
-        Object[][] data = {
-            {"LOG001", "19/10/2026 08:30:15", "admin01", "NV Quản lý", "THÊM TÀI KHOẢN", "Tạo mới tài khoản nhân viên letan02"},
-            {"LOG002", "19/10/2026 09:15:22", "letan01", "Lễ tân", "ĐẶT LỊCH HẸN", "Đăng ký lịch khám tổng quát cho bệnh nhân Nguyễn Văn A"},
-            {"LOG003", "19/10/2026 10:05:40", "bacsi01", "Nha sĩ", "CẬP NHẬT BỆNH ÁN", "Thêm kết quả điều trị răng số 16 cho mã BN0012"},
-            {"LOG004", "19/10/2026 11:20:05", "letan01", "Lễ tân", "LẬP HÓA ĐƠN", "Thanh toán dịch vụ cạo vôi răng (320.000 đ)"}
-        };
-
-        actionTableModel = new DefaultTableModel(data, columns) {
+        String[] columns = {"Thời gian", "Tài khoản", "Vai trò", "Hành động", "Chi tiết thực tế"};
+        actionTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -132,10 +128,9 @@ public class ActivityLogPanel extends JPanel {
 
         styleTable(actionTable);
 
-        // Căn giữa cột Mã log và Thời gian
+        // Căn giữa cột thời gian
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        actionTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
         actionTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
 
         JScrollPane scrollPane = new JScrollPane(actionTable);
@@ -155,13 +150,7 @@ public class ActivityLogPanel extends JPanel {
         panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
         String[] columns = {"Tài khoản", "Vai trò", "Thời điểm đăng nhập", "Thời điểm đăng xuất", "Thời gian online", "Trạng thái"};
-        Object[][] data = {
-            {"admin01", "NV Quản lý", "19/10/2026 23:45:01", "—", "00:15:24", "Đang online"},
-            {"letan01", "Lễ tân", "19/10/2026 08:00:00", "19/10/2026 17:00:00", "09:00:00", "Đăng xuất"},
-            {"bacsi01", "Nha sĩ", "19/10/2026 08:15:10", "19/10/2026 12:00:00", "03:44:50", "Đóng ứng dụng"}
-        };
-
-        sessionTableModel = new DefaultTableModel(data, columns) {
+        sessionTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -186,7 +175,7 @@ public class ActivityLogPanel extends JPanel {
                 JLabel c = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
                 c.setHorizontalAlignment(SwingConstants.CENTER);
                 String status = (String) value;
-                if ("Đang online".equals(status)) {
+                if (status != null && status.contains("Đang online")) {
                     c.setForeground(GREEN_ACCENT);
                 } else {
                     c.setForeground(MUTED);
@@ -226,6 +215,19 @@ public class ActivityLogPanel extends JPanel {
         txtSearch.setText("");
         if (actionRowSorter != null) actionRowSorter.setRowFilter(null);
         if (sessionRowSorter != null) sessionRowSorter.setRowFilter(null);
+        refreshTables();
+    }
+
+    public void refreshTables() {
+        if (actionTableModel == null || sessionTableModel == null) return;
+        actionTableModel.setRowCount(0);
+        for (Object[] row : AuditLog.eventRows(LocalDate.MIN, LocalDate.MAX)) {
+            actionTableModel.addRow(row);
+        }
+        sessionTableModel.setRowCount(0);
+        for (Object[] row : AuditLog.sessionRows(LocalDate.MIN, LocalDate.MAX)) {
+            sessionTableModel.addRow(row);
+        }
     }
 
     private void styleTable(JTable table) {

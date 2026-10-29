@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import controllers.AuthController;
 import models.entity.Account;
 
@@ -29,6 +30,7 @@ public class MenuFrame extends JFrame {
     private CardLayout cardLayout;
     private JPanel mainContentPanel;
     private DashboardPanel dashboardPanel;
+    private ActivityLogPanel activityLogPanel;
 
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -261,7 +263,8 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(dashboardPanel, CARD_DASHBOARD);
         mainContentPanel.add(new ChangePasswordPanel(), CARD_CHANGE_PASS);
         mainContentPanel.add(new HelpPanel(), CARD_HELP);
-        mainContentPanel.add(new ActivityLogPanel(), CARD_LOGS);
+        activityLogPanel = new ActivityLogPanel();
+        mainContentPanel.add(activityLogPanel, CARD_LOGS);
 
        // danh mục
         mainContentPanel.add(new ServicePanel(), CARD_SERVICES);
@@ -321,6 +324,10 @@ public class MenuFrame extends JFrame {
     public void showView(String cardName) {
         if (cardLayout != null && mainContentPanel != null) {
             cardLayout.show(mainContentPanel, cardName);
+            AuditLog.event("VIEW", "Mở màn hình " + cardName);
+            if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
+                activityLogPanel.refreshTables();
+            }
             if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
                 dashboardPanel.refreshDashboardData();
             }
@@ -337,6 +344,7 @@ public class MenuFrame extends JFrame {
         );
 
         if (choice == JOptionPane.YES_OPTION) {
+            AuditLog.logout("LOGOUT", "Người dùng đăng xuất");
             AuthController.logout();
             new LoginFrame().setVisible(true);
             dispose();
@@ -353,6 +361,7 @@ public class MenuFrame extends JFrame {
         );
 
         if (choice == JOptionPane.YES_OPTION) {
+            AuditLog.logout("LOGOUT", "Người dùng chuyển tài khoản");
             AuthController.logout();
             new LoginFrame().setVisible(true);
             dispose();

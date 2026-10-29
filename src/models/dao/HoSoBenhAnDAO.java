@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.HoSoBenhAn;
 import sql.DBConnection;
 
@@ -18,7 +19,9 @@ public class HoSoBenhAnDAO {
             stmt.setString(5, hs.getKetQuaKham());
             stmt.setString(6, hs.getChuanDoan());
             stmt.setString(7, hs.getTrangThai());
-            return stmt.executeUpdate() > 0;
+            boolean saved = stmt.executeUpdate() > 0;
+            if (saved) AuditLog.event("CREATE", "Bệnh án " + hs.getMaBenhAn());
+            return saved;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -31,7 +34,9 @@ public class HoSoBenhAnDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, trangThaiMoi);
             stmt.setString(2, maBenhAn);
-            return stmt.executeUpdate() > 0;
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Trạng thái bệnh án " + maBenhAn);
+            return updated;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
