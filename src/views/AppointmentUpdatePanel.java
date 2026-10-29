@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -438,6 +439,7 @@ public class AppointmentUpdatePanel extends JPanel {
                 }
             }
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Lịch hẹn - mã " + id);
         clearForm();
     }
 }

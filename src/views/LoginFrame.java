@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import controllers.AuthController;
 import qrcode.LoginQrScannerDialog;
 
@@ -477,6 +478,7 @@ public class LoginFrame extends JFrame {
             if (authController.loginWithQr(payload)) {
                 completeLogin();
             } else {
+                AuditLog.failed("Đăng nhập QR");
                 JOptionPane.showMessageDialog(this,
                         "Mã QR không hợp lệ hoặc tài khoản đã bị khóa.",
                         "Không thể đăng nhập", JOptionPane.ERROR_MESSAGE);
@@ -491,6 +493,8 @@ public class LoginFrame extends JFrame {
     }
 
     private void completeLogin() {
+        models.entity.Account user = AuthController.getCurrentUser();
+        if (user != null) AuditLog.login(user.getUsername(), user.getFullName(), user.getRole());
         JOptionPane.showMessageDialog(this, "Đăng nhập thành công!",
                 "Smile Dental", JOptionPane.INFORMATION_MESSAGE);
         SwingUtilities.invokeLater(() -> new MenuFrame().setVisible(true));
@@ -498,6 +502,7 @@ public class LoginFrame extends JFrame {
     }
 
     private void showInvalidCredentials() {
+        AuditLog.failed(txtUsername.getText().trim());
         JOptionPane.showMessageDialog(this,
                 "Tên đăng nhập hoặc mật khẩu không chính xác, hoặc tài khoản đã bị khóa.",
                 "Lỗi đăng nhập", JOptionPane.ERROR_MESSAGE);
