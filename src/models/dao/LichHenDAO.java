@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.LichHen;
 import sql.DBConnection;
 
@@ -17,7 +18,9 @@ public class LichHenDAO {
             stmt.setDate(4, lh.getNgayHen());
             stmt.setString(5, lh.getTrangThai());
             stmt.setString(6, lh.getGhiChu());
-            return stmt.executeUpdate() > 0;
+            boolean saved = stmt.executeUpdate() > 0;
+            if (saved) AuditLog.event("CREATE", "Lịch hẹn " + lh.getMaLichHen());
+            return saved;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

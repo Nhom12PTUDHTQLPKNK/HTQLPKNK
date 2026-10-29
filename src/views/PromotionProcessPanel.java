@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -221,6 +222,7 @@ public class PromotionProcessPanel extends JPanel {
             tableModel.setValueAt(endDate, selectedRowIndex, 4);
             JOptionPane.showMessageDialog(this, "Cập nhật khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Khuyến mãi - mã " + id);
         clearForm();
     }
 
@@ -229,7 +231,9 @@ public class PromotionProcessPanel extends JPanel {
         if (r != -1) {
             int modelRow = table.convertRowIndexToModel(r);
             if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa khuyến mãi này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
                 tableModel.removeRow(modelRow);
+                AuditLog.event("DELETE", "Khuyến mãi - mã " + id);
                 clearForm();
                 JOptionPane.showMessageDialog(this, "Đã xóa khuyến mãi!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             }

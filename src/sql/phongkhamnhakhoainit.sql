@@ -97,6 +97,21 @@ IF COL_LENGTH('TaiKhoan', 'qrPayload') IS NULL
 IF COL_LENGTH('TaiKhoan', 'qrImage') IS NULL
     ALTER TABLE TaiKhoan ADD qrImage VARBINARY(MAX) NULL;
 
+-- Nhật ký đăng nhập và thao tác nghiệp vụ
+IF OBJECT_ID('dbo.AuditLog', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AuditLog (
+        AuditId BIGINT IDENTITY(1,1) PRIMARY KEY,
+        OccurredAt DATETIME2 NOT NULL,
+        SessionId VARCHAR(36) NOT NULL,
+        Username NVARCHAR(100) NOT NULL,
+        UserRole NVARCHAR(100) NOT NULL,
+        ActionName NVARCHAR(80) NOT NULL,
+        Detail NVARCHAR(MAX) NOT NULL,
+        DurationSeconds BIGINT NOT NULL
+    );
+END;
+
 -- 6. Bảng Hồ Sơ Bệnh Án
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'HoSoBenhAn')
 BEGIN

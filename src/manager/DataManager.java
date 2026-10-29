@@ -1,6 +1,7 @@
 package manager;
 
 import models.entity.*;
+import Audit.AuditLog;
 import models.entity.Account;
 import models.entity.Role;
 import sql.DBConnection;
@@ -412,24 +413,31 @@ public class DataManager {
      * oldKey = null => insert, ngược lại => update theo khóa cũ.
      */
     public static boolean saveRow(Feature feature, Object[] row, Object oldKey) {
+        boolean saved;
         switch (feature) {
             case D_KHO:
-                return saveKhoRow(row, oldKey);
+                saved = saveKhoRow(row, oldKey); break;
             case D_GOI:
-                return saveDichVu(row, oldKey);
+                saved = saveDichVu(row, oldKey); break;
             case D_KM:
-                return saveKhuyenMai(row, oldKey);
+                saved = saveKhuyenMai(row, oldKey); break;
             case D_NV:
-                return saveNhanVien(row, oldKey);
+                saved = saveNhanVien(row, oldKey); break;
             case D_LLV:
-                return saveLichLamViec(row, oldKey);
+                saved = saveLichLamViec(row, oldKey); break;
             case D_BA:
-                return saveBenhAn(row, oldKey);
+                saved = saveBenhAn(row, oldKey); break;
             case S_KH:
-                return saveKhachHang(row, oldKey);
+                saved = saveKhachHang(row, oldKey); break;
             default:
                 return false;
         }
+        if (saved) {
+            String action = oldKey == null ? "CREATE" : "UPDATE";
+            String key = row != null && row.length > 0 ? String.valueOf(row[0]) : "";
+            AuditLog.event(action, feature.title + " - mã " + key);
+        }
+        return saved;
     }
 
     public static boolean deleteRow(Feature feature, Object key, Object[] row) {
@@ -443,32 +451,40 @@ public class DataManager {
                     String sql = "Thuoc".equalsIgnoreCase(loai) ? "DELETE FROM Thuoc WHERE maThuoc = ?" : "DELETE FROM VatTu WHERE maVatTu = ?";
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setString(1, id);
-                        return ps.executeUpdate() > 0;
+                        boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id);
+                        return deleted;
                     }
                 }
                 case D_GOI:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM DichVu WHERE maDichVu = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case D_KM:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM KhuyenMai WHERE maKhuyenMai = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case D_NV:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM NhanVien WHERE maNhanVien = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case D_LLV:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM LichLamViec WHERE maLichLamViec = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case D_BA:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM HoSoBenhAn WHERE maBenhAn = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case S_KH:
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM KhachHang WHERE maKhachHang = ?")) {
-                        ps.setString(1, id); return ps.executeUpdate() > 0;
+                        ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
+                        if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 default:
                     return false;
