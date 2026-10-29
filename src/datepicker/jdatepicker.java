@@ -1,93 +1,83 @@
 package datepicker;
 
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
-
 import javax.swing.JFormattedTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Properties;
 
 /**
- * Ô chọn ngày dùng thư viện JDatePicker (org.jdatepicker:jdatepicker:1.3.4).
- * Dùng: jdatepicker f = new jdatepicker(LocalDate.now()); panel.add(f.picker); LocalDate d = f.getDate();
- *
- * Được DentalClinicApp dùng ở: đặt lịch, khách hàng mới, form thêm/sửa danh mục (các cột ngày),
- * thống kê doanh thu và lọc khoảng ngày của nhật ký hoạt động (AuditLog).
+ * Ô nhập ngày đơn giản, không cần thư viện ngoài.
+ * Ngày được hiển thị và nhập theo định dạng yyyy-MM-dd.
  */
 public class jdatepicker {
 
-    /** Định dạng ngày thống nhất toàn hệ thống (khớp với chuỗi ngày lưu trong các bảng dữ liệu). */
     public static final String PATTERN = "yyyy-MM-dd";
-
-    public final UtilDateModel model = new UtilDateModel();
-    public final JDatePickerImpl picker;
+    private final SimpleDateFormat format = new SimpleDateFormat(PATTERN);
+    public final JFormattedTextField picker;
 
     /** @param initial ngày ban đầu; null = chưa chọn ngày. */
     public jdatepicker(LocalDate initial) {
-        Properties p = new Properties();
-        p.put("text.today", "Hôm nay");
-        p.put("text.month", "Tháng");
-        p.put("text.year", "Năm");
-        picker = new JDatePickerImpl(new JDatePanelImpl(model, p), new Formatter());
-        if (initial != null) setDate(initial);
+        format.setLenient(false);
+        picker = new JFormattedTextField(new Formatter());
+        picker.setColumns(10);
+        setDate(initial);
     }
 
     /** Đặt ngày; truyền null để xóa lựa chọn. */
-    public void setDate(LocalDate d) {
-        if (d == null) {
-            model.setSelected(false);
-            model.setValue(null);
-            return;
-        }
-        model.setDate(d.getYear(), d.getMonthValue() - 1, d.getDayOfMonth());
-        model.setSelected(true);
+    public void setDate(LocalDate date) {
+        picker.setText(date == null ? "" : date.toString());
     }
 
-    /** Trả về ngày đã chọn, hoặc null nếu chưa chọn. */
+    /** Trả về ngày đã nhập, hoặc null nếu đang để trống hoặc ngày không hợp lệ. */
     public LocalDate getDate() {
-        Date v = model.getValue();
-        if (v == null) return null;
-        return Instant.ofEpochMilli(v.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+        String text = picker.getText();
+        if (text == null || text.trim().isEmpty()) return null;
+        try {
+            Date date = format.parse(text.trim());
+            return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+        } catch (ParseException ex) {
+            return null;
+        }
     }
 
-    /** Ngày đã chọn dạng yyyy-MM-dd, hoặc "" nếu chưa chọn (tiện lưu vào bảng dữ liệu). */
+    /** Ngày dạng yyyy-MM-dd, hoặc chuỗi rỗng nếu chưa có ngày hợp lệ. */
     public String getDateString() {
-        LocalDate d = getDate();
-        return d == null ? "" : d.toString();
+        LocalDate date = getDate();
+        return date == null ? "" : date.toString();
     }
 
-    /** Gọi lại khi người dùng đổi ngày. */
-    public void onChange(Runnable r) {
-        model.addChangeListener(e -> r.run());
+    /** Gọi lại khi nội dung ô nhập thay đổi. */
+    public void onChange(final Runnable callback) {
+        picker.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent event) { callback.run(); }
+            @Override public void removeUpdate(DocumentEvent event) { callback.run(); }
+            @Override public void changedUpdate(DocumentEvent event) { callback.run(); }
+        });
     }
 
     public void setEnabled(boolean enabled) {
         picker.setEnabled(enabled);
-        picker.getJFormattedTextField().setEnabled(enabled);
     }
 
-    /** Định dạng hiển thị yyyy-MM-dd trong ô chọn ngày. */
-    static class Formatter extends JFormattedTextField.AbstractFormatter {
-        private final SimpleDateFormat fmt = new SimpleDateFormat(PATTERN);
+    private static class Formatter extends JFormattedTextField.AbstractFormatter {
+        private final SimpleDateFormat dateFormat = new SimpleDateFormat(PATTERN);
 
-        Formatter() { fmt.setLenient(false); }
+        Formatter() {
+            dateFormat.setLenient(false);
+        }
 
         @Override public Object stringToValue(String text) throws ParseException {
             if (text == null || text.trim().isEmpty()) return null;
-            return fmt.parseObject(text.trim());
+            return dateFormat.parse(text.trim());
         }
 
         @Override public String valueToString(Object value) {
-            if (value instanceof Calendar) return fmt.format(((Calendar) value).getTime());
-            if (value instanceof Date) return fmt.format((Date) value);
-            return "";
+            return value instanceof Date ? dateFormat.format((Date) value) : "";
         }
     }
 }

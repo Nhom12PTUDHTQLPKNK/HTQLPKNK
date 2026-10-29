@@ -514,7 +514,7 @@ public class DashboardPanel extends JPanel {
         notificationContent.revalidate();
         notificationContent.repaint();
 
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 
             private int totalPatients;
             private int appointmentsToday;
