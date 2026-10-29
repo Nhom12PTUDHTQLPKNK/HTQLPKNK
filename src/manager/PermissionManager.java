@@ -1,6 +1,6 @@
 package manager;
 
-import entity.Feature;
+import models.entity.Feature;
 import models.entity.Role;
 
 import java.util.*;
