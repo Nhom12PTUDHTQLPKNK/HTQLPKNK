@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -314,6 +315,7 @@ public class ServicePanel extends JPanel {
             tableModel.setValueAt(unit, selectedRowIndex, 4);
             JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Dịch vụ - mã " + id);
         clearForm();
     }
 
@@ -326,7 +328,9 @@ public class ServicePanel extends JPanel {
         int modelRow = table.convertRowIndexToModel(viewRow);
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
+            String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
             tableModel.removeRow(modelRow);
+            AuditLog.event("DELETE", "Dịch vụ - mã " + id);
             clearForm();
             JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
