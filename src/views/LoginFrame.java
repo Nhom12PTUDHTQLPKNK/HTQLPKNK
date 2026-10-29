@@ -431,7 +431,7 @@ public class LoginFrame extends JFrame {
 
     private void updateEyeIcon() {
         if (btnEye == null) return;
-        String path = passwordVisible ? "/img/eye.png" : "/img/eye-off.png";
+        String path = passwordVisible ? "/img/eye.png" : "/img/eye.png";
         Icon icon = loadIcon(path, 22, 22);
         if (icon != null) {
             btnEye.setIcon(icon);
