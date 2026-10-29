@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -241,6 +242,7 @@ public class BookingProcessPanel extends JPanel {
             tableModel.setValueAt(time, selectedRowIndex, 6);
             JOptionPane.showMessageDialog(this, "Cập nhật lịch hẹn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Tiếp nhận lịch hẹn - mã " + id);
         clearForm();
     }
 
@@ -249,7 +251,9 @@ public class BookingProcessPanel extends JPanel {
         if (r != -1) {
             int modelRow = table.convertRowIndexToModel(r);
             if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn hủy lịch hẹn này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
                 tableModel.removeRow(modelRow);
+                AuditLog.event("DELETE", "Tiếp nhận lịch hẹn - mã " + id);
                 clearForm();
                 JOptionPane.showMessageDialog(this, "Đã xóa lịch hẹn!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             }

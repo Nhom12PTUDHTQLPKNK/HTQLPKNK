@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -322,6 +323,7 @@ public class PersonnelAccountUpdatePanel extends JPanel {
             tableModel.setValueAt(status, selectedRowIndex, 6);
             JOptionPane.showMessageDialog(this, "Cập nhật nhân sự thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Nhân sự/tài khoản - mã " + id + ", user " + user);
         clearForm();
     }
 
@@ -333,7 +335,10 @@ public class PersonnelAccountUpdatePanel extends JPanel {
         }
         int modelRow = table.convertRowIndexToModel(viewRow);
         if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa nhân sự và tài khoản này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
+            String username = String.valueOf(tableModel.getValueAt(modelRow, 2));
             tableModel.removeRow(modelRow);
+            AuditLog.event("DELETE", "Nhân sự/tài khoản - mã " + id + ", user " + username);
             clearForm();
             JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
