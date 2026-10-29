@@ -1,11 +1,11 @@
 package Audit;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import sql.DBConnection;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,13 +19,11 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * Audit: ghi lại đăng nhập (thành công / thất bại), đăng xuất, thời gian online của từng phiên
- * và các thao tác quan trọng. Dữ liệu lưu ở logs/audit.log (UTF-8, các cột cách nhau bằng TAB).
- * Không cần thư viện ngoài.
+ * Nhật ký đăng nhập và thao tác được lưu trong bảng dbo.AuditLog.
  */
 public final class AuditLog {
 
-    public static final Path FILE = Paths.get("logs", "audit.log");
+    private static final String TABLE = "dbo.AuditLog";
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     /** Một dòng nhật ký. seconds = thời lượng phiên (chỉ có ở LOGOUT/EXIT), -1 nếu không áp dụng. */
@@ -47,6 +45,7 @@ public final class AuditLog {
     private static LocalDateTime sstart;
 
     static {
+        ensureTable();
         load();
         // Đóng cửa sổ / System.exit / Ctrl+C đều ghi nhận thời gian online của phiên đang mở
         Runtime.getRuntime().addShutdownHook(new Thread(() -> logout("EXIT", "Đóng ứng dụng")));
@@ -83,15 +82,20 @@ public final class AuditLog {
                                          String action, String detail, long secs) {
         Entry e = new Entry(LocalDateTime.now().withNano(0), clean(session), clean(user), clean(role),
                 clean(action), clean(detail), secs);
-        ENTRIES.add(e);
-        try {
-            Files.createDirectories(FILE.getParent());
-            String line = String.join("\t", e.time.toString(), e.session, e.username, e.role,
-                    e.action, e.detail, String.valueOf(e.seconds)) + System.lineSeparator();
-            Files.write(FILE, line.getBytes(StandardCharsets.UTF_8),
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        } catch (IOException ex) {
-            System.err.println("Không ghi được audit log: " + ex.getMessage());
+        String sql = "INSERT INTO " + TABLE +
+                " (OccurredAt, SessionId, Username, UserRole, ActionName, Detail, DurationSeconds) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(e.time));
+            ps.setString(2, e.session);
+            ps.setString(3, e.username);
+            ps.setString(4, e.role);
+            ps.setString(5, e.action);
+            ps.setString(6, e.detail);
+            ps.setLong(7, e.seconds);
+            ps.executeUpdate();
+            ENTRIES.add(e);
+        } catch (SQLException ex) {
+            System.err.println("Không ghi được audit vào SQL Server: " + ex.getMessage());
         }
     }
 
@@ -100,17 +104,34 @@ public final class AuditLog {
     }
 
     private static void load() {
-        try {
-            if (!Files.exists(FILE)) return;
-            for (String line : Files.readAllLines(FILE, StandardCharsets.UTF_8)) {
-                String[] p = line.split("\t", -1);
-                if (p.length < 7) continue;
-                try {
-                    ENTRIES.add(new Entry(LocalDateTime.parse(p[0]), p[1], p[2], p[3], p[4], p[5], Long.parseLong(p[6])));
-                } catch (RuntimeException ignored) { /* bỏ qua dòng lỗi */ }
+        ENTRIES.clear();
+        String sql = "SELECT OccurredAt, SessionId, Username, UserRole, ActionName, Detail, DurationSeconds " +
+                "FROM " + TABLE + " ORDER BY AuditId";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ENTRIES.add(new Entry(rs.getTimestamp("OccurredAt").toLocalDateTime(),
+                        rs.getString("SessionId"), rs.getString("Username"), rs.getString("UserRole"),
+                        rs.getString("ActionName"), rs.getString("Detail"), rs.getLong("DurationSeconds")));
             }
-        } catch (IOException ex) {
-            System.err.println("Không đọc được audit log: " + ex.getMessage());
+        } catch (SQLException ex) {
+            System.err.println("Không tải được audit từ SQL Server: " + ex.getMessage());
+        }
+    }
+
+    private static void ensureTable() {
+        String sql = "IF OBJECT_ID('dbo.AuditLog', 'U') IS NULL BEGIN " +
+                "CREATE TABLE dbo.AuditLog (" +
+                "AuditId BIGINT IDENTITY(1,1) PRIMARY KEY, " +
+                "OccurredAt DATETIME2 NOT NULL, SessionId VARCHAR(36) NOT NULL, " +
+                "Username NVARCHAR(100) NOT NULL, UserRole NVARCHAR(100) NOT NULL, " +
+                "ActionName NVARCHAR(80) NOT NULL, Detail NVARCHAR(MAX) NOT NULL, " +
+                "DurationSeconds BIGINT NOT NULL) END";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.execute();
+        } catch (SQLException ex) {
+            System.err.println("Không tạo/kiểm tra được bảng dbo.AuditLog: " + ex.getMessage());
         }
     }
 
@@ -138,11 +159,13 @@ public final class AuditLog {
 
     // ------------------------------------------------------------------ truy vấn để hiển thị / in báo cáo
     public static synchronized List<Entry> all() {
+        load();
         return new ArrayList<>(ENTRIES);
     }
 
     /** Danh sách phiên đăng nhập có ngày bắt đầu trong [a, b], mới nhất trước. */
     public static synchronized List<Object[]> sessionRows(LocalDate a, LocalDate b) {
+        load();
         Map<String, Object[]> m = new LinkedHashMap<>();   // session -> {user, role, start, end, secs, status}
         for (Entry e : ENTRIES) {
             if ("LOGIN_SUCCESS".equals(e.action)) {
@@ -179,6 +202,7 @@ public final class AuditLog {
 
     /** Tổng hợp theo tài khoản: số lần đăng nhập, số lần thất bại, tổng thời gian online, lần đăng nhập cuối. */
     public static synchronized List<Object[]> userSummary(LocalDate a, LocalDate b) {
+        load();
         Map<String, Sum> m = new TreeMap<>();
         for (Entry e : ENTRIES) {
             LocalDate d = e.time.toLocalDate();
@@ -206,6 +230,7 @@ public final class AuditLog {
 
     /** Nhật ký thao tác (mọi dòng) có ngày trong [a, b], mới nhất trước: {thời gian, tài khoản, vai trò, hành động, chi tiết}. */
     public static synchronized List<Object[]> eventRows(LocalDate a, LocalDate b) {
+        load();
         List<Object[]> out = new ArrayList<>();
         for (int i = ENTRIES.size() - 1; i >= 0; i--) {
             Entry e = ENTRIES.get(i);

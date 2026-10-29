@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.KhachHang;
 import sql.DBConnection;
 
@@ -21,7 +22,9 @@ public class KhachHangDAO {
             stmt.setString(6, kh.getSdt());
             stmt.setString(7, kh.getTienSuBenh());
             stmt.setInt(8, kh.getDiemTichLuy());
-            return stmt.executeUpdate() > 0;
+            boolean saved = stmt.executeUpdate() > 0;
+            if (saved) AuditLog.event("CREATE", "Khách hàng " + kh.getMaKhachHang());
+            return saved;
         }
     }
 
@@ -34,7 +37,9 @@ public class KhachHangDAO {
             stmt.setString(3, kh.getDiaChi());
             stmt.setString(4, kh.getSdt());
             stmt.setString(5, kh.getMaKhachHang());
-            return stmt.executeUpdate() > 0;
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Khách hàng " + kh.getMaKhachHang());
+            return updated;
         }
     }
 
@@ -43,7 +48,9 @@ public class KhachHangDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maKhachHang);
-            return stmt.executeUpdate() > 0;
+            boolean deleted = stmt.executeUpdate() > 0;
+            if (deleted) AuditLog.event("DELETE", "Khách hàng " + maKhachHang);
+            return deleted;
         }
     }
 
