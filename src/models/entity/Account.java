@@ -26,22 +26,18 @@ public class Account {
     }
 
 	public String getFullName() {
-		// TODO Auto-generated method stub
-		return null;
+		return fullName;
 	}
 
 	public String getRole() {
-		// TODO Auto-generated method stub
-		return null;
+		return role == null ? null : role.toString();
 	}
 
 	public String getUsername() {
-		// TODO Auto-generated method stub
-		return null;
+		return username;
 	}
 
 	public String getPassword() {
-		// TODO Auto-generated method stub
-		return null;
+		return password;
 	}
 }

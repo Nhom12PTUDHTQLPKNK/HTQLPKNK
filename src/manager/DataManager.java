@@ -1,6 +1,6 @@
 package manager;
 
-import entity.*;
+import models.entity.*;
 import models.entity.Account;
 import models.entity.Role;
 import sql.DBConnection;
