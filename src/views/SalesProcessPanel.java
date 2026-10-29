@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -297,6 +298,7 @@ public class SalesProcessPanel extends JPanel {
             tableModel.setValueAt(currentTime, selectedRowIndex, 5);
             JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Hóa đơn bán hàng - mã " + id);
         clearForm();
         // Tự động chuyển sang trang danh sách để xem kết quả lưu
         showSubView(SUB_LIST);

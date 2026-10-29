@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -519,17 +520,26 @@ public class InventoryUpdatePanel extends JPanel {
                 modelPhieuXuat.setValueAt(f4, selectedRowIndex, 3);
             }
         }
+        String entity = tab == 0 ? "Thuốc" : tab == 1 ? "Vật tư" : tab == 2 ? "Phiếu nhập" : "Phiếu xuất";
+        AuditLog.event(isEditing ? "UPDATE" : "CREATE", entity + " - mã " + f1);
         JOptionPane.showMessageDialog(this, "Thao tác thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         clearForm();
     }
 
     private void performDelete() {
         int tab = tabbedPane.getSelectedIndex();
-        if (tab == 0 && tableThuoc.getSelectedRow() != -1) modelThuoc.removeRow(tableThuoc.convertRowIndexToModel(tableThuoc.getSelectedRow()));
-        else if (tab == 1 && tableVatTu.getSelectedRow() != -1) modelVatTu.removeRow(tableVatTu.convertRowIndexToModel(tableVatTu.getSelectedRow()));
-        else if (tab == 2 && tablePhieuNhap.getSelectedRow() != -1) modelPhieuNhap.removeRow(tablePhieuNhap.convertRowIndexToModel(tablePhieuNhap.getSelectedRow()));
-        else if (tab == 3 && tablePhieuXuat.getSelectedRow() != -1) modelPhieuXuat.removeRow(tablePhieuXuat.convertRowIndexToModel(tablePhieuXuat.getSelectedRow()));
-        else JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần xóa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        JTable selectedTable = tab == 0 ? tableThuoc : tab == 1 ? tableVatTu : tab == 2 ? tablePhieuNhap : tablePhieuXuat;
+        DefaultTableModel selectedModel = tab == 0 ? modelThuoc : tab == 1 ? modelVatTu : tab == 2 ? modelPhieuNhap : modelPhieuXuat;
+        int viewRow = selectedTable.getSelectedRow();
+        if (viewRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần xóa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        int modelRow = selectedTable.convertRowIndexToModel(viewRow);
+        String id = String.valueOf(selectedModel.getValueAt(modelRow, 0));
+        String entity = tab == 0 ? "Thuốc" : tab == 1 ? "Vật tư" : tab == 2 ? "Phiếu nhập" : "Phiếu xuất";
+        selectedModel.removeRow(modelRow);
+        AuditLog.event("DELETE", entity + " - mã " + id);
         clearForm();
     }
 }

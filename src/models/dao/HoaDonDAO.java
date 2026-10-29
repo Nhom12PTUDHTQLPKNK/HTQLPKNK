@@ -1,5 +1,6 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.HoaDon;
 import sql.DBConnection;
 
@@ -17,7 +18,9 @@ public class HoaDonDAO {
             stmt.setString(4, hd.getMaNhanVien());
             stmt.setString(5, hd.getMaKhuyenMai());
             stmt.setDate(6, hd.getNgayLap());
-            return stmt.executeUpdate() > 0;
+            boolean saved = stmt.executeUpdate() > 0;
+            if (saved) AuditLog.event("CREATE", "Hóa đơn " + hd.getMaHoaDon());
+            return saved;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
