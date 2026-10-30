@@ -1,7 +1,7 @@
 package models.dao;
 
 import Audit.AuditLog;
-import models.entity.LichHen;
+import models.entity.LichLamViec;
 import sql.DBConnection;
 
 import java.sql.*;
@@ -10,61 +10,61 @@ import java.util.List;
 
 public class LichLamViecDAO {
 
-    // Thêm lịch hẹn mới
-    public boolean insert(LichHen lh) throws SQLException {
-        String sql = "INSERT INTO LichHen (maLichHen, maKhachHang, maNhanVien, ngayHen, trangThai, ghiChu) VALUES (?, ?, ?, ?, ?, ?)";
+    // Thêm lịch làm việc
+    public boolean insert(LichLamViec llv) throws SQLException {
+        String sql = "INSERT INTO LichLamViec (maLichLamViec, maNhanVien, ngayLamViec, gioBatDau, gioKetThuc, trangThai) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, lh.getMaLichHen());
-            stmt.setString(2, lh.getMaKhachHang());
-            stmt.setString(3, lh.getMaNhanVien());
-            stmt.setDate(4, lh.getNgayHen());
-            stmt.setString(5, lh.getTrangThai());
-            stmt.setString(6, lh.getGhiChu());
+            stmt.setString(1, llv.getMaLichLamViec());
+            stmt.setString(2, llv.getMaNhanVien());
+            stmt.setDate(3, llv.getNgayLamViec());
+            stmt.setString(4, llv.getGioBatDau());
+            stmt.setString(5, llv.getGioKetThuc());
+            stmt.setString(6, llv.getTrangThai());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Lịch hẹn " + lh.getMaLichHen());
+            if (saved) AuditLog.event("CREATE", "Lịch làm việc " + llv.getMaLichLamViec());
             return saved;
         }
     }
 
-    // Cập nhật thông tin lịch hẹn
-    public boolean update(LichHen lh) throws SQLException {
-        String sql = "UPDATE LichHen SET maKhachHang = ?, maNhanVien = ?, ngayHen = ?, trangThai = ?, ghiChu = ? WHERE maLichHen = ?";
+    // Cập nhật lịch làm việc
+    public boolean update(LichLamViec llv) throws SQLException {
+        String sql = "UPDATE LichLamViec SET maNhanVien = ?, ngayLamViec = ?, gioBatDau = ?, gioKetThuc = ?, trangThai = ? WHERE maLichLamViec = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, lh.getMaKhachHang());
-            stmt.setString(2, lh.getMaNhanVien());
-            stmt.setDate(3, lh.getNgayHen());
-            stmt.setString(4, lh.getTrangThai());
-            stmt.setString(5, lh.getGhiChu());
-            stmt.setString(6, lh.getMaLichHen());
+            stmt.setString(1, llv.getMaNhanVien());
+            stmt.setDate(2, llv.getNgayLamViec());
+            stmt.setString(3, llv.getGioBatDau());
+            stmt.setString(4, llv.getGioKetThuc());
+            stmt.setString(5, llv.getTrangThai());
+            stmt.setString(6, llv.getMaLichLamViec());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Lịch hẹn " + lh.getMaLichHen());
+            if (updated) AuditLog.event("UPDATE", "Lịch làm việc " + llv.getMaLichLamViec());
             return updated;
         }
     }
 
-    // Xóa lịch hẹn
-    public boolean delete(String maLichHen) throws SQLException {
-        String sql = "DELETE FROM LichHen WHERE maLichHen = ?";
+    // Xóa lịch làm việc
+    public boolean delete(String maLichLamViec) throws SQLException {
+        String sql = "DELETE FROM LichLamViec WHERE maLichLamViec = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, maLichHen);
+            stmt.setString(1, maLichLamViec);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Lịch hẹn " + maLichHen);
+            if (deleted) AuditLog.event("DELETE", "Lịch làm việc " + maLichLamViec);
             return deleted;
         }
     }
 
-    // Lấy toàn bộ danh sách lịch hẹn
-    public List<LichHen> getAllLichHen() {
-        List<LichHen> list = new ArrayList<>();
-        String sql = "SELECT * FROM LichHen ORDER BY ngayHen DESC";
+    // Lấy danh sách toàn bộ lịch làm việc
+    public List<LichLamViec> getAllLichLamViec() {
+        List<LichLamViec> list = new ArrayList<>();
+        String sql = "SELECT * FROM LichLamViec ORDER BY ngayLamViec DESC";
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                list.add(mapLichHen(rs));
+                list.add(mapLichLamViec(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -72,20 +72,16 @@ public class LichLamViecDAO {
         return list;
     }
 
-    // Tìm kiếm lịch hẹn theo mã lịch hẹn hoặc mã khách hàng
-    public List<LichHen> search(String keyword) {
-        List<LichHen> list = new ArrayList<>();
-        String sql = "SELECT * FROM LichHen WHERE maLichHen LIKE ? OR maKhachHang LIKE ? OR trangThai LIKE ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            String pattern = "%" + keyword + "%";
-            stmt.setString(1, pattern);
-            stmt.setString(2, pattern);
-            stmt.setString(3, pattern);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapLichHen(rs));
-                }
+    // Lấy lịch làm việc theo mã nhân viên[cite: 15]
+    public List<LichLamViec> getLichLamViecByNhanVien(String maNhanVien) {
+        List<LichLamViec> list = new ArrayList<>();
+        String sql = "SELECT * FROM LichLamViec WHERE maNhanVien = ? ORDER BY ngayLamViec DESC";
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, maNhanVien);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(mapLichLamViec(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -93,14 +89,14 @@ public class LichLamViecDAO {
         return list;
     }
 
-    private LichHen mapLichHen(ResultSet rs) throws SQLException {
-        return new LichHen(
-            rs.getString("maLichHen"),
-            rs.getString("maKhachHang"),
+    private LichLamViec mapLichLamViec(ResultSet rs) throws SQLException {
+        return new LichLamViec(
+            rs.getString("maLichLamViec"),
             rs.getString("maNhanVien"),
-            rs.getDate("ngayHen"),
-            rs.getString("trangThai"),
-            rs.getString("ghiChu")
+            rs.getDate("ngayLamViec"),
+            rs.getString("gioBatDau"),
+            rs.getString("gioKetThuc"),
+            rs.getString("trangThai")
         );
     }
 }
