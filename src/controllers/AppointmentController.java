@@ -1,6 +1,7 @@
 package controllers;
 
 import java.sql.Date;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import models.dao.LichHenDAO;
@@ -24,8 +25,9 @@ public class AppointmentController {
 
     /**
      * Tạo lịch hẹn mới và lưu xuống CSDL
+     * @throws SQLException 
      */
-    public boolean createAppointment(LichHen lichHen) {
+    public boolean createAppointment(LichHen lichHen) throws SQLException {
         if (lichHen == null || lichHen.getMaKhachHang() == null || lichHen.getMaNhanVien() == null || lichHen.getNgayHen() == null) {
             System.err.println("Lỗi: Dữ liệu lịch hẹn không đầy đủ!");
             return false;
