@@ -100,21 +100,26 @@ public class MenuFrame extends JFrame {
         JPanel headerBar = new JPanel(new BorderLayout());
         headerBar.setOpaque(true);
         headerBar.setBackground(NAVY_BG);
-        headerBar.setBorder(new EmptyBorder(12, 15, 12, 15));
+     // Padding cân đối
+        headerBar.setBorder(new EmptyBorder(20, 25, 20, 25));
 
+        // Chiều cao thanh menu
+        headerBar.setPreferredSize(new Dimension(0, 105));
+        
+        
         // Phần Logo bên trái
         JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         logoPanel.setOpaque(false);
         
         JLabel lblLogoIcon = new JLabel();
-        lblLogoIcon.setIcon(loadIcon("/img/logo1.png", 50, 50));
+        lblLogoIcon.setIcon(loadIcon("/img/logo1.png", 68, 68));
 
         JPanel logoTextPanel = new JPanel();
         logoTextPanel.setLayout(new BoxLayout(logoTextPanel, BoxLayout.Y_AXIS));
         logoTextPanel.setOpaque(false);
 
         JLabel lblLogoText = new JLabel("SMILE DENTAL");
-        lblLogoText.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblLogoText.setFont(new Font("Segoe UI", Font.BOLD, 25));
         lblLogoText.setForeground(Color.WHITE);
 
         JLabel lblSubLogo = new JLabel("MANAGEMENT SYSTEM");
@@ -132,19 +137,21 @@ public class MenuFrame extends JFrame {
         centerContainer.setOpaque(false);
         centerContainer.add(menuBar);
 
-        // Phần User & Actions bên phải
+     // Phần User & Actions bên phải
         JPanel rightHeaderPanel = new JPanel(new GridBagLayout());
         rightHeaderPanel.setOpaque(false);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
+        gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = new Insets(0, 0, 0, 12);
-
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 10, 0, 10);
        
 
         // 2. Nút Thông báo (Chỉ có icon chuông)
         JButton btnNotification = new JButton();
-        ImageIcon bellIcon = loadIcon("/img/bell.png", 40, 40);
+        ImageIcon bellIcon = loadIcon("/img/bell.png", 42, 42);
         if (bellIcon != null) {
             btnNotification.setIcon(bellIcon);
         } else {
@@ -217,7 +224,7 @@ public class MenuFrame extends JFrame {
         userBadge.setBorder(new EmptyBorder(4, 4, 4, 4));
 
         JLabel lblUserAvatar = new JLabel();
-        lblUserAvatar.setIcon(loadIcon("/img/staff.png", 24, 24));
+        lblUserAvatar.setIcon(loadIcon("/img/staff.png", 27, 27));
 
         JLabel lblUserName = new JLabel(displayName + " ▾");
         lblUserName.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -454,12 +461,12 @@ public class MenuFrame extends JFrame {
 
         // 5. Tìm kiếm
         JMenu mnuSearch = createStyledMenu("5. Tìm kiếm", "/img/timkiem.png");
-        addItem(mnuSearch, "Tra cứu khách hàng, điểm tích lũy", "/img/search_user.png", CARD_SEARCH_CUSTOMER, KeyEvent.VK_F6, 0);
-        addItem(mnuSearch, "Tra cứu lịch hẹn", "/img/search_calendar.png", CARD_SEARCH_APPOINTMENT, KeyEvent.VK_F7, 0);
-        addItem(mnuSearch, "Tra cứu khuyến mãi", "/img/search_promo.png", CARD_SEARCH_PROMO, KeyEvent.VK_F8, 0);
-        addItem(mnuSearch, "Tra cứu lịch làm việc", "/img/search_shift.png", CARD_SEARCH_SHIFT, KeyEvent.VK_F9, 0);
-        addItem(mnuSearch, "Tra cứu tồn kho, thuốc", "/img/search_box.png", CARD_SEARCH_INVENTORY, KeyEvent.VK_F10, 0);
-        addItem(mnuSearch, "Tra cứu hóa đơn, phiếu thu", "/img/search_bill.png", CARD_SEARCH_INVOICE, KeyEvent.VK_F11, 0);
+        addItem(mnuSearch, "Tra cứu khách hàng, điểm tích lũy", "/img/timkiem.png", CARD_SEARCH_CUSTOMER, KeyEvent.VK_F6, 0);
+        addItem(mnuSearch, "Tra cứu lịch hẹn", "/img/timkiem.png", CARD_SEARCH_APPOINTMENT, KeyEvent.VK_F7, 0);
+        addItem(mnuSearch, "Tra cứu khuyến mãi", "/img/timkiem.png", CARD_SEARCH_PROMO, KeyEvent.VK_F8, 0);
+        addItem(mnuSearch, "Tra cứu lịch làm việc", "/img/timkiem.png", CARD_SEARCH_SHIFT, KeyEvent.VK_F9, 0);
+        addItem(mnuSearch, "Tra cứu tồn kho, thuốc", "/img/timkiem.png", CARD_SEARCH_INVENTORY, KeyEvent.VK_F10, 0);
+        addItem(mnuSearch, "Tra cứu hóa đơn, phiếu thu", "/img/timkiem.png", CARD_SEARCH_INVOICE, KeyEvent.VK_F11, 0);
 
         // 6. Báo biểu
         JMenu mnuReport = createStyledMenu("6. Báo biểu", "/img/baobieu.png");
@@ -480,14 +487,14 @@ public class MenuFrame extends JFrame {
 
     private JMenu createStyledMenu(String text, String iconPath) {
         JMenu menu = new JMenu(text);
-        menu.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        menu.setFont(new Font("Segoe UI", Font.BOLD, 18));
         menu.setForeground(TEXT_LIGHT);
         menu.setBackground(NAVY_BG);
         menu.setOpaque(true);
         menu.setBorder(BorderFactory.createEmptyBorder(10, 7, 10, 7)); 
         menu.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        ImageIcon icon = loadIcon(iconPath, 20, 20);
+        ImageIcon icon = loadIcon(iconPath, 25, 25);
         if (icon != null) {
             menu.setIcon(icon);
             menu.setIconTextGap(6);
@@ -513,46 +520,64 @@ public class MenuFrame extends JFrame {
         return menu;
     }
 
-    private JMenuItem createStyledItem(String text, String iconPath, int keyCode, int modifiers) {
-        JMenuItem item = new JMenuItem(text);
-        
-        item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        item.setForeground(TEXT_DARK);
-        item.setBackground(MENU_BG); 
-        item.setOpaque(true);
-        item.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
-        item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        ImageIcon icon = loadIcon(iconPath, 18, 18);
-        if (icon != null) {
-            item.setIcon(icon);
-            item.setIconTextGap(10);
-        }
+private JMenuItem createStyledItem(String text, String iconPath, int keyCode, int modifiers) {
 
-        if (keyCode != 0) {
-            KeyStroke ks = KeyStroke.getKeyStroke(keyCode, modifiers);
-            item.setAccelerator(ks);
-        }
+	JMenuItem item = new JMenuItem("     " + text);
 
-        item.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                item.setBackground(new Color(15, 29, 69)); 
-                item.setFont(new Font("Segoe UI", Font.BOLD, 14)); 
-                item.setForeground(PINK_ACCENT); 
-            }
+    // Font chữ
+    item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+    item.setForeground(TEXT_DARK);
+    item.setBackground(MENU_BG);
+    item.setOpaque(true);
 
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                item.setBackground(MENU_BG); 
-                item.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
-                item.setForeground(TEXT_DARK); 
-            }
-        });
+    // Căn chỉnh nội dung
+    item.setHorizontalAlignment(SwingConstants.LEFT);
+    item.setVerticalAlignment(SwingConstants.CENTER);
 
-        return item;
+    // Tăng khoảng cách bên trong mỗi dòng
+    item.setBorder(
+        BorderFactory.createEmptyBorder(12, 25, 12, 25)
+    );
+
+    // Con trỏ chuột
+    item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+    // Icon lớn hơn
+    ImageIcon icon = loadIcon(iconPath, 23, 23);
+
+    if (icon != null) {
+        item.setIcon(icon);
+        item.setIconTextGap(20);
     }
-    
+
+    // Phím tắt
+    if (keyCode != 0) {
+        KeyStroke ks = KeyStroke.getKeyStroke(keyCode, modifiers);
+        item.setAccelerator(ks);
+    }
+
+    // Hiệu ứng khi rê chuột
+    item.addMouseListener(new java.awt.event.MouseAdapter() {
+
+        @Override
+        public void mouseEntered(java.awt.event.MouseEvent evt) {
+            item.setBackground(NAVY_BG);
+            item.setFont(new Font("Segoe UI", Font.BOLD, 17));
+            item.setForeground(PINK_ACCENT);
+        }
+
+        @Override
+        public void mouseExited(java.awt.event.MouseEvent evt) {
+            item.setBackground(MENU_BG);
+            item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            item.setForeground(TEXT_DARK);
+        }
+    });
+
+    return item;
+}
+
     private void addItem(JMenu menu, String text, String iconPath, String cardName, int keyCode, int modifiers) {
         JMenuItem item = createStyledItem(text, iconPath, keyCode, modifiers);
         item.addActionListener(e -> showView(cardName));
