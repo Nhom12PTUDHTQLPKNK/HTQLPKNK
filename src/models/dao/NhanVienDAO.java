@@ -1,6 +1,5 @@
 package models.dao;
 
-import Audit.AuditLog;
 import models.entity.NhanVien;
 import sql.DBConnection;
 
@@ -23,9 +22,7 @@ public class NhanVienDAO {
             stmt.setString(6, nv.getLichLamViec());
             stmt.setString(7, nv.getTrinhDo());
             stmt.setDouble(8, nv.getMucLuong());
-            boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Nhân viên " + nv.getMaNhanVien());
-            return saved;
+            return stmt.executeUpdate() > 0;
         }
     }
 
@@ -42,25 +39,21 @@ public class NhanVienDAO {
             stmt.setString(6, nv.getTrinhDo());
             stmt.setDouble(7, nv.getMucLuong());
             stmt.setString(8, nv.getMaNhanVien());
-            boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Nhân viên " + nv.getMaNhanVien());
-            return updated;
+            return stmt.executeUpdate() > 0;
         }
     }
 
-    // Xóa nhân viên
+    // Xóa nhân viên theo mã
     public boolean delete(String maNhanVien) throws SQLException {
         String sql = "DELETE FROM NhanVien WHERE maNhanVien = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maNhanVien);
-            boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Nhân viên " + maNhanVien);
-            return deleted;
+            return stmt.executeUpdate() > 0;
         }
     }
 
-    // Lấy tất cả nhân viên
+    // Lấy toàn bộ danh sách nhân viên
     public List<NhanVien> getAllNhanVien() {
         List<NhanVien> list = new ArrayList<>();
         String sql = "SELECT * FROM NhanVien ORDER BY maNhanVien";
@@ -76,7 +69,7 @@ public class NhanVienDAO {
         return list;
     }
 
-    // Tìm kiếm nhân viên theo mã hoặc tên
+    // Tìm kiếm nhân viên theo mã, tên hoặc số điện thoại
     public List<NhanVien> search(String keyword) {
         List<NhanVien> list = new ArrayList<>();
         String sql = "SELECT * FROM NhanVien WHERE maNhanVien LIKE ? OR tenNhanVien LIKE ? OR sdt LIKE ?";
@@ -97,14 +90,16 @@ public class NhanVienDAO {
         return list;
     }
 
+    // Tìm chi tiết nhân viên theo mã
     public NhanVien findById(String maNhanVien) {
         String sql = "SELECT * FROM NhanVien WHERE maNhanVien = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maNhanVien);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return mapNhanVien(rs);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapNhanVien(rs);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -112,6 +107,23 @@ public class NhanVienDAO {
         return null;
     }
 
+    // Lấy danh sách chức vụ duy nhất hiện có trong CSDL (dùng đổ vào JComboBox nếu cần)
+    public List<String> getAllChucVu() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT chucVu FROM NhanVien WHERE chucVu IS NOT NULL AND chucVu <> ''";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(rs.getString("chucVu"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // Ánh xạ dữ liệu từ ResultSet sang đối tượng NhanVien
     private NhanVien mapNhanVien(ResultSet rs) throws SQLException {
         return new NhanVien(
             rs.getString("maNhanVien"),
