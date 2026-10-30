@@ -57,51 +57,143 @@ public class StandardToothChartPanel extends JPanel {
     private ToothImagePanel imagePanel;
     private ToothData selectedTooth;
 
-    public StandardToothChartPanel() {
-        setLayout(new BorderLayout(0, 14));
-        setBackground(BG);
-        setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        // TODO: KẾT NỐI SQL SERVER Ở ĐÂY
-        // Gọi hàm load dữ liệu từ Database vào đây
-        loadSampleTeethForDesign();
+public StandardToothChartPanel() {
 
-        add(createHeader(), BorderLayout.NORTH);
+    setLayout(new BorderLayout(0, 14));
+    setBackground(BG);
+    setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        JPanel content = new JPanel(new BorderLayout(0, 14));
-        content.setOpaque(false);
-        content.add(createFilterCard(), BorderLayout.NORTH);
+    // Nạp dữ liệu răng
+    loadSampleTeethForDesign();
 
-        
-        JPanel main = new JPanel(new GridBagLayout());
-        main.setOpaque(false);
+    // HEADER
+    add(createHeader(), BorderLayout.NORTH);
 
-        GridBagConstraints g = new GridBagConstraints();
-        g.fill = GridBagConstraints.BOTH;
-        g.weighty = 1;
-        g.insets = new Insets(0, 0, 0, 12);
+    // PANEL NỘI DUNG
+    JPanel content = new JPanel(new BorderLayout(0, 14));
+    content.setOpaque(false);
 
-        // Card 1: Ảnh sơ đồ răng (30%)
-        g.gridx = 0;
-        g.weightx = 0.30;
-        main.add(createChartCard(), g);
+    // CARD BỘ LỌC
+    content.add(createFilterCard(), BorderLayout.NORTH);
 
-        // Card 2: Thông tin chi tiết răng (30% - cân đối bằng card 1)
-        g.gridx = 1;
-        g.weightx = 0.30;
-        main.add(createDetailCard(), g);
+    // PANEL CHỨA 3 CARD
+    JPanel main = new JPanel(new ThreeCardLayout(12));
+    main.setOpaque(false);
 
-        // Card 3: Bảng danh sách răng (40% - lớn hơn một chút)
-        g.gridx = 2;
-        g.weightx = 0.40;
-        g.insets = new Insets(0, 0, 0, 0);
-        main.add(createTableCard(), g);
+    // CARD 1: SƠ ĐỒ RĂNG - 30%
+    JPanel card1 = createChartCard();
+    main.add(card1);
 
-        content.add(main, BorderLayout.CENTER);
-        add(content, BorderLayout.CENTER);
+    // CARD 2: CHI TIẾT RĂNG - 30%
+    JPanel card2 = createDetailCard();
+    main.add(card2);
 
-        applyFilter();
-    }
+    // CARD 3: DANH SÁCH RĂNG - 40%
+    JPanel card3 = createTableCard();
+    main.add(card3);
+
+    content.add(main, BorderLayout.CENTER);
+
+    add(content, BorderLayout.CENTER);
+
+    // ÁP DỤNG BỘ LỌC
+    applyFilter();
+}
+
+//=============================================
+//LAYOUT CỐ ĐỊNH TỶ LỆ 3 CARD: 30% - 30% - 40%
+//=============================================
+
+private static class ThreeCardLayout implements LayoutManager {
+
+ private final int gap;
+
+ public ThreeCardLayout(int gap) {
+     this.gap = gap;
+ }
+
+ @Override
+ public void addLayoutComponent(String name, Component comp) {
+ }
+
+ @Override
+ public void removeLayoutComponent(Component comp) {
+ }
+
+ @Override
+ public Dimension preferredLayoutSize(Container parent) {
+     return new Dimension(900, 500);
+ }
+
+ @Override
+ public Dimension minimumLayoutSize(Container parent) {
+     return new Dimension(300, 250);
+ }
+
+ @Override
+ public void layoutContainer(Container parent) {
+
+     synchronized (parent.getTreeLock()) {
+
+         Insets insets = parent.getInsets();
+
+         int totalWidth = parent.getWidth()
+                 - insets.left
+                 - insets.right
+                 - gap * 2;
+
+         int totalHeight = parent.getHeight()
+                 - insets.top
+                 - insets.bottom;
+
+         if (parent.getComponentCount() != 3) {
+             return;
+         }
+
+         // Tính chiều rộng theo tỷ lệ
+         int width1 = (int) (totalWidth * 0.30);
+         int width2 = (int) (totalWidth * 0.30);
+         int width3 = totalWidth - width1 - width2;
+
+         int x = insets.left;
+
+         // CARD 1: 30%
+         Component card1 = parent.getComponent(0);
+
+         card1.setBounds(
+                 x,
+                 insets.top,
+                 width1,
+                 totalHeight
+         );
+
+         x += width1 + gap;
+
+         // CARD 2: 30%
+         Component card2 = parent.getComponent(1);
+
+         card2.setBounds(
+                 x,
+                 insets.top,
+                 width2,
+                 totalHeight
+         );
+
+         x += width2 + gap;
+
+         // CARD 3: 40%
+         Component card3 = parent.getComponent(2);
+
+         card3.setBounds(
+                 x,
+                 insets.top,
+                 width3,
+                 totalHeight
+         );
+     }
+ }
+}
 
 	    // header
 	    private JPanel createHeader() {
@@ -667,179 +759,364 @@ private Point2D getApproximateToothPoint(int code) {
     return null;
 }
 
-    // ================= CARD 2: THÔNG TIN CHI TIẾT RĂNG (ĐƯỢC ĐIỀU CHỈNH LỚN & ĐẸP) =================
 
-    private JPanel createDetailCard() {
-        JPanel card = createCard();
 
-        JLabel title = new JLabel("Thông tin răng");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(NAVY);
-        card.add(title, BorderLayout.NORTH);
+//================= CARD 2 =================
 
-        JPanel body = new JPanel();
-        body.setOpaque(false);
-        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+private JPanel createDetailCard() {
 
-        // 1. Phần trên: Ảnh răng TO + Tên + Badge mã răng/phân loại màu sắc nổi bật
-        JPanel topInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
-        topInfoPanel.setOpaque(false);
-        topInfoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+ JPanel card = createCard();
+ card.setLayout(new BorderLayout(0, 12));
 
-     // Ảnh răng
-        java.net.URL toothUrl = getClass().getResource("/img/iconrang.png");
+ // ================= 1. TIÊU ĐỀ =================
 
-        if (toothUrl != null) {
-            ImageIcon icon = new ImageIcon(toothUrl);
+ JLabel title = new JLabel("Thông tin răng");
+ title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+ title.setForeground(NAVY);
 
-            Image scaledImage = icon.getImage().getScaledInstance(
-                65, 65,
-                Image.SCALE_SMOOTH
-            );
+ JPanel titlePanel = new JPanel(new BorderLayout());
+ titlePanel.setOpaque(false);
+ titlePanel.add(title, BorderLayout.WEST);
 
-            lblBigToothAvatar = new JLabel(new ImageIcon(scaledImage));
-        } else {
-            lblBigToothAvatar = new JLabel("🦷");
-            lblBigToothAvatar.setFont(
-                new Font("Segoe UI Emoji", Font.PLAIN, 52)
-            );
-        }
-        JPanel nameAndBadge = new JPanel();
-        nameAndBadge.setOpaque(false);
-        nameAndBadge.setLayout(new BoxLayout(nameAndBadge, BoxLayout.Y_AXIS));
+ card.add(titlePanel, BorderLayout.NORTH);
 
-        JPanel codeBadgeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        codeBadgeRow.setOpaque(false);
-        
-        JLabel lblCodeTitleText = new JLabel("Mã răng:");
-        lblCodeTitleText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblCodeTitleText.setForeground(MUTED);
+ // ================= 2. PANEL NỘI DUNG =================
 
-        lblHeaderCodeBadge = new JLabel("--");
-        lblHeaderCodeBadge.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblHeaderCodeBadge.setForeground(BLUE);
+ JPanel body = new JPanel();
+ body.setOpaque(false);
+ body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
 
-        codeBadgeRow.add(lblCodeTitleText);
-        codeBadgeRow.add(lblHeaderCodeBadge);
+ // ================= 3. THÔNG TIN ĐẦU RĂNG =================
 
-        lblHeaderName = new JLabel("Chưa chọn răng");
-        lblHeaderName.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        lblHeaderName.setForeground(NAVY);
+ JPanel topInfoPanel = new JPanel(new BorderLayout(14, 0));
+ topInfoPanel.setOpaque(false);
+ topInfoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+ topInfoPanel.setMaximumSize(
+         new Dimension(Integer.MAX_VALUE, 90)
+ );
 
-        // Badge loại răng: Nền xanh pastel, chữ hồng đậm theo yêu cầu
-        badgePanelType = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        badgePanelType.setOpaque(true);
-        badgePanelType.setBackground(PASTEL_BLUE_BG);
-        lblHeaderType = new JLabel(" -- ");
-        lblHeaderType.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblHeaderType.setForeground(DARK_PINK_TEXT);
-        badgePanelType.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(180, 215, 250)),
-                new EmptyBorder(3, 10, 3, 10)
-        ));
-        badgePanelType.add(lblHeaderType);
+ // ẢNH RĂNG
 
-        nameAndBadge.add(codeBadgeRow);
-        nameAndBadge.add(Box.createVerticalStrut(4));
-        nameAndBadge.add(lblHeaderName);
-        nameAndBadge.add(Box.createVerticalStrut(6));
-        nameAndBadge.add(badgePanelType);
+ java.net.URL toothUrl = getClass().getResource("/img/iconrang.png");
 
-        topInfoPanel.add(lblBigToothAvatar);
-        topInfoPanel.add(nameAndBadge);
+ if (toothUrl != null) {
 
-        body.add(topInfoPanel);
-        body.add(Box.createVerticalStrut(16));
+     ImageIcon icon = new ImageIcon(toothUrl);
 
-        // 2. Bảng thông tin chi tiết nằm ở giữa card (to rõ, khoảng cách đều)
-        JPanel attrGrid = new JPanel(new GridLayout(5, 2, 0, 8));
-        attrGrid.setOpaque(false);
-        attrGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+     Image scaledImage = icon.getImage().getScaledInstance(
+             80, 80, Image.SCALE_SMOOTH
+     );
 
-        attrGrid.add(createAttrLabel("Mã răng", true));
-        lblCode = createAttrLabel("--", false);
-        attrGrid.add(lblCode);
+     lblBigToothAvatar = new JLabel(new ImageIcon(scaledImage));
 
-        attrGrid.add(createAttrLabel("Tên răng", true));
-        lblName = createAttrLabel("--", false);
-        attrGrid.add(lblName);
+ } else {
 
-        attrGrid.add(createAttrLabel("Hàm", true));
-        lblJaw = createAttrLabel("--", false);
-        attrGrid.add(lblJaw);
+     lblBigToothAvatar = new JLabel("🦷");
 
-        attrGrid.add(createAttrLabel("Vị trí", true));
-        lblPosition = createAttrLabel("--", false);
-        attrGrid.add(lblPosition);
+     lblBigToothAvatar.setFont(
+             new Font("Segoe UI Emoji", Font.PLAIN, 48)
+     );
+ }
 
-        attrGrid.add(createAttrLabel("Phân loại", true));
-        lblType = createAttrLabel("--", false);
-        attrGrid.add(lblType);
+ // TÊN VÀ MÃ RĂNG
 
-        body.add(attrGrid);
-        body.add(Box.createVerticalStrut(14));
+ JPanel nameAndBadge = new JPanel();
+ nameAndBadge.setOpaque(false);
+ nameAndBadge.setLayout(
+         new BoxLayout(nameAndBadge, BoxLayout.Y_AXIS)
+ );
 
-        // Khung thông tin chung xanh nhạt
-        JPanel infoBox = new JPanel(new BorderLayout(6, 4));
-        infoBox.setBackground(PASTEL_BLUE_BG);
-        infoBox.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(180, 215, 250)),
-                new EmptyBorder(10, 10, 10, 10)
-        ));
-        infoBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+ JPanel codeBadgeRow = new JPanel(
+         new FlowLayout(FlowLayout.LEFT, 5, 0)
+ );
 
-        JLabel infoTitle = new JLabel("ℹ  Thông tin chung");
-        infoTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        infoTitle.setForeground(NAVY);
+ codeBadgeRow.setOpaque(false);
+ codeBadgeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        lblDescription = new JLabel("Đây là dữ liệu răng chuẩn, dùng chung cho toàn hệ thống. Không phải thông tin tình trạng răng của bệnh nhân.");
-        lblDescription.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblDescription.setForeground(NAVY);
+ JLabel lblCodeTitleText = new JLabel("Mã răng:");
+ lblCodeTitleText.setFont(
+         new Font("Segoe UI", Font.PLAIN, 15)
+ );
+ lblCodeTitleText.setForeground(MUTED);
 
-        infoBox.add(infoTitle, BorderLayout.NORTH);
-        infoBox.add(lblDescription, BorderLayout.CENTER);
+ lblHeaderCodeBadge = new JLabel("--");
+ lblHeaderCodeBadge.setFont(
+         new Font("Segoe UI", Font.BOLD, 15)
+ );
+ lblHeaderCodeBadge.setForeground(BLUE);
 
-        body.add(infoBox);
-        body.add(Box.createVerticalStrut(10));
+ codeBadgeRow.add(lblCodeTitleText);
+ codeBadgeRow.add(lblHeaderCodeBadge);
 
-        // 3. Phần mô tả thêm nhỏ lại về cuối card
-        JPanel extraBox = new JPanel(new BorderLayout(6, 3));
-        extraBox.setBackground(Color.WHITE);
-        extraBox.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                new EmptyBorder(8, 10, 8, 10)
-        ));
-        extraBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+ lblHeaderName = new JLabel("Chưa chọn răng");
+ lblHeaderName.setFont(
+         new Font("Segoe UI", Font.BOLD, 20)
+ );
+ lblHeaderName.setForeground(NAVY);
+ lblHeaderName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel extraTitle = new JLabel("🦷  Mô tả thêm");
-        extraTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        extraTitle.setForeground(NAVY);
+ badgePanelType = new JPanel(
+         new FlowLayout(FlowLayout.LEFT, 0, 0)
+ );
 
-        lblDescExtra = new JLabel("Chưa có mô tả chi tiết cho răng này.");
-        lblDescExtra.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblDescExtra.setForeground(MUTED);
+ badgePanelType.setOpaque(true);
+ badgePanelType.setBackground(PASTEL_BLUE_BG);
+ badgePanelType.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        extraBox.add(extraTitle, BorderLayout.NORTH);
-        extraBox.add(lblDescExtra, BorderLayout.CENTER);
+ lblHeaderType = new JLabel(" -- ");
+ lblHeaderType.setFont(
+         new Font("Segoe UI", Font.BOLD, 15)
+ );
+ lblHeaderType.setForeground(BLUE);
 
-        body.add(extraBox);
-        body.add(Box.createVerticalGlue());
+ badgePanelType.setBorder(
+         BorderFactory.createCompoundBorder(
+                 BorderFactory.createLineBorder(
+                         new Color(180, 215, 250)
+                 ),
+                 new EmptyBorder(3, 10, 3, 10)
+         )
+ );
 
-        card.add(body, BorderLayout.CENTER);
-        return card;
-    }
+ badgePanelType.add(lblHeaderType);
 
-    private JLabel createAttrLabel(String text, boolean isTitle) {
-        JLabel lbl = new JLabel(text);
-        if (isTitle) {
-            lbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            lbl.setForeground(MUTED);
-        } else {
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lbl.setForeground(NAVY);
-        }
-        return lbl;
-    }
+ nameAndBadge.add(codeBadgeRow);
+ nameAndBadge.add(Box.createVerticalStrut(5));
+ nameAndBadge.add(lblHeaderName);
+ nameAndBadge.add(Box.createVerticalStrut(7));
+ nameAndBadge.add(badgePanelType);
+
+ topInfoPanel.add(nameAndBadge, BorderLayout.CENTER);
+//Thêm ảnh răng bên trái
+topInfoPanel.add(lblBigToothAvatar, BorderLayout.WEST);
+
+//Thêm thông tin mã, tên và loại răng bên phải
+topInfoPanel.add(nameAndBadge, BorderLayout.CENTER);
+
+ body.add(topInfoPanel);
+ body.add(Box.createVerticalStrut(12));
+
+ // ================= 4. BẢNG THÔNG TIN RĂNG =================
+
+ JPanel attrGrid = new JPanel(new GridBagLayout());
+ attrGrid.setOpaque(false);
+ attrGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+ // Viền ngoài bảng
+ attrGrid.setBorder(
+         BorderFactory.createLineBorder(BORDER)
+ );
+
+ String[] attrNames = {
+     "Mã răng",
+     "Tên răng",
+     "Hàm",
+     "Vị trí",
+     "Phân loại"
+ };
+
+ // Tạo các nhãn giá trị
+ lblCode = createAttrLabel("--", false);
+ lblName = createAttrLabel("--", false);
+ lblJaw = createAttrLabel("--", false);
+ lblPosition = createAttrLabel("--", false);
+ lblType = createAttrLabel("--", false);
+
+ JLabel[] attrValues = {
+     lblCode,
+     lblName,
+     lblJaw,
+     lblPosition,
+     lblType
+ };
+
+ // Tạo từng hàng và hai cột
+ for (int i = 0; i < attrNames.length; i++) {
+
+     GridBagConstraints gbc = new GridBagConstraints();
+
+     gbc.gridy = i;
+     gbc.fill = GridBagConstraints.BOTH;
+     gbc.weighty = 1;
+
+     // Cột tên thuộc tính: 35%
+     gbc.gridx = 0;
+     gbc.weightx = 0.35;
+     gbc.insets = new Insets(0, 0, 0, 0);
+
+     JPanel leftCell = createAttrCell();
+
+     JLabel nameLabel = createAttrLabel(
+             attrNames[i], true
+     );
+
+     leftCell.add(nameLabel, BorderLayout.CENTER);
+     attrGrid.add(leftCell, gbc);
+
+     // Cột giá trị: 65%
+     gbc.gridx = 1;
+     gbc.weightx = 0.65;
+
+     JPanel rightCell = createAttrCell();
+
+     rightCell.add(attrValues[i], BorderLayout.CENTER);
+     attrGrid.add(rightCell, gbc);
+ }
+
+ attrGrid.setPreferredSize(new Dimension(100, 175));
+ attrGrid.setMaximumSize(
+         new Dimension(Integer.MAX_VALUE, 175)
+ );
+
+ body.add(attrGrid);
+ body.add(Box.createVerticalStrut(12));
+
+ // ================= 5. THÔNG TIN CHUNG =================
+
+ JPanel infoBox = new JPanel(new BorderLayout(5, 7));
+
+ infoBox.setOpaque(true);
+ infoBox.setBackground(PASTEL_BLUE_BG);
+
+ infoBox.setBorder(
+         BorderFactory.createCompoundBorder(
+                 BorderFactory.createLineBorder(
+                         new Color(180, 215, 250)
+                 ),
+                 new EmptyBorder(10, 12, 10, 12)
+         )
+ );
+
+ infoBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+ infoBox.setPreferredSize(new Dimension(100, 95));
+ infoBox.setMaximumSize(
+         new Dimension(Integer.MAX_VALUE, 95)
+ );
+ infoBox.setMinimumSize(new Dimension(50, 95));
+
+ JLabel infoTitle = new JLabel("ℹ  Thông tin chung");
+
+ infoTitle.setFont(
+         new Font("Segoe UI", Font.BOLD, 14)
+ );
+ infoTitle.setForeground(NAVY);
+
+ lblDescription = new JLabel(
+         "<html><div style='width:300px'>"
+         + "Đây là dữ liệu răng chuẩn, dùng chung cho toàn hệ thống. "
+         + "Không phải thông tin tình trạng răng của bệnh nhân."
+         + "</div></html>"
+ );
+
+ lblDescription.setFont(
+         new Font("Segoe UI", Font.PLAIN, 13)
+ );
+ lblDescription.setForeground(NAVY);
+
+ infoBox.add(infoTitle, BorderLayout.NORTH);
+ infoBox.add(lblDescription, BorderLayout.CENTER);
+
+ body.add(infoBox);
+ body.add(Box.createVerticalStrut(10));
+
+ // ================= 6. MÔ TẢ THÊM =================
+
+ JPanel extraBox = new JPanel(new BorderLayout(5, 7));
+
+ extraBox.setOpaque(true);
+ extraBox.setBackground(Color.WHITE);
+
+ extraBox.setBorder(
+         BorderFactory.createCompoundBorder(
+                 BorderFactory.createLineBorder(BORDER),
+                 new EmptyBorder(10, 12, 10, 12)
+         )
+ );
+
+ extraBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+ extraBox.setPreferredSize(new Dimension(100, 100));
+ extraBox.setMaximumSize(
+         new Dimension(Integer.MAX_VALUE, 100)
+ );
+ extraBox.setMinimumSize(new Dimension(50, 100));
+
+ JLabel extraTitle = new JLabel("🦷  Mô tả thêm");
+
+ extraTitle.setFont(
+         new Font("Segoe UI", Font.BOLD, 14)
+ );
+ extraTitle.setForeground(NAVY);
+
+ lblDescExtra = new JLabel(
+         "<html><div style='width:300px'>"
+         + "Chưa có mô tả chi tiết cho răng này."
+         + "</div></html>"
+ );
+
+ lblDescExtra.setFont(
+         new Font("Segoe UI", Font.PLAIN, 13)
+ );
+ lblDescExtra.setForeground(MUTED);
+
+ extraBox.add(extraTitle, BorderLayout.NORTH);
+ extraBox.add(lblDescExtra, BorderLayout.CENTER);
+
+ body.add(extraBox);
+
+ // ================= 7. HOÀN TẤT =================
+
+ card.add(body, BorderLayout.CENTER);
+
+ return card;
+}
+
+
+//================= TẠO Ô BẢNG THÔNG TIN =================
+
+private JPanel createAttrCell() {
+
+ JPanel cell = new JPanel(new BorderLayout());
+ cell.setOpaque(false);
+
+ cell.setBorder(
+         BorderFactory.createCompoundBorder(
+                 BorderFactory.createMatteBorder(
+                         0, 0, 1, 1, BORDER
+                 ),
+                 new EmptyBorder(7, 12, 7, 8)
+         )
+ );
+
+ return cell;
+}
+
+
+//================= NHÃN THÔNG TIN =================
+
+private JLabel createAttrLabel(String text, boolean isTitle) {
+
+ JLabel lbl = new JLabel(text);
+
+ if (isTitle) {
+
+     lbl.setFont(
+             new Font("Segoe UI", Font.PLAIN, 13)
+     );
+     lbl.setForeground(MUTED);
+
+ } else {
+
+     lbl.setFont(
+             new Font("Segoe UI", Font.BOLD, 13)
+     );
+     lbl.setForeground(NAVY);
+
+ }
+
+ return lbl;
+}
 
     // ================= CARD 3: BẢNG DANH SÁCH RĂNG =================
 
