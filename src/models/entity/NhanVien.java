@@ -58,4 +58,9 @@ public class NhanVien {
                 ", mucLuong=" + mucLuong +
                 '}';
     }
+
+	public String getSdt() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
