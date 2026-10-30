@@ -74,7 +74,7 @@ public class StandardMedicinePanel extends JPanel {
         left.setOpaque(false);
 
         JLabel logo = new JLabel("", SwingConstants.CENTER);
-        ImageIcon logoIcon = loadImage("/img/medicine-icon.png", 48, 48);
+        ImageIcon logoIcon = loadImage("/img/logo3.png", 52, 52);
         if (logoIcon != null) {
             logo.setIcon(logoIcon);
         } else {
@@ -96,7 +96,7 @@ public class StandardMedicinePanel extends JPanel {
         title.setForeground(NAVY);
 
         JLabel subtitle = new JLabel("Quản lý danh mục thuốc sử dụng trong điều trị nha khoa");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         subtitle.setForeground(MUTED);
 
         titlePanel.add(title);
@@ -106,12 +106,9 @@ public class StandardMedicinePanel extends JPanel {
         left.add(logo);
         left.add(titlePanel);
 
-        JLabel breadcrumb = new JLabel("⌂   |   Danh mục   ›   Thuốc chuẩn");
-        breadcrumb.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        breadcrumb.setForeground(MUTED);
+       
 
         header.add(left, BorderLayout.WEST);
-        header.add(breadcrumb, BorderLayout.EAST);
         return header;
     }
 
