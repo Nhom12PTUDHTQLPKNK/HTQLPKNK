@@ -308,7 +308,7 @@ public class MenuFrame extends JFrame {
       // màn trắng
         addBlankCard(CARD_ACCOUNT_MANAGEMENT);
         mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
-        addBlankCard(CARD_MEDICINES);
+        mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
         addBlankCard(CARD_EXAMINATION);
         addBlankCard(CARD_TREATMENT_PLAN);
         addBlankCard(CARD_PRESCRIPTION);
