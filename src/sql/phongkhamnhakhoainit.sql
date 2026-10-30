@@ -1,7 +1,6 @@
 -- Kịch bản khởi tạo cơ sở dữ liệu QuanLyPhongKhamNhaKhoa (init.sql)
 
-USE master;
-GO
+
 
 -- Kiểm tra nếu database CHƯA TỒN TẠI thì mới tạo mới
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'QuanLyPhongKhamNhaKhoa')
@@ -159,38 +158,7 @@ BEGIN
     );
 END;
 
--- 9. Bảng Thuốc
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Thuoc')
-BEGIN
-    CREATE TABLE Thuoc (
-        maThuoc VARCHAR(20) PRIMARY KEY,
-        tenThuoc NVARCHAR(100) NOT NULL,
-        donViTinh NVARCHAR(20),
-        donGia FLOAT,
-        soLuongTon INT
-    );
-END;
 
--- 10. Bảng Đơn Thuốc
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DonThuoc')
-BEGIN
-    CREATE TABLE DonThuoc (
-        maDonThuoc VARCHAR(20) PRIMARY KEY,
-        maBenhAn VARCHAR(20),
-        maNhanVien VARCHAR(20),
-        maKhachHang VARCHAR(20),
-        maThuoc VARCHAR(20),
-        tenThuoc NVARCHAR(100),
-        ngayKe DATE,
-        ghiChu NVARCHAR(MAX),
-        soLuong INT,
-        cachDung NVARCHAR(MAX),
-        CONSTRAINT FK_DonThuoc_HoSoBenhAn FOREIGN KEY (maBenhAn) REFERENCES HoSoBenhAn(maBenhAn),
-        CONSTRAINT FK_DonThuoc_NhanVien FOREIGN KEY (maNhanVien) REFERENCES NhanVien(maNhanVien),
-        CONSTRAINT FK_DonThuoc_KhachHang FOREIGN KEY (maKhachHang) REFERENCES KhachHang(maKhachHang),
-        CONSTRAINT FK_DonThuoc_Thuoc FOREIGN KEY (maThuoc) REFERENCES Thuoc(maThuoc)
-    );
-END;
 
 -- 11. Bảng Vật Tư
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'VatTu')
@@ -275,8 +243,129 @@ IF COL_LENGTH('NhanVien', 'sdt') IS NULL
 GO
 
 
+--ĐỪNG AI XÓA THUỐC CỦA TÔI 
 
 
+
+-- Bảng NHOMTHUOC
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'NHOMTHUOC')
+BEGIN
+    CREATE TABLE NHOMTHUOC (
+        MaNhomThuoc VARCHAR(10) PRIMARY KEY,
+        TenNhomThuoc NVARCHAR(100) NOT NULL UNIQUE,
+        MoTa NVARCHAR(500)
+    );
+END
+GO
+
+-- Bảng DANGBAOCHE
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DANGBAOCHE')
+BEGIN
+    CREATE TABLE DANGBAOCHE (
+        MaDangBaoChe VARCHAR(10) PRIMARY KEY,
+        TenDangBaoChe NVARCHAR(100) NOT NULL UNIQUE,
+        MoTa NVARCHAR(255)
+    );
+END
+GO
+
+-- Bảng DUONGDUNG
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DUONGDUNG')
+BEGIN
+    CREATE TABLE DUONGDUNG (
+        MaDuongDung VARCHAR(10) PRIMARY KEY,
+        TenDuongDung NVARCHAR(100) NOT NULL UNIQUE,
+        MoTa NVARCHAR(255)
+    );
+END
+GO
+
+-- Bảng THUOC
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'THUOC')
+BEGIN
+    CREATE TABLE THUOC (
+        MaThuoc VARCHAR(20) PRIMARY KEY,
+        TenThuoc NVARCHAR(200) NOT NULL,
+        HoatChatChinh NVARCHAR(200) NOT NULL,
+        MaNhomThuoc VARCHAR(10) NOT NULL,
+        MaDangBaoChe VARCHAR(10) NOT NULL,
+        MaDuongDung VARCHAR(10) NOT NULL,
+        NhaSanXuat NVARCHAR(150),
+        NuocSanXuat NVARCHAR(100),
+        QuyCachDongGoi NVARCHAR(150),
+        MoTa NVARCHAR(1000),
+        HinhAnh NVARCHAR(500),
+        TrangThai BIT NOT NULL DEFAULT 1,
+
+        CONSTRAINT FK_THUOC_NHOMTHUOC
+            FOREIGN KEY (MaNhomThuoc)
+            REFERENCES NHOMTHUOC(MaNhomThuoc),
+
+        CONSTRAINT FK_THUOC_DANGBAOCHE
+            FOREIGN KEY (MaDangBaoChe)
+            REFERENCES DANGBAOCHE(MaDangBaoChe),
+
+        CONSTRAINT FK_THUOC_DUONGDUNG
+            FOREIGN KEY (MaDuongDung)
+            REFERENCES DUONGDUNG(MaDuongDung)
+    );
+END
+GO
+
+-- Bảng THUOCLIEUDUNG
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'THUOCLIEUDUNG')
+BEGIN
+    CREATE TABLE THUOCLIEUDUNG (
+        MaLieuDung INT IDENTITY(1,1) PRIMARY KEY,
+        MaThuoc VARCHAR(20) NOT NULL,
+        DoiTuong NVARCHAR(100) NOT NULL,
+        LieuDung NVARCHAR(500) NOT NULL,
+        TanSuat NVARCHAR(200),
+        ThoiGianSuDung NVARCHAR(200),
+        HuongDanSuDung NVARCHAR(1000),
+
+        CONSTRAINT FK_THUOCLIEUDUNG_THUOC
+            FOREIGN KEY (MaThuoc)
+            REFERENCES THUOC(MaThuoc)
+    );
+END
+GO
+
+-- Bảng THUOCCHIDINH
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'THUOCCHIDINH')
+BEGIN
+    CREATE TABLE THUOCCHIDINH (
+        MaChiDinh INT IDENTITY(1,1) PRIMARY KEY,
+        MaThuoc VARCHAR(20) NOT NULL,
+        NoiDungChiDinh NVARCHAR(1000) NOT NULL,
+
+        CONSTRAINT FK_THUOCCHIDINH_THUOC
+            FOREIGN KEY (MaThuoc)
+            REFERENCES THUOC(MaThuoc)
+    );
+END
+GO
+
+-- Bảng THUOCLUUY
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'THUOCLUUY')
+BEGIN
+    CREATE TABLE THUOCLUUY (
+        MaLuuY INT IDENTITY(1,1) PRIMARY KEY,
+        MaThuoc VARCHAR(20) NOT NULL,
+        LoaiLuuY NVARCHAR(100) NOT NULL,
+        NoiDung NVARCHAR(1000) NOT NULL,
+
+        CONSTRAINT FK_THUOCLUUY_THUOC
+            FOREIGN KEY (MaThuoc)
+            REFERENCES THUOC(MaThuoc)
+    );
+END
+GO
+
+
+
+SELECT * FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE';
 
 
 
@@ -377,22 +466,6 @@ INSERT (maDichVu, tenDichVu, donGia, moTa)
 VALUES (S.maDichVu, S.tenDichVu, S.donGia, S.moTa);
 GO
 
--- ============================================
--- 6. THUOC
--- ============================================
-MERGE INTO Thuoc AS T
-USING (VALUES
-('TH001', N'Paracetamol', N'Viên', 2000.0, 500),
-('TH002', N'Amoxicillin', N'Viên', 3000.0, 300),
-('TH003', N'Vitamin C', N'Viên', 1000.0, 400),
-('TH004', N'Nước súc miệng', N'Chai', 45000.0, 100),
-('TH005', N'Gel giảm đau răng', N'Tuýp', 35000.0, 80)
-) AS S(maThuoc, tenThuoc, donViTinh, donGia, soLuongTon)
-ON T.maThuoc = S.maThuoc
-WHEN NOT MATCHED THEN
-INSERT (maThuoc, tenThuoc, donViTinh, donGia, soLuongTon)
-VALUES (S.maThuoc, S.tenThuoc, S.donViTinh, S.donGia, S.soLuongTon);
-GO
 
 -- ============================================
 -- 7. VAT TU
@@ -559,25 +632,239 @@ INSERT (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThanhToan, hinhThucThanh
 VALUES (S.maPhieu, S.maHoaDon, S.maKhachHang, S.maNhanVien, S.ngayThanhToan, S.hinhThucThanhToan, S.daThanhToan, S.soTienConLai, S.ghiChu);
 GO
 
--- ============================================
--- 16. KIEM TRA DU LIEU SAU KHI INSERT
--- ============================================
-SELECT * FROM NhanVien;
-SELECT * FROM KhachHang;
-SELECT * FROM TaiKhoan;
-SELECT * FROM LichLamViec;
-SELECT * FROM LichHen;
-SELECT * FROM HoSoBenhAn;
-SELECT * FROM DichVu;
-SELECT * FROM KeHoachDieuTri;
-SELECT * FROM Thuoc;
-SELECT * FROM DonThuoc;
-SELECT * FROM VatTu;
-SELECT * FROM KhuyenMai;
-SELECT * FROM HoaDon;
-SELECT * FROM ChiTietHoaDon;
-SELECT * FROM PhieuThanhToan;
+-- INSERT NHOMTHUOC
+INSERT INTO NHOMTHUOC (MaNhomThuoc, TenNhomThuoc, MoTa)
+VALUES
+('NT001', N'Kháng sinh', N'Thuốc kháng khuẩn sử dụng trong điều trị nhiễm khuẩn răng miệng'),
+('NT002', N'Giảm đau - Hạ sốt', N'Thuốc hỗ trợ giảm đau và hạ sốt'),
+('NT003', N'Kháng viêm', N'Thuốc hỗ trợ kiểm soát tình trạng viêm'),
+('NT004', N'Sát khuẩn', N'Dung dịch sát khuẩn và vệ sinh khoang miệng'),
+('NT005', N'Gây tê nha khoa', N'Thuốc sử dụng trong gây tê khi thực hiện thủ thuật'),
+('NT006', N'Corticosteroid', N'Thuốc chống viêm corticosteroid');
 GO
+
+-- INSERT DANGBAOCHE
+INSERT INTO DANGBAOCHE (MaDangBaoChe, TenDangBaoChe, MoTa)
+VALUES
+('DBC001', N'Viên nén', N'Thuốc dạng viên nén'),
+('DBC002', N'Viên nang', N'Thuốc dạng viên nang'),
+('DBC003', N'Dung dịch', N'Thuốc dạng dung dịch'),
+('DBC004', N'Gel bôi', N'Thuốc dạng gel dùng tại chỗ'),
+('DBC005', N'Ống tiêm', N'Thuốc dạng dung dịch tiêm'),
+('DBC006', N'Viên sủi', N'Thuốc dạng viên sủi');
+GO
+
+-- INSERT DUONGDUNG
+INSERT INTO DUONGDUNG (MaDuongDung, TenDuongDung, MoTa)
+VALUES
+('DD001', N'Đường uống', N'Sử dụng thuốc qua đường uống'),
+('DD002', N'Súc miệng', N'Sử dụng bằng cách súc miệng'),
+('DD003', N'Dùng ngoài', N'Sử dụng trực tiếp tại vị trí cần điều trị'),
+('DD004', N'Tiêm', N'Sử dụng bằng đường tiêm theo chỉ định chuyên môn'),
+('DD005', N'Bôi tại chỗ', N'Sử dụng trực tiếp tại vùng cần điều trị');
+GO
+
+-- INSERT THUOC
+INSERT INTO THUOC (
+    MaThuoc, TenThuoc, HoatChatChinh,
+    MaNhomThuoc, MaDangBaoChe, MaDuongDung,
+    NhaSanXuat, NuocSanXuat, QuyCachDongGoi,
+    MoTa, HinhAnh, TrangThai
+)
+VALUES
+('TH001', N'Amoxicillin 500mg', N'Amoxicillin',
+ 'NT001', 'DBC001', 'DD001',
+ N'GSK', N'Việt Nam', N'Hộp 10 vỉ x 10 viên',
+ N'Kháng sinh nhóm Penicillin, sử dụng trong một số trường hợp nhiễm khuẩn răng miệng theo chỉ định nha sĩ.',
+ N'/img/thuoc/amoxicillin.png', 1),
+
+('TH002', N'Metronidazole 250mg', N'Metronidazole',
+ 'NT001', 'DBC001', 'DD001',
+ N'Domesco', N'Việt Nam', N'Hộp 10 vỉ x 10 viên',
+ N'Thuốc kháng khuẩn được sử dụng trong một số trường hợp nhiễm khuẩn kỵ khí.',
+ N'/img/thuoc/metronidazole.png', 1),
+
+('TH003', N'Clindamycin 300mg', N'Clindamycin',
+ 'NT001', 'DBC002', 'DD001',
+ N'Pfizer', N'Mỹ', N'Hộp 10 vỉ x 10 viên',
+ N'Kháng sinh nhóm Lincosamide, sử dụng theo chỉ định chuyên môn.',
+ N'/img/thuoc/clindamycin.png', 1),
+
+('TH004', N'Paracetamol 500mg', N'Paracetamol',
+ 'NT002', 'DBC001', 'DD001',
+ N'Stada', N'Việt Nam', N'Hộp 10 vỉ x 10 viên',
+ N'Thuốc giảm đau và hạ sốt.',
+ N'/img/thuoc/paracetamol.png', 1),
+
+('TH005', N'Ibuprofen 400mg', N'Ibuprofen',
+ 'NT003', 'DBC001', 'DD001',
+ N'Abbott', N'Mỹ', N'Hộp 10 vỉ x 10 viên',
+ N'Thuốc giảm đau, kháng viêm không steroid.',
+ N'/img/thuoc/ibuprofen.png', 1),
+
+('TH006', N'Chlorhexidine 0.12%', N'Chlorhexidine',
+ 'NT004', 'DBC003', 'DD002',
+ N'Colgate', N'Mỹ', N'Chai 250ml',
+ N'Dung dịch sát khuẩn khoang miệng, hỗ trợ kiểm soát mảng bám.',
+ N'/img/thuoc/chlorhexidine.png', 1),
+
+('TH007', N'Povidone Iodine 10%', N'Povidone Iodine',
+ 'NT004', 'DBC003', 'DD003',
+ N'Betadine', N'Việt Nam', N'Chai 100ml',
+ N'Dung dịch sát khuẩn dùng ngoài.',
+ N'/img/thuoc/povidone.png', 1),
+
+('TH008', N'Dexamethasone 0.5mg', N'Dexamethasone',
+ 'NT006', 'DBC001', 'DD001',
+ N'Pharbaco', N'Việt Nam', N'Hộp 10 vỉ x 10 viên',
+ N'Thuốc corticosteroid có tác dụng chống viêm.',
+ N'/img/thuoc/dexamethasone.png', 1),
+
+('TH009', N'Lidocaine 2%', N'Lidocaine',
+ 'NT005', 'DBC005', 'DD004',
+ N'Pharmaceutical', N'Việt Nam', N'Hộp ống tiêm',
+ N'Thuốc gây tê tại chỗ sử dụng trong thủ thuật nha khoa.',
+ N'/img/thuoc/lidocaine.png', 1),
+
+('TH010', N'Gel Lidocaine 2%', N'Lidocaine',
+ 'NT005', 'DBC004', 'DD005',
+ N'Pharmaceutical', N'Việt Nam', N'Tuýp 10g',
+ N'Chế phẩm gây tê tại chỗ dạng gel.',
+ N'/img/thuoc/gel-lidocaine.png', 1);
+GO
+
+-- Thêm dữ liệu bảng THUOCLIEUDUNG
+INSERT INTO THUOCLIEUDUNG
+(
+    MaThuoc,
+    DoiTuong,
+    LieuDung,
+    TanSuat,
+    ThoiGianSuDung,
+    HuongDanSuDung
+)
+VALUES
+(
+    'TH001',
+    N'Người lớn',
+    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
+    N'Theo chỉ định',
+    N'Theo liệu trình được kê đơn',
+    N'Uống thuốc theo đơn, tuân thủ đầy đủ liệu trình điều trị'
+),
+(
+    'TH002',
+    N'Người lớn',
+    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
+    N'Theo chỉ định',
+    N'Theo liệu trình được kê đơn',
+    N'Uống thuốc theo hướng dẫn của nhân viên y tế'
+),
+(
+    'TH003',
+    N'Người lớn',
+    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
+    N'Theo chỉ định',
+    N'Theo liệu trình được kê đơn',
+    N'Sử dụng đúng đơn thuốc, không tự ý ngừng thuốc'
+),
+(
+    'TH004',
+    N'Người lớn',
+    N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ',
+    N'Theo hướng dẫn',
+    N'Tùy tình trạng sử dụng',
+    N'Kiểm tra thành phần thuốc để tránh sử dụng đồng thời nhiều sản phẩm chứa Paracetamol'
+),
+(
+    'TH005',
+    N'Người lớn',
+    N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ',
+    N'Theo hướng dẫn',
+    N'Tùy tình trạng sử dụng',
+    N'Sử dụng theo hướng dẫn chuyên môn, lưu ý các chống chỉ định và cảnh báo của thuốc'
+),
+(
+    'TH006',
+    N'Người lớn',
+    N'Theo hướng dẫn trên sản phẩm hoặc chỉ định của nha sĩ',
+    N'Theo hướng dẫn',
+    N'Theo liệu trình chăm sóc răng miệng',
+    N'Dùng để súc miệng, không nuốt dung dịch'
+),
+(
+    'TH007',
+    N'Người lớn',
+    N'Theo chỉ định của nhân viên y tế',
+    N'Theo hướng dẫn',
+    N'Tùy mục đích sử dụng',
+    N'Dùng ngoài theo hướng dẫn chuyên môn, tránh tự ý sử dụng'
+),
+(
+    'TH008',
+    N'Người lớn',
+    N'Theo đơn kê của bác sĩ',
+    N'Theo chỉ định',
+    N'Theo liệu trình được kê đơn',
+    N'Không tự ý tăng giảm liều hoặc kéo dài thời gian sử dụng'
+),
+(
+    'TH009',
+    N'Người bệnh tại phòng khám',
+    N'Do nha sĩ hoặc nhân viên y tế xác định',
+    N'Tùy thủ thuật',
+    N'Tùy quy trình điều trị',
+    N'Thuốc tiêm gây tê, chỉ được sử dụng bởi nhân viên y tế có chuyên môn'
+),
+(
+    'TH010',
+    N'Người bệnh tại phòng khám',
+    N'Theo chỉ định của nha sĩ',
+    N'Tùy thủ thuật',
+    N'Tùy quy trình điều trị',
+    N'Gel gây tê tại chỗ, sử dụng theo hướng dẫn của nha sĩ'
+);
+
+-- INSERT THUOCCHIDINH
+INSERT INTO THUOCCHIDINH (MaThuoc, NoiDungChiDinh)
+VALUES
+('TH001', N'Một số trường hợp nhiễm khuẩn răng miệng do vi khuẩn nhạy cảm.'),
+('TH002', N'Một số trường hợp nhiễm khuẩn do vi khuẩn kỵ khí trong nha khoa.'),
+('TH003', N'Một số trường hợp nhiễm khuẩn răng miệng khi có chỉ định phù hợp.'),
+('TH004', N'Hỗ trợ giảm đau sau các thủ thuật nha khoa.'),
+('TH005', N'Hỗ trợ giảm đau và viêm trong một số tình trạng nha khoa.'),
+('TH006', N'Hỗ trợ kiểm soát vi khuẩn và mảng bám trong khoang miệng.'),
+('TH007', N'Sát khuẩn ngoài da theo chỉ định chuyên môn.'),
+('TH008', N'Một số tình trạng viêm cần điều trị bằng corticosteroid.'),
+('TH009', N'Gây tê tại chỗ trong các thủ thuật nha khoa.'),
+('TH010', N'Gây tê tại chỗ theo chỉ định chuyên môn.');
+GO
+
+-- INSERT THUOCLUUY
+INSERT INTO THUOCLUUY (MaThuoc, LoaiLuuY, NoiDung)
+VALUES
+('TH001', N'Chống chỉ định', N'Không sử dụng khi dị ứng với Penicillin hoặc thành phần thuốc.'),
+
+('TH002', N'Lưu ý', N'Cần kiểm tra tương tác thuốc và tình trạng sức khỏe của bệnh nhân.'),
+
+('TH003', N'Cảnh báo', N'Cần lưu ý nguy cơ viêm đại tràng liên quan đến kháng sinh.'),
+
+('TH004', N'Cảnh báo', N'Tránh sử dụng đồng thời nhiều chế phẩm có chứa Paracetamol vượt liều cho phép.'),
+
+('TH005', N'Chống chỉ định', N'Lưu ý tiền sử loét dạ dày, xuất huyết tiêu hóa và bệnh thận.'),
+
+('TH006', N'Lưu ý', N'Không nuốt dung dịch. Có thể gây thay đổi vị giác hoặc đổi màu răng tạm thời.'),
+
+('TH007', N'Cảnh báo', N'Tránh tiếp xúc với mắt và lưu ý tiền sử dị ứng Iodine.'),
+
+('TH008', N'Cảnh báo', N'Không tự ý sử dụng hoặc ngừng thuốc đột ngột.'),
+
+('TH009', N'Chống chỉ định', N'Cần kiểm tra dị ứng thuốc tê nhóm Amide và các yếu tố nguy cơ liên quan.'),
+
+('TH010', N'Lưu ý', N'Tránh sử dụng vượt quá hướng dẫn và cần đánh giá nguy cơ dị ứng.');
+GO
+
+
 
 
 
