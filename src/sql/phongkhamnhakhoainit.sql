@@ -632,46 +632,67 @@ INSERT (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThanhToan, hinhThucThanh
 VALUES (S.maPhieu, S.maHoaDon, S.maKhachHang, S.maNhanVien, S.ngayThanhToan, S.hinhThucThanhToan, S.daThanhToan, S.soTienConLai, S.ghiChu);
 GO
 
--- INSERT NHOMTHUOC
-INSERT INTO NHOMTHUOC (MaNhomThuoc, TenNhomThuoc, MoTa)
-VALUES
-('NT001', N'Kháng sinh', N'Thuốc kháng khuẩn sử dụng trong điều trị nhiễm khuẩn răng miệng'),
-('NT002', N'Giảm đau - Hạ sốt', N'Thuốc hỗ trợ giảm đau và hạ sốt'),
-('NT003', N'Kháng viêm', N'Thuốc hỗ trợ kiểm soát tình trạng viêm'),
-('NT004', N'Sát khuẩn', N'Dung dịch sát khuẩn và vệ sinh khoang miệng'),
-('NT005', N'Gây tê nha khoa', N'Thuốc sử dụng trong gây tê khi thực hiện thủ thuật'),
-('NT006', N'Corticosteroid', N'Thuốc chống viêm corticosteroid');
+
+USE QuanLyPhongKhamNhaKhoa;
 GO
 
--- INSERT DANGBAOCHE
-INSERT INTO DANGBAOCHE (MaDangBaoChe, TenDangBaoChe, MoTa)
-VALUES
-('DBC001', N'Viên nén', N'Thuốc dạng viên nén'),
-('DBC002', N'Viên nang', N'Thuốc dạng viên nang'),
-('DBC003', N'Dung dịch', N'Thuốc dạng dung dịch'),
-('DBC004', N'Gel bôi', N'Thuốc dạng gel dùng tại chỗ'),
-('DBC005', N'Ống tiêm', N'Thuốc dạng dung dịch tiêm'),
-('DBC006', N'Viên sủi', N'Thuốc dạng viên sủi');
+-- nhóm thuốc 
+MERGE INTO NHOMTHUOC AS T
+USING (VALUES
+    ('NT001', N'Kháng sinh', N'Thuốc kháng khuẩn sử dụng trong điều trị nhiễm khuẩn răng miệng'),
+    ('NT002', N'Giảm đau - Hạ sốt', N'Thuốc hỗ trợ giảm đau và hạ sốt'),
+    ('NT003', N'Kháng viêm', N'Thuốc hỗ trợ kiểm soát tình trạng viêm'),
+    ('NT004', N'Sát khuẩn', N'Dung dịch sát khuẩn và vệ sinh khoang miệng'),
+    ('NT005', N'Gây tê nha khoa', N'Thuốc sử dụng trong gây tê khi thực hiện thủ thuật'),
+    ('NT006', N'Corticosteroid', N'Thuốc chống viêm corticosteroid')
+) AS S(MaNhomThuoc, TenNhomThuoc, MoTa)
+ON T.MaNhomThuoc = S.MaNhomThuoc
+WHEN NOT MATCHED THEN
+    INSERT (MaNhomThuoc, TenNhomThuoc, MoTa)
+    VALUES (S.MaNhomThuoc, S.TenNhomThuoc, S.MoTa);
 GO
 
--- INSERT DUONGDUNG
-INSERT INTO DUONGDUNG (MaDuongDung, TenDuongDung, MoTa)
-VALUES
-('DD001', N'Đường uống', N'Sử dụng thuốc qua đường uống'),
-('DD002', N'Súc miệng', N'Sử dụng bằng cách súc miệng'),
-('DD003', N'Dùng ngoài', N'Sử dụng trực tiếp tại vị trí cần điều trị'),
-('DD004', N'Tiêm', N'Sử dụng bằng đường tiêm theo chỉ định chuyên môn'),
-('DD005', N'Bôi tại chỗ', N'Sử dụng trực tiếp tại vùng cần điều trị');
+-- ============================================
+-- 2. DANGBAOCHE
+-- ============================================
+MERGE INTO DANGBAOCHE AS T
+USING (VALUES
+    ('DBC001', N'Viên nén', N'Thuốc dạng viên nén'),
+    ('DBC002', N'Viên nang', N'Thuốc dạng viên nang'),
+    ('DBC003', N'Dung dịch', N'Thuốc dạng dung dịch'),
+    ('DBC004', N'Gel bôi', N'Thuốc dạng gel dùng tại chỗ'),
+    ('DBC005', N'Ống tiêm', N'Thuốc dạng dung dịch tiêm'),
+    ('DBC006', N'Viên sủi', N'Thuốc dạng viên sủi')
+) AS S(MaDangBaoChe, TenDangBaoChe, MoTa)
+ON T.MaDangBaoChe = S.MaDangBaoChe
+WHEN NOT MATCHED THEN
+    INSERT (MaDangBaoChe, TenDangBaoChe, MoTa)
+    VALUES (S.MaDangBaoChe, S.TenDangBaoChe, S.MoTa);
 GO
 
--- INSERT THUOC
-INSERT INTO THUOC (
-    MaThuoc, TenThuoc, HoatChatChinh,
-    MaNhomThuoc, MaDangBaoChe, MaDuongDung,
-    NhaSanXuat, NuocSanXuat, QuyCachDongGoi,
-    MoTa, HinhAnh, TrangThai
-)
-VALUES
+-- ============================================
+-- 3. DUONGDUNG
+-- ============================================
+MERGE INTO DUONGDUNG AS T
+USING (VALUES
+    ('DD001', N'Đường uống', N'Sử dụng thuốc qua đường uống'),
+    ('DD002', N'Súc miệng', N'Sử dụng bằng cách súc miệng'),
+    ('DD003', N'Dùng ngoài', N'Sử dụng trực tiếp tại vị trí cần điều trị'),
+    ('DD004', N'Tiêm', N'Sử dụng bằng đường tiêm theo chỉ định chuyên môn'),
+    ('DD005', N'Bôi tại chỗ', N'Sử dụng trực tiếp tại vùng cần điều trị')
+) AS S(MaDuongDung, TenDuongDung, MoTa)
+ON T.MaDuongDung = S.MaDuongDung
+WHEN NOT MATCHED THEN
+    INSERT (MaDuongDung, TenDuongDung, MoTa)
+    VALUES (S.MaDuongDung, S.TenDuongDung, S.MoTa);
+GO
+
+-- ============================================
+-- 4. THUOC
+-- ============================================
+MERGE INTO THUOC AS T
+USING (VALUES
+
 ('TH001', N'Amoxicillin 500mg', N'Amoxicillin',
  'NT001', 'DBC001', 'DD001',
  N'GSK', N'Việt Nam', N'Hộp 10 vỉ x 10 viên',
@@ -730,104 +751,62 @@ VALUES
  'NT005', 'DBC004', 'DD005',
  N'Pharmaceutical', N'Việt Nam', N'Tuýp 10g',
  N'Chế phẩm gây tê tại chỗ dạng gel.',
- N'/img/thuoc/gel-lidocaine.png', 1);
+ N'/img/thuoc/gel-lidocaine.png', 1)
+
+) AS S(
+    MaThuoc, TenThuoc, HoatChatChinh,
+    MaNhomThuoc, MaDangBaoChe, MaDuongDung,
+    NhaSanXuat, NuocSanXuat, QuyCachDongGoi,
+    MoTa, HinhAnh, TrangThai
+)
+ON T.MaThuoc = S.MaThuoc
+WHEN NOT MATCHED THEN
+    INSERT (
+        MaThuoc, TenThuoc, HoatChatChinh,
+        MaNhomThuoc, MaDangBaoChe, MaDuongDung,
+        NhaSanXuat, NuocSanXuat, QuyCachDongGoi,
+        MoTa, HinhAnh, TrangThai
+    )
+    VALUES (
+        S.MaThuoc, S.TenThuoc, S.HoatChatChinh,
+        S.MaNhomThuoc, S.MaDangBaoChe, S.MaDuongDung,
+        S.NhaSanXuat, S.NuocSanXuat, S.QuyCachDongGoi,
+        S.MoTa, S.HinhAnh, S.TrangThai
+    );
 GO
 
--- Thêm dữ liệu bảng THUOCLIEUDUNG
+-- ============================================
+-- 5. THUOCLIEUDUNG
+-- Mỗi thuốc chỉ thêm dữ liệu mẫu một lần
+-- ============================================
 INSERT INTO THUOCLIEUDUNG
-(
-    MaThuoc,
-    DoiTuong,
-    LieuDung,
-    TanSuat,
-    ThoiGianSuDung,
-    HuongDanSuDung
-)
-VALUES
-(
-    'TH001',
-    N'Người lớn',
-    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
-    N'Theo chỉ định',
-    N'Theo liệu trình được kê đơn',
-    N'Uống thuốc theo đơn, tuân thủ đầy đủ liệu trình điều trị'
-),
-(
-    'TH002',
-    N'Người lớn',
-    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
-    N'Theo chỉ định',
-    N'Theo liệu trình được kê đơn',
-    N'Uống thuốc theo hướng dẫn của nhân viên y tế'
-),
-(
-    'TH003',
-    N'Người lớn',
-    N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn',
-    N'Theo chỉ định',
-    N'Theo liệu trình được kê đơn',
-    N'Sử dụng đúng đơn thuốc, không tự ý ngừng thuốc'
-),
-(
-    'TH004',
-    N'Người lớn',
-    N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ',
-    N'Theo hướng dẫn',
-    N'Tùy tình trạng sử dụng',
-    N'Kiểm tra thành phần thuốc để tránh sử dụng đồng thời nhiều sản phẩm chứa Paracetamol'
-),
-(
-    'TH005',
-    N'Người lớn',
-    N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ',
-    N'Theo hướng dẫn',
-    N'Tùy tình trạng sử dụng',
-    N'Sử dụng theo hướng dẫn chuyên môn, lưu ý các chống chỉ định và cảnh báo của thuốc'
-),
-(
-    'TH006',
-    N'Người lớn',
-    N'Theo hướng dẫn trên sản phẩm hoặc chỉ định của nha sĩ',
-    N'Theo hướng dẫn',
-    N'Theo liệu trình chăm sóc răng miệng',
-    N'Dùng để súc miệng, không nuốt dung dịch'
-),
-(
-    'TH007',
-    N'Người lớn',
-    N'Theo chỉ định của nhân viên y tế',
-    N'Theo hướng dẫn',
-    N'Tùy mục đích sử dụng',
-    N'Dùng ngoài theo hướng dẫn chuyên môn, tránh tự ý sử dụng'
-),
-(
-    'TH008',
-    N'Người lớn',
-    N'Theo đơn kê của bác sĩ',
-    N'Theo chỉ định',
-    N'Theo liệu trình được kê đơn',
-    N'Không tự ý tăng giảm liều hoặc kéo dài thời gian sử dụng'
-),
-(
-    'TH009',
-    N'Người bệnh tại phòng khám',
-    N'Do nha sĩ hoặc nhân viên y tế xác định',
-    N'Tùy thủ thuật',
-    N'Tùy quy trình điều trị',
-    N'Thuốc tiêm gây tê, chỉ được sử dụng bởi nhân viên y tế có chuyên môn'
-),
-(
-    'TH010',
-    N'Người bệnh tại phòng khám',
-    N'Theo chỉ định của nha sĩ',
-    N'Tùy thủ thuật',
-    N'Tùy quy trình điều trị',
-    N'Gel gây tê tại chỗ, sử dụng theo hướng dẫn của nha sĩ'
+(MaThuoc, DoiTuong, LieuDung, TanSuat, ThoiGianSuDung, HuongDanSuDung)
+SELECT S.MaThuoc, S.DoiTuong, S.LieuDung,
+       S.TanSuat, S.ThoiGianSuDung, S.HuongDanSuDung
+FROM (VALUES
+('TH001', N'Người lớn', N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn', N'Theo chỉ định', N'Theo liệu trình được kê đơn', N'Uống thuốc theo đơn, tuân thủ đầy đủ liệu trình điều trị'),
+('TH002', N'Người lớn', N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn', N'Theo chỉ định', N'Theo liệu trình được kê đơn', N'Uống thuốc theo hướng dẫn của nhân viên y tế'),
+('TH003', N'Người lớn', N'Theo liều lượng được nha sĩ hoặc bác sĩ kê đơn', N'Theo chỉ định', N'Theo liệu trình được kê đơn', N'Sử dụng đúng đơn thuốc, không tự ý ngừng thuốc'),
+('TH004', N'Người lớn', N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ', N'Theo hướng dẫn', N'Tùy tình trạng sử dụng', N'Kiểm tra thành phần thuốc để tránh sử dụng đồng thời nhiều sản phẩm chứa Paracetamol'),
+('TH005', N'Người lớn', N'Theo hướng dẫn sử dụng hoặc chỉ định của bác sĩ', N'Theo hướng dẫn', N'Tùy tình trạng sử dụng', N'Sử dụng theo hướng dẫn chuyên môn, lưu ý các chống chỉ định và cảnh báo của thuốc'),
+('TH006', N'Người lớn', N'Theo hướng dẫn trên sản phẩm hoặc chỉ định của nha sĩ', N'Theo hướng dẫn', N'Theo liệu trình chăm sóc răng miệng', N'Dùng để súc miệng, không nuốt dung dịch'),
+('TH007', N'Người lớn', N'Theo chỉ định của nhân viên y tế', N'Theo hướng dẫn', N'Tùy mục đích sử dụng', N'Dùng ngoài theo hướng dẫn chuyên môn, tránh tự ý sử dụng'),
+('TH008', N'Người lớn', N'Theo đơn kê của bác sĩ', N'Theo chỉ định', N'Theo liệu trình được kê đơn', N'Không tự ý tăng giảm liều hoặc kéo dài thời gian sử dụng'),
+('TH009', N'Người bệnh tại phòng khám', N'Do nha sĩ hoặc nhân viên y tế xác định', N'Tùy thủ thuật', N'Tùy quy trình điều trị', N'Thuốc tiêm gây tê, chỉ được sử dụng bởi nhân viên y tế có chuyên môn'),
+('TH010', N'Người bệnh tại phòng khám', N'Theo chỉ định của nha sĩ', N'Tùy thủ thuật', N'Tùy quy trình điều trị', N'Gel gây tê tại chỗ, sử dụng theo hướng dẫn của nha sĩ')
+) AS S(MaThuoc, DoiTuong, LieuDung, TanSuat, ThoiGianSuDung, HuongDanSuDung)
+WHERE NOT EXISTS (
+    SELECT 1 FROM THUOCLIEUDUNG T
+    WHERE T.MaThuoc = S.MaThuoc
 );
+GO
 
--- INSERT THUOCCHIDINH
+-- ============================================
+-- 6. THUOCCHIDINH
+-- ============================================
 INSERT INTO THUOCCHIDINH (MaThuoc, NoiDungChiDinh)
-VALUES
+SELECT S.MaThuoc, S.NoiDungChiDinh
+FROM (VALUES
 ('TH001', N'Một số trường hợp nhiễm khuẩn răng miệng do vi khuẩn nhạy cảm.'),
 ('TH002', N'Một số trường hợp nhiễm khuẩn do vi khuẩn kỵ khí trong nha khoa.'),
 ('TH003', N'Một số trường hợp nhiễm khuẩn răng miệng khi có chỉ định phù hợp.'),
@@ -837,33 +816,36 @@ VALUES
 ('TH007', N'Sát khuẩn ngoài da theo chỉ định chuyên môn.'),
 ('TH008', N'Một số tình trạng viêm cần điều trị bằng corticosteroid.'),
 ('TH009', N'Gây tê tại chỗ trong các thủ thuật nha khoa.'),
-('TH010', N'Gây tê tại chỗ theo chỉ định chuyên môn.');
+('TH010', N'Gây tê tại chỗ theo chỉ định chuyên môn.')
+) AS S(MaThuoc, NoiDungChiDinh)
+WHERE NOT EXISTS (
+    SELECT 1 FROM THUOCCHIDINH T
+    WHERE T.MaThuoc = S.MaThuoc
+);
 GO
 
--- INSERT THUOCLUUY
+-- ============================================
+-- 7. THUOCLUUY
+-- ============================================
 INSERT INTO THUOCLUUY (MaThuoc, LoaiLuuY, NoiDung)
-VALUES
+SELECT S.MaThuoc, S.LoaiLuuY, S.NoiDung
+FROM (VALUES
 ('TH001', N'Chống chỉ định', N'Không sử dụng khi dị ứng với Penicillin hoặc thành phần thuốc.'),
-
 ('TH002', N'Lưu ý', N'Cần kiểm tra tương tác thuốc và tình trạng sức khỏe của bệnh nhân.'),
-
 ('TH003', N'Cảnh báo', N'Cần lưu ý nguy cơ viêm đại tràng liên quan đến kháng sinh.'),
-
 ('TH004', N'Cảnh báo', N'Tránh sử dụng đồng thời nhiều chế phẩm có chứa Paracetamol vượt liều cho phép.'),
-
 ('TH005', N'Chống chỉ định', N'Lưu ý tiền sử loét dạ dày, xuất huyết tiêu hóa và bệnh thận.'),
-
 ('TH006', N'Lưu ý', N'Không nuốt dung dịch. Có thể gây thay đổi vị giác hoặc đổi màu răng tạm thời.'),
-
 ('TH007', N'Cảnh báo', N'Tránh tiếp xúc với mắt và lưu ý tiền sử dị ứng Iodine.'),
-
 ('TH008', N'Cảnh báo', N'Không tự ý sử dụng hoặc ngừng thuốc đột ngột.'),
-
 ('TH009', N'Chống chỉ định', N'Cần kiểm tra dị ứng thuốc tê nhóm Amide và các yếu tố nguy cơ liên quan.'),
-
-('TH010', N'Lưu ý', N'Tránh sử dụng vượt quá hướng dẫn và cần đánh giá nguy cơ dị ứng.');
+('TH010', N'Lưu ý', N'Tránh sử dụng vượt quá hướng dẫn và cần đánh giá nguy cơ dị ứng.')
+) AS S(MaThuoc, LoaiLuuY, NoiDung)
+WHERE NOT EXISTS (
+    SELECT 1 FROM THUOCLUUY T
+    WHERE T.MaThuoc = S.MaThuoc
+);
 GO
-
 
 
 
@@ -878,3 +860,9 @@ SELECT COUNT(*) AS TongHoaDon FROM HoaDon;
 
 SELECT * FROM KhachHang;
 SELECT * FROM NhanVien;
+
+
+IF NOT EXISTS (SELECT 1 FROM NHOMTHUOC WHERE MaNhomThuoc = 'NT001')
+BEGIN
+    INSERT INTO NHOMTHUOC (MaNhomThuoc, TenNhomThuoc) VALUES ('NT001', 'Kháng sinh')
+END
