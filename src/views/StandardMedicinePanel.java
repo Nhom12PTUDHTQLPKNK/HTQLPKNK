@@ -38,7 +38,6 @@ public class StandardMedicinePanel extends JPanel {
     private DefaultTableModel tableModel;
     private JTable medicineTable;
     private JComboBox<String> cbGroup, cbForm, cbRoute, cbStatus;
-    private JComboBox<Integer> cbPageSize;
     private JTextField txtSearch;
     private JLabel lblMedicineCode, lblMedicineName, lblActiveIngredient, lblStatus, lblImage, lblRowCount, lblPage;
     private JLabel[] generalValues, dosageValues;
@@ -61,7 +60,6 @@ public class StandardMedicinePanel extends JPanel {
         content.add(createMainContent(), BorderLayout.CENTER);
         add(content, BorderLayout.CENTER);
 
-        // Tải dữ liệu trực tiếp từ SQL Server khi khởi tạo
         loadMedicinesFromDatabase();
         applyFilter();
     }
@@ -126,33 +124,14 @@ public class StandardMedicinePanel extends JPanel {
         filters.setOpaque(false);
 
         cbGroup = new JComboBox<String>(new String[]{
-        	    "Tất cả",
-        	    "Kháng sinh",
-        	    "Giảm đau - Hạ sốt",
-        	    "Kháng viêm",
-        	    "Sát khuẩn",
-        	    "Gây tê nha khoa",
-        	    "Corticosteroid"
-        	});
-        
+            "Tất cả", "Kháng sinh", "Giảm đau - Hạ sốt", "Kháng viêm", "Sát khuẩn", "Gây tê nha khoa", "Corticosteroid"
+        });
         cbForm = new JComboBox<String>(new String[]{
-        	    "Tất cả",
-        	    "Viên nén",
-        	    "Viên nang",
-        	    "Dung dịch",
-        	    "Gel bôi",
-        	    "Ống tiêm",
-        	    "Viên sủi"
-        	});
+            "Tất cả", "Viên nén", "Viên nang", "Dung dịch", "Gel bôi", "Ống tiêm", "Viên sủi"
+        });
         cbRoute = new JComboBox<String>(new String[]{
-        	    "Tất cả",
-        	    "Đường uống",
-        	    "Súc miệng",
-        	    "Dùng ngoài",
-        	    "Tiêm",
-        	    "Bôi tại chỗ"
-        	});
-        
+            "Tất cả", "Đường uống", "Súc miệng", "Dùng ngoài", "Tiêm", "Bôi tại chỗ"
+        });
         cbStatus = new JComboBox<String>(new String[]{"Tất cả", "Đang kinh doanh", "Ngừng kinh doanh"});
 
         styleCombo(cbGroup);
@@ -291,49 +270,36 @@ public class StandardMedicinePanel extends JPanel {
             if (medicine != null) showMedicine(medicine);
         });
 
-        // Xử lý sự kiện nút Thêm thuốc
-        btnAdd.addActionListener(e -> showNotConnectedMessage("Thêm thuốc"));
+        btnAdd.addActionListener(e -> openMedicineDialog(null));
 
-        // Xử lý sự kiện nút Sửa thuốc
         btnEdit.addActionListener(e -> {
-            if (selectedMedicine == null) showSelectMessage();
-            else showNotConnectedMessage("Sửa thuốc");
+            if (selectedMedicine == null) {
+                showSelectMessage();
+                return;
+            }
+            openMedicineDialog(selectedMedicine);
         });
 
-        // Xử lý sự kiện nút Xóa thuốc (Đã tích hợp mẫu lệnh SQL DELETE trực tiếp nếu muốn dùng)
         btnDelete.addActionListener(e -> {
-            if (selectedMedicine == null) { 
-                showSelectMessage(); 
-                return; 
+            if (selectedMedicine == null) {
+                showSelectMessage();
+                return;
             }
+
             int confirm = JOptionPane.showConfirmDialog(
-                this, 
-                "Bạn có chắc chắn muốn xóa thuốc " + selectedMedicine.name + "?", 
-                "Xác nhận xóa", 
-                JOptionPane.YES_NO_OPTION
+                this,
+                "Bạn có chắc chắn muốn xóa thuốc " + selectedMedicine.name + " (" + selectedMedicine.code + ")?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
             );
+
             if (confirm == JOptionPane.YES_OPTION) {
-                String sql = "DELETE FROM THUOC WHERE MaThuoc = ?";
-                try (Connection conn = DBConnection.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setString(1, selectedMedicine.code);
-                    int affectedRows = pstmt.executeUpdate();
-                    if (affectedRows > 0) {
-                        JOptionPane.showMessageDialog(this, "Xóa thuốc thành công!");
-                        loadMedicinesFromDatabase();
-                    }
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "Không thể xóa thuốc này vì đang được sử dụng ở bảng khác!", "Lỗi SQL", JOptionPane.ERROR_MESSAGE);
-                }
+                deleteMedicine(selectedMedicine.code);
             }
         });
 
-        btnRefresh.addActionListener(e -> {
-            cbGroup.setSelectedIndex(0); cbForm.setSelectedIndex(0); cbRoute.setSelectedIndex(0); cbStatus.setSelectedIndex(0);
-            txtSearch.setText(""); currentPage = 1; medicineTable.clearSelection(); clearDetail();
-            loadMedicinesFromDatabase();
-        });
+        btnRefresh.addActionListener(e -> loadMedicinesFromDatabase());
 
         return card;
     }
@@ -361,26 +327,11 @@ public class StandardMedicinePanel extends JPanel {
         pages.add(lblPage);
         pages.add(btnNext);
 
-        JLabel pageSizeLabel = new JLabel("Số dòng/trang:");
-        pageSizeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        pageSizeLabel.setForeground(MUTED);
-
-        cbPageSize = new JComboBox<Integer>(new Integer[]{10, 16, 25, 50});
-        cbPageSize.setSelectedItem(16);
-        styleCombo(cbPageSize);
-
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 7, 0));
-        right.setOpaque(false);
-        right.add(pageSizeLabel);
-        right.add(cbPageSize);
-
         bottom.add(lblRowCount, BorderLayout.WEST);
         bottom.add(pages, BorderLayout.CENTER);
-        bottom.add(right, BorderLayout.EAST);
 
         btnPrevious.addActionListener(e -> { if (currentPage > 1) { currentPage--; updateTable(); } });
         btnNext.addActionListener(e -> { if (currentPage < getTotalPages()) { currentPage++; updateTable(); } });
-        cbPageSize.addActionListener(e -> { pageSize = (Integer) cbPageSize.getSelectedItem(); currentPage = 1; updateTable(); });
 
         return bottom;
     }
@@ -402,8 +353,11 @@ public class StandardMedicinePanel extends JPanel {
 
         JButton btnEdit = createButton("✎  Sửa", false);
         btnEdit.addActionListener(e -> {
-            if (selectedMedicine == null) showSelectMessage();
-            else showNotConnectedMessage("Sửa thuốc");
+            if (selectedMedicine == null) {
+                showSelectMessage();
+            } else {
+                openMedicineDialog(selectedMedicine);
+            }
         });
 
         heading.add(title, BorderLayout.WEST);
@@ -652,9 +606,8 @@ public class StandardMedicinePanel extends JPanel {
 
         int total = filteredMedicines.size();
         int totalPages = getTotalPages();
-        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 
-        // Đã sửa lại lỗi cú pháp ngắt dòng ở đây
         int start = (currentPage - 1) * pageSize;
         int end = Math.min(start + pageSize, total);
 
@@ -714,37 +667,26 @@ public class StandardMedicinePanel extends JPanel {
             ResultSet rs = pstmt.executeQuery()
         ) {
 
-            Map<String, MedicineData> medicineMap =
-                new LinkedHashMap<String, MedicineData>();
+            Map<String, MedicineData> medicineMap = new LinkedHashMap<String, MedicineData>();
 
             while (rs.next()) {
-
                 String code = rs.getString("MaThuoc");
-
                 MedicineData m = medicineMap.get(code);
 
                 if (m == null) {
-
                     m = new MedicineData();
-
                     m.code = code;
                     m.name = rs.getString("TenThuoc");
                     m.activeIngredient = rs.getString("HoatChatChinh");
-
                     m.group = rs.getString("TenNhomThuoc");
                     m.form = rs.getString("TenDangBaoChe");
                     m.route = rs.getString("TenDuongDung");
-
                     m.manufacturer = rs.getString("NhaSanXuat");
                     m.country = rs.getString("NuocSanXuat");
                     m.packageInfo = rs.getString("QuyCachDongGoi");
-
                     m.description = rs.getString("MoTa");
                     m.imagePath = rs.getString("HinhAnh");
-
-                    m.status = rs.getBoolean("TrangThai")
-                        ? "Đang kinh doanh"
-                        : "Ngừng kinh doanh";
+                    m.status = rs.getBoolean("TrangThai") ? "Đang kinh doanh" : "Ngừng kinh doanh";
 
                     m.adultDosage = "";
                     m.childDosage = "";
@@ -757,7 +699,6 @@ public class StandardMedicinePanel extends JPanel {
                     medicineMap.put(code, m);
                 }
 
-                // LIỀU DÙNG
                 String doiTuong = rs.getString("DoiTuong");
                 String lieuDung = rs.getString("LieuDung");
 
@@ -773,33 +714,21 @@ public class StandardMedicinePanel extends JPanel {
                 m.duration = appendText(m.duration, rs.getString("ThoiGianSuDung"));
                 m.dosageNote = appendText(m.dosageNote, rs.getString("HuongDanSuDung"));
 
-                // CHỈ ĐỊNH
                 m.indication = appendText(m.indication, rs.getString("NoiDungChiDinh"));
 
-                // LƯU Ý VÀ CHỐNG CHỈ ĐỊNH
                 String loaiLuuY = rs.getString("LoaiLuuY");
                 String noiDung = rs.getString("NoiDungLuuY");
 
                 if (noiDung != null) {
-                    m.caution = appendText(
-                        m.caution,
-                        (loaiLuuY == null ? "" : loaiLuuY + ": ") + noiDung
-                    );
+                    m.caution = appendText(m.caution, (loaiLuuY == null ? "" : loaiLuuY + ": ") + noiDung);
                 }
             }
 
             medicines.addAll(medicineMap.values());
 
-            System.out.println("Đã tải thành công " + medicines.size() + " thuốc từ SQL Server!");
-
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                this,
-                "Lỗi tải dữ liệu thuốc: " + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu thuốc: " + e.getMessage(), "Lỗi SQL", JOptionPane.ERROR_MESSAGE);
         }
 
         if (medicineTable != null) {
@@ -823,7 +752,6 @@ public class StandardMedicinePanel extends JPanel {
         return oldText + "\n" + newText;
     }
 
-    // ================= FIND MEDICINE =================
     private MedicineData findMedicine(String code) {
         for (MedicineData m : medicines) {
             if (safe(m.code).equals(code)) return m;
@@ -831,7 +759,6 @@ public class StandardMedicinePanel extends JPanel {
         return null;
     }
 
-    // ================= DISPLAY MEDICINE DETAIL =================
     private void showMedicine(MedicineData m) {
         selectedMedicine = m;
 
@@ -863,7 +790,6 @@ public class StandardMedicinePanel extends JPanel {
         }
     }
 
-    // ================= CLEAR DETAIL =================
     private void clearDetail() {
         selectedMedicine = null;
         if (lblMedicineCode == null) return;
@@ -884,6 +810,189 @@ public class StandardMedicinePanel extends JPanel {
         txtCaution.setText("");
         lblImage.setIcon(null);
         lblImage.setText("");
+    }
+
+ // ================= DIALOG THÊM / SỬA THUỐC (LOAD ĐỘNG TỪ CSDL) =================
+    private void openMedicineDialog(MedicineData medicine) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
+            medicine == null ? "Thêm thuốc mới" : "Cập nhật thông tin thuốc", true);
+        dialog.setSize(480, 520);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        JPanel formPanel = new JPanel(new GridLayout(8, 2, 10, 10));
+        formPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        JTextField tfCode = new JTextField(medicine != null ? medicine.code : "");
+        JTextField tfName = new JTextField(medicine != null ? medicine.name : "");
+        JTextField tfActive = new JTextField(medicine != null ? medicine.activeIngredient : "");
+        
+        JComboBox<ComboboxItem> cbGroupDialog = new JComboBox<>();
+        JComboBox<ComboboxItem> cbFormDialog = new JComboBox<>();
+        JComboBox<ComboboxItem> cbRouteDialog = new JComboBox<>();
+
+        // Load dữ liệu thực tế từ CSDL vào các ComboBox trong Dialog
+        loadComboboxData("SELECT MaNhomThuoc, TenNhomThuoc FROM NHOMTHUOC", cbGroupDialog);
+        loadComboboxData("SELECT MaDangBaoChe, TenDangBaoChe FROM DANGBAOCHE", cbFormDialog);
+        loadComboboxData("SELECT MaDuongDung, TenDuongDung FROM DUONGDUNG", cbRouteDialog);
+
+        JTextField tfManuf = new JTextField(medicine != null ? medicine.manufacturer : "");
+        JTextField tfCountry = new JTextField(medicine != null ? medicine.country : "");
+        
+        if (medicine != null) {
+            tfCode.setEditable(false);
+        }
+
+        formPanel.add(new JLabel("Mã thuốc:"));
+        formPanel.add(tfCode);
+        formPanel.add(new JLabel("Tên thuốc:"));
+        formPanel.add(tfName);
+        formPanel.add(new JLabel("Hoạt chất chính:"));
+        formPanel.add(tfActive);
+        formPanel.add(new JLabel("Nhóm thuốc:"));
+        formPanel.add(cbGroupDialog);
+        formPanel.add(new JLabel("Dạng bào chế:"));
+        formPanel.add(cbFormDialog);
+        formPanel.add(new JLabel("Đường dùng:"));
+        formPanel.add(cbRouteDialog);
+        formPanel.add(new JLabel("Nhà sản xuất:"));
+        formPanel.add(tfManuf);
+        formPanel.add(new JLabel("Nước sản xuất:"));
+        formPanel.add(tfCountry);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnSave = createButton("Lưu", true);
+        JButton btnCancel = createButton("Hủy", false);
+
+        btnSave.addActionListener(e -> {
+            String code = tfCode.getText().trim();
+            String name = tfName.getText().trim();
+            if (code.isEmpty() || name.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Mã thuốc và Tên thuốc không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            ComboboxItem selectedGroup = (ComboboxItem) cbGroupDialog.getSelectedItem();
+            ComboboxItem selectedForm = (ComboboxItem) cbFormDialog.getSelectedItem();
+            ComboboxItem selectedRoute = (ComboboxItem) cbRouteDialog.getSelectedItem();
+
+            if (selectedGroup == null || selectedForm == null || selectedRoute == null) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng cấu hình đầy đủ Nhóm thuốc, Dạng bào chế và Đường dùng trong CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            saveOrUpdateMedicineToDB(code, name, tfActive.getText().trim(), selectedGroup.key, selectedForm.key, selectedRoute.key, tfManuf.getText().trim(), tfCountry.getText().trim(), medicine == null);
+            dialog.dispose();
+            loadMedicinesFromDatabase();
+        });
+
+        btnCancel.addActionListener(e -> dialog.dispose());
+
+        btnPanel.add(btnSave);
+        btnPanel.add(btnCancel);
+
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    // Helper class để lưu cặp (Mã, Tên) cho ComboBox
+    private static class ComboboxItem {
+        public String key;
+        public String value;
+
+        public ComboboxItem(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return value + " (" + key + ")";
+        }
+    }
+
+    private void loadComboboxData(String sql, JComboBox<ComboboxItem> comboBox) {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                comboBox.addItem(new ComboboxItem(rs.getString(1), rs.getString(2)));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveOrUpdateMedicineToDB(String code, String name, String active, String maNhom, String maDBC, String maDD, String manuf, String country, boolean isInsert) {
+        String sql = isInsert 
+            ? "INSERT INTO THUOC (MaThuoc, TenThuoc, HoatChatChinh, MaNhomThuoc, MaDangBaoChe, MaDuongDung, NhaSanXuat, NuocSanXuat, TrangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
+            : "UPDATE THUOC SET TenThuoc = ?, HoatChatChinh = ?, MaNhomThuoc = ?, MaDangBaoChe = ?, MaDuongDung = ?, NhaSanXuat = ?, NuocSanXuat = ? WHERE MaThuoc = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            if (isInsert) {
+                pstmt.setString(1, code);
+                pstmt.setString(2, name);
+                pstmt.setString(3, active);
+                pstmt.setString(4, maNhom);
+                pstmt.setString(5, maDBC);
+                pstmt.setString(6, maDD);
+                pstmt.setString(7, manuf);
+                pstmt.setString(8, country);
+            } else {
+                pstmt.setString(1, name);
+                pstmt.setString(2, active);
+                pstmt.setString(3, maNhom);
+                pstmt.setString(4, maDBC);
+                pstmt.setString(5, maDD);
+                pstmt.setString(6, manuf);
+                pstmt.setString(7, country);
+                pstmt.setString(8, code);
+            }
+            pstmt.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Lưu thông tin thuốc thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Lỗi cơ sở dữ liệu: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ================= XÓA THUỐC =================
+    private void deleteMedicine(String code) {
+        String sql = "DELETE FROM THUOC WHERE MaThuoc = ?";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                String[] tables = {"THUOCLIEUDUNG", "THUOCCHIDINH", "THUOCLUUY"};
+                for (String table : tables) {
+                    String childSql = "DELETE FROM " + table + " WHERE MaThuoc = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(childSql)) {
+                        ps.setString(1, code);
+                        ps.executeUpdate();
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, code);
+                    ps.executeUpdate();
+                }
+
+                conn.commit();
+                JOptionPane.showMessageDialog(this, "Xóa thuốc thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+
+                selectedMedicine = null;
+                loadMedicinesFromDatabase();
+
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            }
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể xóa thuốc: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // ================= MEDICINE DATA MODEL =================
@@ -1013,13 +1122,8 @@ public class StandardMedicinePanel extends JPanel {
         table.getColumnModel().getColumn(0).setCellRenderer(center);
     }
 
-    // ================= MESSAGES =================
     private void showSelectMessage() {
         JOptionPane.showMessageDialog(this, "Vui lòng chọn một thuốc trong danh sách.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void showNotConnectedMessage(String action) {
-        JOptionPane.showMessageDialog(this, action + " cần được kết nối với DAO và SQL Server.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private static String safe(String value) {
