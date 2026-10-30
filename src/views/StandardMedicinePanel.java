@@ -16,7 +16,7 @@ import java.sql.SQLException;
 
 public class StandardMedicinePanel extends JPanel {
 
-    // ================= MÀU SẮC =================
+    // Color Palette
     private static final Color BLUE = new Color(0, 126, 255);
     private static final Color BLUE_DARK = new Color(0, 91, 190);
     private static final Color NAVY = new Color(15, 29, 69);
@@ -31,7 +31,6 @@ public class StandardMedicinePanel extends JPanel {
     private static final Color PINK = new Color(238, 65, 130);
     private static final Color PINK_BG = new Color(255, 239, 245);
 
-    // ================= DỮ LIỆU =================
     private final List<MedicineData> medicines = new ArrayList<MedicineData>();
     private final List<MedicineData> filteredMedicines = new ArrayList<MedicineData>();
 
@@ -46,7 +45,6 @@ public class StandardMedicinePanel extends JPanel {
     private int currentPage = 1, pageSize = 16;
     private MedicineData selectedMedicine;
 
-    // ================= CONSTRUCTOR =================
     public StandardMedicinePanel() {
         setLayout(new BorderLayout(0, 12));
         setBackground(BG);
@@ -64,7 +62,7 @@ public class StandardMedicinePanel extends JPanel {
         applyFilter();
     }
 
-    // ================= HEADER =================
+    // Header
     private JPanel createHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
@@ -82,10 +80,6 @@ public class StandardMedicinePanel extends JPanel {
             logo.setFont(new Font("Segoe UI Symbol", Font.BOLD, 30));
             logo.setForeground(PINK);
         }
-        logo.setOpaque(true);
-        logo.setBackground(PINK_BG);
-        logo.setPreferredSize(new Dimension(56, 56));
-        logo.setBorder(BorderFactory.createLineBorder(new Color(250, 210, 226)));
 
         JPanel titlePanel = new JPanel();
         titlePanel.setOpaque(false);
@@ -106,15 +100,14 @@ public class StandardMedicinePanel extends JPanel {
         left.add(logo);
         left.add(titlePanel);
 
-       
-
         header.add(left, BorderLayout.WEST);
         return header;
     }
 
-    // ================= FILTER =================
+    // Filter Card
     private JPanel createFilterCard() {
         JPanel card = createCard();
+        card.setBackground(new Color(255, 240, 245)); 
         card.setBorder(new EmptyBorder(10, 14, 10, 14));
 
         JPanel filters = new JPanel(new GridBagLayout());
@@ -141,12 +134,39 @@ public class StandardMedicinePanel extends JPanel {
         JPanel routeField = createLabeledField("Đường dùng", cbRoute);
         JPanel statusField = createLabeledField("Trạng thái", cbStatus);
 
-        txtSearch = new JTextField();
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtSearch.setBorder(new EmptyBorder(0, 8, 0, 8));
+        Color labelColor = new Color(0, 102, 204); 
+        Font labelFont = new Font("Segoe UI", Font.BOLD, 17);
+        
+        customizeFieldLabel(groupField, labelFont, labelColor);
+        customizeFieldLabel(formField, labelFont, labelColor);
+        customizeFieldLabel(routeField, labelFont, labelColor);
+        customizeFieldLabel(statusField, labelFont, labelColor);
+
+        txtSearch = new JTextField("Tìm theo tên thuốc, hoạt chất, mã...");
+        txtSearch.setForeground(new Color(150, 150, 150)); 
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        txtSearch.setBorder(new EmptyBorder(0, 12, 0, 12));
+
+        txtSearch.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (txtSearch.getText().equals("Tìm theo tên thuốc, hoạt chất, mã...")) {
+                    txtSearch.setText("");
+                    txtSearch.setForeground(NAVY);
+                }
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (txtSearch.getText().isEmpty()) {
+                    txtSearch.setText("Tìm theo tên thuốc, hoạt chất, mã...");
+                    txtSearch.setForeground(new Color(150, 150, 150));
+                }
+            }
+        });
 
         JPanel searchBox = new JPanel(new BorderLayout(6, 0));
-        searchBox.setBackground(Color.WHITE);
+        searchBox.setBackground(new Color(243, 248, 253));
         searchBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER), new EmptyBorder(0, 8, 0, 8)));
         searchBox.setPreferredSize(new Dimension(230, 40));
 
@@ -157,7 +177,16 @@ public class StandardMedicinePanel extends JPanel {
         searchBox.add(searchIcon, BorderLayout.WEST);
         searchBox.add(txtSearch, BorderLayout.CENTER);
 
-        JButton btnSearch = createButton("⌕  Tìm kiếm", true);
+        JButton btnSearch = new JButton("⌕  Tìm kiếm");
+        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnSearch.setBackground(PINK); 
+        btnSearch.setForeground(Color.WHITE);             
+        btnSearch.setOpaque(true);
+        btnSearch.setContentAreaFilled(true);
+        btnSearch.setFocusPainted(false);
+        btnSearch.setPreferredSize(new Dimension(140, 41));
+        btnSearch.setBorder(BorderFactory.createLineBorder(new Color(210, 40, 110), 1));
+        btnSearch.setUI(new javax.swing.plaf.basic.BasicButtonUI());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
@@ -188,7 +217,16 @@ public class StandardMedicinePanel extends JPanel {
         return card;
     }
 
-    // ================= MAIN CONTENT =================
+    private void customizeFieldLabel(JPanel fieldPanel, Font font, Color color) {
+        for (java.awt.Component comp : fieldPanel.getComponents()) {
+            if (comp instanceof JLabel) {
+                comp.setFont(font);
+                comp.setForeground(color);
+            }
+        }
+    }
+
+    // Main Content
     private JPanel createMainContent() {
         JPanel main = new JPanel(new GridBagLayout());
         main.setOpaque(false);
@@ -206,7 +244,7 @@ public class StandardMedicinePanel extends JPanel {
         return main;
     }
 
-    // ================= TABLE AREA =================
+    // Table Area
     private JPanel createTableArea() {
         JPanel card = createCard();
 
@@ -216,10 +254,10 @@ public class StandardMedicinePanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 9, 0));
         actions.setOpaque(false);
 
-        JButton btnAdd = createButton("+  Thêm thuốc", true);
-        JButton btnEdit = createButton("✎  Sửa", false);
-        JButton btnDelete = createDeleteButton("▤  Xóa");
-        JButton btnRefresh = createButton("↻  Làm mới", false);
+        JButton btnAdd = createIconButton("Thêm thuốc", "/img/add.png", "+", PINK, new Color(255, 230, 240));
+        JButton btnEdit = createIconButton("Sửa", "/img/pen.png", "✎", PINK, new Color(255, 230, 240));
+        JButton btnDelete = createIconButton("Xóa", "/img/xoa.png", "✕", RED, new Color(255, 230, 235));
+        JButton btnRefresh = createIconButton("Làm mới", "/img/capnhat.png", "↻", BLUE_DARK, LIGHT_BLUE);
 
         btnAdd.setPreferredSize(new Dimension(145, 42));
         btnEdit.setPreferredSize(new Dimension(105, 42));
@@ -301,7 +339,7 @@ public class StandardMedicinePanel extends JPanel {
         return card;
     }
 
-    // ================= PAGINATION =================
+    // Pagination Panel
     private JPanel createPaginationPanel() {
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(false);
@@ -337,7 +375,7 @@ public class StandardMedicinePanel extends JPanel {
         return Math.max(1, (int) Math.ceil(filteredMedicines.size() / (double) pageSize));
     }
 
-    // ================= DETAIL AREA =================
+    // Detail Area
     private JPanel createDetailArea() {
         JPanel card = createCard();
 
@@ -348,7 +386,8 @@ public class StandardMedicinePanel extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 19));
         title.setForeground(NAVY);
 
-        JButton btnEdit = createButton("✎  Sửa", false);
+        JButton btnEdit = createIconButton("Sửa", "/img/edit.png", "✎", PINK, new Color(255, 230, 240));
+        btnEdit.setPreferredSize(new Dimension(85, 32));
         btnEdit.addActionListener(e -> {
             if (selectedMedicine == null) {
                 showSelectMessage();
@@ -378,7 +417,7 @@ public class StandardMedicinePanel extends JPanel {
         return card;
     }
 
-    // ================= MEDICINE SUMMARY =================
+    // Medicine Summary
     private JPanel createMedicineSummary() {
         JPanel summary = new JPanel(new BorderLayout(12, 0));
         summary.setOpaque(false);
@@ -431,7 +470,6 @@ public class StandardMedicinePanel extends JPanel {
         return summary;
     }
 
-    // ================= TABS =================
     private JTabbedPane createTabs() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -446,7 +484,6 @@ public class StandardMedicinePanel extends JPanel {
         return tabs;
     }
 
-    // ================= GENERAL TAB =================
     private JPanel createGeneralTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setBackground(Color.WHITE);
@@ -462,7 +499,6 @@ public class StandardMedicinePanel extends JPanel {
         return panel;
     }
 
-    // ================= DOSAGE TAB =================
     private JPanel createDosageTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(Color.WHITE);
@@ -478,7 +514,6 @@ public class StandardMedicinePanel extends JPanel {
         return panel;
     }
 
-    // ================= INDICATION TAB =================
     private JPanel createIndicationTab() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
@@ -490,7 +525,6 @@ public class StandardMedicinePanel extends JPanel {
         return panel;
     }
 
-    // ================= CAUTION TAB =================
     private JPanel createCautionTab() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
@@ -502,7 +536,6 @@ public class StandardMedicinePanel extends JPanel {
         return panel;
     }
 
-    // ================= INFORMATION GRID =================
     private JPanel createInfoGrid(String[] names, JLabel[] values) {
         JPanel grid = new JPanel(new GridBagLayout());
         grid.setBackground(Color.WHITE);
@@ -534,7 +567,6 @@ public class StandardMedicinePanel extends JPanel {
         return grid;
     }
 
-    // ================= TEXT INFORMATION BOX =================
     private JPanel createTextInfoBox(String title, int height) {
         JPanel box = new JPanel(new BorderLayout(0, 8));
         box.setBackground(new Color(247, 250, 255));
@@ -569,7 +601,6 @@ public class StandardMedicinePanel extends JPanel {
         return (JTextArea) scroll.getViewport().getView();
     }
 
-    // ================= FILTER AND SEARCH =================
     private void applyFilter() {
         if (tableModel == null) return;
 
@@ -579,6 +610,10 @@ public class StandardMedicinePanel extends JPanel {
         String status = String.valueOf(cbStatus.getSelectedItem());
         String keyword = txtSearch.getText().trim().toLowerCase();
 
+        if (keyword.equals("tìm theo tên thuốc, hoạt chất, mã...")) {
+            keyword = "";
+        }
+        
         filteredMedicines.clear();
         for (MedicineData m : medicines) {
             if (!"Tất cả".equals(group) && !group.equals(m.group)) continue;
@@ -596,7 +631,6 @@ public class StandardMedicinePanel extends JPanel {
         updateTable();
     }
 
-    // ================= UPDATE TABLE AND PAGINATION =================
     private void updateTable() {
         if (tableModel == null) return;
         tableModel.setRowCount(0);
@@ -619,43 +653,19 @@ public class StandardMedicinePanel extends JPanel {
         btnNext.setEnabled(currentPage < totalPages);
     }
 
-    // ================= KẾT NỐI VÀ LẤY DỮ LIỆU TỪ SQL SERVER =================
+    // ĐÃ SỬA: Tải thông tin chung và gọi riêng chi tiết từng thuốc để không bị lỗi trống khung bên phải
     public void loadMedicinesFromDatabase() {
         medicines.clear();
 
-        String query =
-            "SELECT " +
-            "T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
+        String query = 
+            "SELECT T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
             "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, " +
             "T.NhaSanXuat, T.NuocSanXuat, T.QuyCachDongGoi, " +
-            "T.MoTa, T.HinhAnh, T.TrangThai, " +
-
-            "LD.DoiTuong, LD.LieuDung, LD.TanSuat, " +
-            "LD.ThoiGianSuDung, LD.HuongDanSuDung, " +
-
-            "CD.NoiDungChiDinh, " +
-            "LY.LoaiLuuY, LY.NoiDung AS NoiDungLuuY " +
-
+            "T.MoTa, T.HinhAnh, T.TrangThai " +
             "FROM THUOC T " +
-
-            "LEFT JOIN NHOMTHUOC N " +
-            "ON T.MaNhomThuoc = N.MaNhomThuoc " +
-
-            "LEFT JOIN DANGBAOCHE DBC " +
-            "ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
-
-            "LEFT JOIN DUONGDUNG DD " +
-            "ON T.MaDuongDung = DD.MaDuongDung " +
-
-            "LEFT JOIN THUOCLIEUDUNG LD " +
-            "ON T.MaThuoc = LD.MaThuoc " +
-
-            "LEFT JOIN THUOCCHIDINH CD " +
-            "ON T.MaThuoc = CD.MaThuoc " +
-
-            "LEFT JOIN THUOCLUUY LY " +
-            "ON T.MaThuoc = LY.MaThuoc " +
-
+            "LEFT JOIN NHOMTHUOC N ON T.MaNhomThuoc = N.MaNhomThuoc " +
+            "LEFT JOIN DANGBAOCHE DBC ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
+            "LEFT JOIN DUONGDUNG DD ON T.MaDuongDung = DD.MaDuongDung " +
             "ORDER BY T.MaThuoc";
 
         try (
@@ -663,65 +673,26 @@ public class StandardMedicinePanel extends JPanel {
             PreparedStatement pstmt = conn.prepareStatement(query);
             ResultSet rs = pstmt.executeQuery()
         ) {
-
-            Map<String, MedicineData> medicineMap = new LinkedHashMap<String, MedicineData>();
-
             while (rs.next()) {
-                String code = rs.getString("MaThuoc");
-                MedicineData m = medicineMap.get(code);
+                MedicineData m = new MedicineData();
+                m.code = rs.getString("MaThuoc");
+                m.name = rs.getString("TenThuoc");
+                m.activeIngredient = rs.getString("HoatChatChinh");
+                m.group = rs.getString("TenNhomThuoc");
+                m.form = rs.getString("TenDangBaoChe");
+                m.route = rs.getString("TenDuongDung");
+                m.manufacturer = rs.getString("NhaSanXuat");
+                m.country = rs.getString("NuocSanXuat");
+                m.packageInfo = rs.getString("QuyCachDongGoi");
+                m.description = rs.getString("MoTa");
+                m.imagePath = rs.getString("HinhAnh");
+                m.status = rs.getBoolean("TrangThai") ? "Đang kinh doanh" : "Ngừng kinh doanh";
 
-                if (m == null) {
-                    m = new MedicineData();
-                    m.code = code;
-                    m.name = rs.getString("TenThuoc");
-                    m.activeIngredient = rs.getString("HoatChatChinh");
-                    m.group = rs.getString("TenNhomThuoc");
-                    m.form = rs.getString("TenDangBaoChe");
-                    m.route = rs.getString("TenDuongDung");
-                    m.manufacturer = rs.getString("NhaSanXuat");
-                    m.country = rs.getString("NuocSanXuat");
-                    m.packageInfo = rs.getString("QuyCachDongGoi");
-                    m.description = rs.getString("MoTa");
-                    m.imagePath = rs.getString("HinhAnh");
-                    m.status = rs.getBoolean("TrangThai") ? "Đang kinh doanh" : "Ngừng kinh doanh";
+                // Tải chi tiết liều dùng, chỉ định, lưu ý an toàn cho từng thuốc
+                loadDetailDataForMedicine(conn, m);
 
-                    m.adultDosage = "";
-                    m.childDosage = "";
-                    m.frequency = "";
-                    m.duration = "";
-                    m.dosageNote = "";
-                    m.indication = "";
-                    m.caution = "";
-
-                    medicineMap.put(code, m);
-                }
-
-                String doiTuong = rs.getString("DoiTuong");
-                String lieuDung = rs.getString("LieuDung");
-
-                if (doiTuong != null) {
-                    if (doiTuong.toLowerCase().contains("trẻ em")) {
-                        m.childDosage = appendText(m.childDosage, lieuDung);
-                    } else {
-                        m.adultDosage = appendText(m.adultDosage, lieuDung);
-                    }
-                }
-
-                m.frequency = appendText(m.frequency, rs.getString("TanSuat"));
-                m.duration = appendText(m.duration, rs.getString("ThoiGianSuDung"));
-                m.dosageNote = appendText(m.dosageNote, rs.getString("HuongDanSuDung"));
-
-                m.indication = appendText(m.indication, rs.getString("NoiDungChiDinh"));
-
-                String loaiLuuY = rs.getString("LoaiLuuY");
-                String noiDung = rs.getString("NoiDungLuuY");
-
-                if (noiDung != null) {
-                    m.caution = appendText(m.caution, (loaiLuuY == null ? "" : loaiLuuY + ": ") + noiDung);
-                }
+                medicines.add(m);
             }
-
-            medicines.addAll(medicineMap.values());
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -736,16 +707,66 @@ public class StandardMedicinePanel extends JPanel {
         applyFilter();
     }
 
+    private void loadDetailDataForMedicine(Connection conn, MedicineData m) {
+        m.adultDosage = "";
+        m.childDosage = "";
+        m.frequency = "";
+        m.duration = "";
+        m.dosageNote = "";
+        m.indication = "";
+        m.caution = "";
+
+        // 1. Lấy liều dùng
+        String sqlLD = "SELECT DoiTuong, LieuDung, TanSuat, ThoiGianSuDung, HuongDanSuDung FROM THUOCLIEUDUNG WHERE MaThuoc = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlLD)) {
+            ps.setString(1, m.code);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String dt = rs.getString("DoiTuong");
+                    String ld = rs.getString("LieuDung");
+                    if (dt != null && dt.toLowerCase().contains("trẻ em")) {
+                        m.childDosage = appendText(m.childDosage, ld);
+                    } else {
+                        m.adultDosage = appendText(m.adultDosage, ld);
+                    }
+                    m.frequency = appendText(m.frequency, rs.getString("TanSuat"));
+                    m.duration = appendText(m.duration, rs.getString("ThoiGianSuDung"));
+                    m.dosageNote = appendText(m.dosageNote, rs.getString("HuongDanSuDung"));
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        // 2. Lấy chỉ định
+        String sqlCD = "SELECT NoiDungChiDinh FROM THUOCCHIDINH WHERE MaThuoc = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlCD)) {
+            ps.setString(1, m.code);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    m.indication = appendText(m.indication, rs.getString("NoiDungChiDinh"));
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        // 3. Lấy lưu ý
+        String sqlLY = "SELECT LoaiLuuY, NoiDung FROM THUOCLUUY WHERE MaThuoc = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlLY)) {
+            ps.setString(1, m.code);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String loai = rs.getString("LoaiLuuY");
+                    String nd = rs.getString("NoiDung");
+                    if (nd != null) {
+                        m.caution = appendText(m.caution, (loai == null ? "" : loai + ": ") + nd);
+                    }
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
     private String appendText(String oldText, String newText) {
-        if (newText == null || newText.trim().isEmpty()) {
-            return oldText;
-        }
-        if (oldText == null || oldText.trim().isEmpty()) {
-            return newText;
-        }
-        if (oldText.contains(newText)) {
-            return oldText;
-        }
+        if (newText == null || newText.trim().isEmpty()) return oldText;
+        if (oldText == null || oldText.trim().isEmpty()) return newText;
+        if (oldText.contains(newText)) return oldText;
         return oldText + "\n" + newText;
     }
 
@@ -783,7 +804,17 @@ public class StandardMedicinePanel extends JPanel {
         lblImage.setText("");
         if (m.imagePath != null && !m.imagePath.trim().isEmpty()) {
             ImageIcon icon = loadImage(m.imagePath, 145, 130);
-            if (icon != null) lblImage.setIcon(icon);
+            if (icon != null) {
+                lblImage.setIcon(icon);
+            } else {
+                lblImage.setText("Không có ảnh");
+                lblImage.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+                lblImage.setForeground(MUTED);
+            }
+        } else {
+            lblImage.setText("Chưa có ảnh");
+            lblImage.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+            lblImage.setForeground(MUTED);
         }
     }
 
@@ -806,10 +837,11 @@ public class StandardMedicinePanel extends JPanel {
         txtIndication.setText("");
         txtCaution.setText("");
         lblImage.setIcon(null);
-        lblImage.setText("");
+        lblImage.setText("Chưa chọn thuốc");
+        lblImage.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        lblImage.setForeground(MUTED);
     }
 
- // ================= DIALOG THÊM / SỬA THUỐC (LOAD ĐỘNG TỪ CSDL) =================
     private void openMedicineDialog(MedicineData medicine) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
             medicine == null ? "Thêm thuốc mới" : "Cập nhật thông tin thuốc", true);
@@ -828,7 +860,6 @@ public class StandardMedicinePanel extends JPanel {
         JComboBox<ComboboxItem> cbFormDialog = new JComboBox<>();
         JComboBox<ComboboxItem> cbRouteDialog = new JComboBox<>();
 
-        // Load dữ liệu thực tế từ CSDL vào các ComboBox trong Dialog
         loadComboboxData("SELECT MaNhomThuoc, TenNhomThuoc FROM NHOMTHUOC", cbGroupDialog);
         loadComboboxData("SELECT MaDangBaoChe, TenDangBaoChe FROM DANGBAOCHE", cbFormDialog);
         loadComboboxData("SELECT MaDuongDung, TenDuongDung FROM DUONGDUNG", cbRouteDialog);
@@ -874,7 +905,7 @@ public class StandardMedicinePanel extends JPanel {
             ComboboxItem selectedRoute = (ComboboxItem) cbRouteDialog.getSelectedItem();
 
             if (selectedGroup == null || selectedForm == null || selectedRoute == null) {
-                JOptionPane.showMessageDialog(dialog, "Vui lòng cấu hình đầy đủ Nhóm thuốc, Dạng bào chế và Đường dùng trong CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Vui lòng cấu hình đầy đủ trong CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -893,7 +924,6 @@ public class StandardMedicinePanel extends JPanel {
         dialog.setVisible(true);
     }
 
-    // Helper class để lưu cặp (Mã, Tên) cho ComboBox
     private static class ComboboxItem {
         public String key;
         public String value;
@@ -954,7 +984,6 @@ public class StandardMedicinePanel extends JPanel {
         }
     }
 
-    // ================= XÓA THUỐC =================
     private void deleteMedicine(String code) {
         String sql = "DELETE FROM THUOC WHERE MaThuoc = ?";
 
@@ -992,7 +1021,6 @@ public class StandardMedicinePanel extends JPanel {
         }
     }
 
-    // ================= MEDICINE DATA MODEL =================
     public static class MedicineData {
         public String code, name, activeIngredient, group, form, route, status;
         public String manufacturer, country, packageInfo;
@@ -1002,19 +1030,8 @@ public class StandardMedicinePanel extends JPanel {
         public String imagePath;
 
         public MedicineData() {}
-
-        public MedicineData(String code, String name, String activeIngredient, String group, String form, String route, String status) {
-            this.code = code;
-            this.name = name;
-            this.activeIngredient = activeIngredient;
-            this.group = group;
-            this.form = form;
-            this.route = route;
-            this.status = status;
-        }
     }
 
-    // ================= LOAD IMAGE =================
     private ImageIcon loadImage(String path, int width, int height) {
         try {
             java.net.URL url = getClass().getResource(path);
@@ -1023,19 +1040,20 @@ public class StandardMedicinePanel extends JPanel {
                 original = new ImageIcon(url);
             } else {
                 java.io.File file = new java.io.File(path);
-                if (!file.exists()) return null;
-                original = new ImageIcon(path);
+                if (!file.exists()) {
+                    file = new java.io.File("src/main/resources" + path);
+                    if (!file.exists()) return null;
+                }
+                original = new ImageIcon(file.getPath());
             }
             Image image = original.getImage();
             Image scaled = image.getScaledInstance(width, height, Image.SCALE_SMOOTH);
             return new ImageIcon(scaled);
         } catch (Exception e) {
-            System.out.println("Không tải được ảnh: " + path);
             return null;
         }
     }
 
-    // ================= UI HELPERS =================
     private JPanel createCard() {
         JPanel card = new JPanel(new BorderLayout(0, 12));
         card.setBackground(Color.WHITE);
@@ -1062,6 +1080,29 @@ public class StandardMedicinePanel extends JPanel {
         combo.setPreferredSize(new Dimension(120, 39));
     }
 
+    private JButton createIconButton(String text, String iconPath, String fallbackSymbol, Color textColor, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setBackground(bgColor);
+        button.setForeground(textColor);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(230, 200, 215)), new EmptyBorder(7, 10, 7, 10)));
+        
+        ImageIcon icon = loadImage(iconPath, 16, 16);
+        if (icon != null) {
+            button.setIcon(icon);
+            button.setIconTextGap(8);
+        } else {
+            button.setText(fallbackSymbol + "  " + text);
+        }
+        
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        return button;
+    }
+
     private JButton createButton(String text, boolean primary) {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -1070,17 +1111,6 @@ public class StandardMedicinePanel extends JPanel {
         button.setBackground(primary ? BLUE : Color.WHITE);
         button.setForeground(primary ? Color.WHITE : NAVY);
         button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(primary ? BLUE : BORDER), new EmptyBorder(7, 10, 7, 10)));
-        return button;
-    }
-
-    private JButton createDeleteButton(String text) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBackground(PINK_BG);
-        button.setForeground(RED);
-        button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(250, 210, 226)), new EmptyBorder(7, 10, 7, 10)));
         return button;
     }
 
