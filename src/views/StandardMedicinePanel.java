@@ -61,6 +61,8 @@ public class StandardMedicinePanel extends JPanel {
         content.add(createMainContent(), BorderLayout.CENTER);
         add(content, BorderLayout.CENTER);
 
+        // Tải dữ liệu trực tiếp từ SQL Server khi khởi tạo
+        loadMedicinesFromDatabase();
         applyFilter();
     }
 
@@ -123,9 +125,34 @@ public class StandardMedicinePanel extends JPanel {
         JPanel filters = new JPanel(new GridBagLayout());
         filters.setOpaque(false);
 
-        cbGroup = new JComboBox<String>(new String[]{"Tất cả", "Thuốc gây tê", "Thuốc kháng sinh", "Thuốc giảm đau", "Thuốc kháng viêm", "Thuốc sát khuẩn", "Thuốc điều trị tại chỗ", "Chế phẩm Fluoride"});
-        cbForm = new JComboBox<String>(new String[]{"Tất cả", "Viên nén", "Viên nang", "Dung dịch", "Gel", "Thuốc mỡ", "Thuốc xịt", "Thuốc tiêm"});
-        cbRoute = new JComboBox<String>(new String[]{"Tất cả", "Đường uống", "Tiêm", "Súc miệng", "Dùng ngoài", "Bôi tại chỗ"});
+        cbGroup = new JComboBox<String>(new String[]{
+        	    "Tất cả",
+        	    "Kháng sinh",
+        	    "Giảm đau - Hạ sốt",
+        	    "Kháng viêm",
+        	    "Sát khuẩn",
+        	    "Gây tê nha khoa",
+        	    "Corticosteroid"
+        	});
+        
+        cbForm = new JComboBox<String>(new String[]{
+        	    "Tất cả",
+        	    "Viên nén",
+        	    "Viên nang",
+        	    "Dung dịch",
+        	    "Gel bôi",
+        	    "Ống tiêm",
+        	    "Viên sủi"
+        	});
+        cbRoute = new JComboBox<String>(new String[]{
+        	    "Tất cả",
+        	    "Đường uống",
+        	    "Súc miệng",
+        	    "Dùng ngoài",
+        	    "Tiêm",
+        	    "Bôi tại chỗ"
+        	});
+        
         cbStatus = new JComboBox<String>(new String[]{"Tất cả", "Đang kinh doanh", "Ngừng kinh doanh"});
 
         styleCombo(cbGroup);
@@ -276,7 +303,8 @@ public class StandardMedicinePanel extends JPanel {
         });
         btnRefresh.addActionListener(e -> {
             cbGroup.setSelectedIndex(0); cbForm.setSelectedIndex(0); cbRoute.setSelectedIndex(0); cbStatus.setSelectedIndex(0);
-            txtSearch.setText(""); currentPage = 1; medicineTable.clearSelection(); clearDetail(); applyFilter();
+            txtSearch.setText(""); currentPage = 1; medicineTable.clearSelection(); clearDetail();
+            loadMedicinesFromDatabase();
         });
 
         return card;
@@ -612,18 +640,187 @@ public class StandardMedicinePanel extends JPanel {
         btnNext.setEnabled(currentPage < totalPages);
     }
 
-    // ================= SET DATA FROM SQL SERVER =================
-    public void setMedicines(List<MedicineData> data) {
-        medicines.clear();
-        if (data != null) medicines.addAll(data);
-        medicineTable.clearSelection();
-        clearDetail();
-        applyFilter();
+    // ================= KẾT NỐI VÀ LẤY DỮ LIỆU TỪ SQL SERVER =================
+
+public void loadMedicinesFromDatabase() {
+
+    medicines.clear();
+
+    String query =
+        "SELECT " +
+        "T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
+        "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, " +
+        "T.NhaSanXuat, T.NuocSanXuat, T.QuyCachDongGoi, " +
+        "T.MoTa, T.HinhAnh, T.TrangThai, " +
+
+        "LD.DoiTuong, LD.LieuDung, LD.TanSuat, " +
+        "LD.ThoiGianSuDung, LD.HuongDanSuDung, " +
+
+        "CD.NoiDungChiDinh, " +
+        "LY.LoaiLuuY, LY.NoiDung AS NoiDungLuuY " +
+
+        "FROM THUOC T " +
+
+        "LEFT JOIN NHOMTHUOC N " +
+        "ON T.MaNhomThuoc = N.MaNhomThuoc " +
+
+        "LEFT JOIN DANGBAOCHE DBC " +
+        "ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
+
+        "LEFT JOIN DUONGDUNG DD " +
+        "ON T.MaDuongDung = DD.MaDuongDung " +
+
+        "LEFT JOIN THUOCLIEUDUNG LD " +
+        "ON T.MaThuoc = LD.MaThuoc " +
+
+        "LEFT JOIN THUOCCHIDINH CD " +
+        "ON T.MaThuoc = CD.MaThuoc " +
+
+        "LEFT JOIN THUOCLUUY LY " +
+        "ON T.MaThuoc = LY.MaThuoc " +
+
+        "ORDER BY T.MaThuoc";
+
+    try (
+        Connection conn = DBConnection.getConnection();
+        PreparedStatement pstmt = conn.prepareStatement(query);
+        ResultSet rs = pstmt.executeQuery()
+    ) {
+
+        Map<String, MedicineData> medicineMap =
+            new LinkedHashMap<String, MedicineData>();
+
+        while (rs.next()) {
+
+            String code = rs.getString("MaThuoc");
+
+            MedicineData m = medicineMap.get(code);
+
+            if (m == null) {
+
+                m = new MedicineData();
+
+                m.code = code;
+                m.name = rs.getString("TenThuoc");
+                m.activeIngredient = rs.getString("HoatChatChinh");
+
+                m.group = rs.getString("TenNhomThuoc");
+                m.form = rs.getString("TenDangBaoChe");
+                m.route = rs.getString("TenDuongDung");
+
+                m.manufacturer = rs.getString("NhaSanXuat");
+                m.country = rs.getString("NuocSanXuat");
+                m.packageInfo = rs.getString("QuyCachDongGoi");
+
+                m.description = rs.getString("MoTa");
+                m.imagePath = rs.getString("HinhAnh");
+
+                m.status = rs.getBoolean("TrangThai")
+                    ? "Đang kinh doanh"
+                    : "Ngừng kinh doanh";
+
+                m.adultDosage = "";
+                m.childDosage = "";
+                m.frequency = "";
+                m.duration = "";
+                m.dosageNote = "";
+                m.indication = "";
+                m.caution = "";
+
+                medicineMap.put(code, m);
+            }
+
+            // LIỀU DÙNG
+            String doiTuong = rs.getString("DoiTuong");
+            String lieuDung = rs.getString("LieuDung");
+
+            if (doiTuong != null) {
+
+                if (doiTuong.toLowerCase().contains("trẻ em")) {
+                    m.childDosage = appendText(
+                        m.childDosage, lieuDung
+                    );
+                } else {
+                    m.adultDosage = appendText(
+                        m.adultDosage, lieuDung
+                    );
+                }
+            }
+
+            m.frequency = appendText(
+                m.frequency, rs.getString("TanSuat")
+            );
+
+            m.duration = appendText(
+                m.duration, rs.getString("ThoiGianSuDung")
+            );
+
+            m.dosageNote = appendText(
+                m.dosageNote, rs.getString("HuongDanSuDung")
+            );
+
+            // CHỈ ĐỊNH
+            m.indication = appendText(
+                m.indication,
+                rs.getString("NoiDungChiDinh")
+            );
+
+            // LƯU Ý VÀ CHỐNG CHỈ ĐỊNH
+            String loaiLuuY = rs.getString("LoaiLuuY");
+            String noiDung = rs.getString("NoiDungLuuY");
+
+            if (noiDung != null) {
+                m.caution = appendText(
+                    m.caution,
+                    (loaiLuuY == null ? "" : loaiLuuY + ": ")
+                    + noiDung
+                );
+            }
+        }
+
+        medicines.addAll(medicineMap.values());
+
+        System.out.println(
+            "Đã tải thành công " + medicines.size() + " thuốc từ SQL Server!"
+        );
+
+    } catch (SQLException e) {
+
+        e.printStackTrace();
+
+        JOptionPane.showMessageDialog(
+            this,
+            "Lỗi tải dữ liệu thuốc: " + e.getMessage(),
+            "Lỗi SQL",
+            JOptionPane.ERROR_MESSAGE
+        );
     }
 
-    public void refreshMedicines(List<MedicineData> data) {
-        setMedicines(data);
+    if (medicineTable != null) {
+        medicineTable.clearSelection();
     }
+
+    clearDetail();
+    applyFilter();
+}
+
+private String appendText(String oldText, String newText) {
+
+    if (newText == null || newText.trim().isEmpty()) {
+        return oldText;
+    }
+
+    if (oldText == null || oldText.trim().isEmpty()) {
+        return newText;
+    }
+
+    if (oldText.contains(newText)) {
+        return oldText;
+    }
+
+    return oldText + "\n" + newText;
+}
+
 
     // ================= FIND MEDICINE =================
     private MedicineData findMedicine(String code) {
