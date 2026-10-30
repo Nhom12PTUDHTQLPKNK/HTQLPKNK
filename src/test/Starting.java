@@ -19,6 +19,7 @@ public class Starting {
         }
 
         // 3. Mở màn hình đăng nhập
+        
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 }
