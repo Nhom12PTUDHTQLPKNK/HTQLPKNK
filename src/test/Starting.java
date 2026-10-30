@@ -9,7 +9,7 @@ public class Starting {
 
     public static void main(String[] args) {
         // 1. Khởi tạo CSDL
-        sql.init.initDatabase("phongkhamnhakhoainit.sql");
+       // sql.init.initDatabase("phongkhamnhakhoainit.sql");
 
         // 2. Cài đặt Look & Feel hệ điều hành
         try {
