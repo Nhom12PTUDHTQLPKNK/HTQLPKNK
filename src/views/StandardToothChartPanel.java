@@ -12,6 +12,8 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+
 
 public class StandardToothChartPanel extends JPanel {
 
@@ -39,6 +41,8 @@ public class StandardToothChartPanel extends JPanel {
 
     private ToothImagePanel imagePanel;
     private ToothData selectedTooth;
+    
+    private Consumer<ToothData> toothSelectionListener;
 
     // ================= CONSTRUCTOR =================
     public StandardToothChartPanel() {
@@ -446,6 +450,15 @@ public class StandardToothChartPanel extends JPanel {
             case 38: return new Point2D.Double(0.8271, 0.5514);
         }
         return null;
+    }
+    
+ // Dùng lại sơ đồ răng chuẩn trong màn hình khám bệnh
+    public JPanel createClinicalChartCard(
+            Consumer<ToothData> listener) {
+
+        this.toothSelectionListener = listener;
+
+        return createChartCard();
     }
 
     // ================= DETAIL CARD (CARD 2) =================
