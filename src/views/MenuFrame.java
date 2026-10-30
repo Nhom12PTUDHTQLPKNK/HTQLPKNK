@@ -9,7 +9,6 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -35,10 +34,9 @@ public class MenuFrame extends JFrame {
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
     public static final String CARD_CHANGE_PASS = "CHANGE_PASS";
-    public static final String CARD_ACCOUNTS = "ACCOUNTS";
     public static final String CARD_HELP = "HELP";
     public static final String CARD_LOGS = "LOGS";
-    public static final String CARD_ACCOUNT_MANAGEMENT = "ACCOUNT_MANAGEMENT";
+    public static final String CARD_ROLE_PERMISSION = "ROLE_PERMISSION";
 
    // danh mục
     public static final String CARD_SERVICES = "SERVICES";
@@ -100,12 +98,8 @@ public class MenuFrame extends JFrame {
         JPanel headerBar = new JPanel(new BorderLayout());
         headerBar.setOpaque(true);
         headerBar.setBackground(NAVY_BG);
-     // Padding cân đối
         headerBar.setBorder(new EmptyBorder(20, 25, 20, 25));
-
-        // Chiều cao thanh menu
         headerBar.setPreferredSize(new Dimension(0, 105));
-        
         
         // Phần Logo bên trái
         JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
@@ -137,7 +131,7 @@ public class MenuFrame extends JFrame {
         centerContainer.setOpaque(false);
         centerContainer.add(menuBar);
 
-     // Phần User & Actions bên phải
+        // Phần User & Actions bên phải
         JPanel rightHeaderPanel = new JPanel(new GridBagLayout());
         rightHeaderPanel.setOpaque(false);
 
@@ -147,9 +141,8 @@ public class MenuFrame extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(0, 10, 0, 10);
-       
 
-        // 2. Nút Thông báo (Chỉ có icon chuông)
+        // Nút Thông báo
         JButton btnNotification = new JButton();
         ImageIcon bellIcon = loadIcon("/img/bell.png", 42, 42);
         if (bellIcon != null) {
@@ -166,7 +159,7 @@ public class MenuFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "Không có thông báo mới.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         });
 
-        // 3. Popup Menu cho nhân viên
+        // Popup Menu cho nhân viên
         JPopupMenu userMenu = new JPopupMenu();
         userMenu.setBackground(MENU_BG);
         userMenu.setBorder(BorderFactory.createLineBorder(new Color(210, 220, 235), 1));
@@ -217,7 +210,6 @@ public class MenuFrame extends JFrame {
         userMenu.add(itemSwitchAccount);
         userMenu.add(itemLogout);
 
-        // làm cho liền mạch vs menu ko phân viền 
         JPanel userBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         userBadge.setOpaque(false);
         userBadge.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -233,7 +225,6 @@ public class MenuFrame extends JFrame {
         userBadge.add(lblUserAvatar);
         userBadge.add(lblUserName);
 
-        // Bấm vào hiện popup menu bên dưới
         userBadge.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
@@ -241,8 +232,6 @@ public class MenuFrame extends JFrame {
             }
         });
 
-        // Đưa các thành phần vào rightHeaderPanel
-       
         gbc.gridx = 1; rightHeaderPanel.add(btnNotification, gbc);
         gbc.gridx = 2; gbc.insets = new Insets(0, 0, 0, 0); 
         rightHeaderPanel.add(userBadge, gbc);
@@ -272,6 +261,7 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new HelpPanel(), CARD_HELP);
         activityLogPanel = new ActivityLogPanel();
         mainContentPanel.add(activityLogPanel, CARD_LOGS);
+        mainContentPanel.add(new RolePermissionPanel(), CARD_ROLE_PERMISSION);
 
        // danh mục
         mainContentPanel.add(new ServicePanel(), CARD_SERVICES);
@@ -305,8 +295,7 @@ public class MenuFrame extends JFrame {
         addBlankCard(CARD_REPORT_WAREHOUSE);
         addBlankCard(CARD_REPORT_EXPORT);
 
-      // màn trắng
-        addBlankCard(CARD_ACCOUNT_MANAGEMENT);
+      // các màn hình phụ bổ sung
         mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
         mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
         addBlankCard(CARD_EXAMINATION);
@@ -317,7 +306,6 @@ public class MenuFrame extends JFrame {
         add(mainContentPanel, BorderLayout.CENTER);
         showView(CARD_DASHBOARD);
         
-        // Tránh tự động focus vào ô tìm kiếm khi mở app
         this.setFocusable(true);
         this.requestFocusInWindow();
     }
@@ -424,7 +412,7 @@ public class MenuFrame extends JFrame {
         addItem(mnuSystem, "Bảng điều khiển", "/img/control.png", CARD_DASHBOARD, KeyEvent.VK_F5, 0);
         addItem(mnuSystem, "Đổi mật khẩu", "/img/lock.png", CARD_CHANGE_PASS, KeyEvent.VK_M, ActionEvent.CTRL_MASK);
         addItem(mnuSystem, "Nhật ký hoạt động", "/img/log.png", CARD_LOGS, KeyEvent.VK_L, ActionEvent.ALT_MASK);
-        addItem(mnuSystem, "Phân quyền & Tài khoản", "/img/phanquyen.png", CARD_ACCOUNT_MANAGEMENT, KeyEvent.VK_U, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addItem(mnuSystem, "Phân quyền & Tài khoản", "/img/phanquyen.png", CARD_ROLE_PERMISSION, KeyEvent.VK_U, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuSystem, "Trợ giúp", "/img/help.png", CARD_HELP, KeyEvent.VK_F1, ActionEvent.SHIFT_MASK);
         mnuSystem.addSeparator();
         
@@ -520,63 +508,49 @@ public class MenuFrame extends JFrame {
         return menu;
     }
 
+    private JMenuItem createStyledItem(String text, String iconPath, int keyCode, int modifiers) {
+        JMenuItem item = new JMenuItem("     " + text);
 
-private JMenuItem createStyledItem(String text, String iconPath, int keyCode, int modifiers) {
+        item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        item.setForeground(TEXT_DARK);
+        item.setBackground(MENU_BG);
+        item.setOpaque(true);
 
-	JMenuItem item = new JMenuItem("     " + text);
+        item.setHorizontalAlignment(SwingConstants.LEFT);
+        item.setVerticalAlignment(SwingConstants.CENTER);
 
-    // Font chữ
-    item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-    item.setForeground(TEXT_DARK);
-    item.setBackground(MENU_BG);
-    item.setOpaque(true);
+        item.setBorder(BorderFactory.createEmptyBorder(12, 25, 12, 25));
+        item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-    // Căn chỉnh nội dung
-    item.setHorizontalAlignment(SwingConstants.LEFT);
-    item.setVerticalAlignment(SwingConstants.CENTER);
-
-    // Tăng khoảng cách bên trong mỗi dòng
-    item.setBorder(
-        BorderFactory.createEmptyBorder(12, 25, 12, 25)
-    );
-
-    // Con trỏ chuột
-    item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-    // Icon lớn hơn
-    ImageIcon icon = loadIcon(iconPath, 23, 23);
-
-    if (icon != null) {
-        item.setIcon(icon);
-        item.setIconTextGap(20);
-    }
-
-    // Phím tắt
-    if (keyCode != 0) {
-        KeyStroke ks = KeyStroke.getKeyStroke(keyCode, modifiers);
-        item.setAccelerator(ks);
-    }
-
-    // Hiệu ứng khi rê chuột
-    item.addMouseListener(new java.awt.event.MouseAdapter() {
-
-        @Override
-        public void mouseEntered(java.awt.event.MouseEvent evt) {
-            item.setBackground(NAVY_BG);
-            item.setFont(new Font("Segoe UI", Font.BOLD, 17));
-            item.setForeground(PINK_ACCENT);
+        ImageIcon icon = loadIcon(iconPath, 23, 23);
+        if (icon != null) {
+            item.setIcon(icon);
+            item.setIconTextGap(20);
         }
 
-        @Override
-        public void mouseExited(java.awt.event.MouseEvent evt) {
-            item.setBackground(MENU_BG);
-            item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            item.setForeground(TEXT_DARK);
+        if (keyCode != 0) {
+            KeyStroke ks = KeyStroke.getKeyStroke(keyCode, modifiers);
+            item.setAccelerator(ks);
         }
-    });
 
-    return item;
-}
+        item.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                item.setBackground(NAVY_BG);
+                item.setFont(new Font("Segoe UI", Font.BOLD, 17));
+                item.setForeground(PINK_ACCENT);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                item.setBackground(MENU_BG);
+                item.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+                item.setForeground(TEXT_DARK);
+            }
+        });
+
+        return item;
+    }
 
     private void addItem(JMenu menu, String text, String iconPath, String cardName, int keyCode, int modifiers) {
         JMenuItem item = createStyledItem(text, iconPath, keyCode, modifiers);
