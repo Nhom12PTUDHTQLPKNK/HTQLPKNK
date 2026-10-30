@@ -1,6 +1,7 @@
 package views;
 
-import Audit.AuditLog;
+import models.dao.NhanVienDAO;
+import models.entity.NhanVien;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -8,6 +9,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
+import java.util.List;
 
 public class EmployeePanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -19,6 +22,9 @@ public class EmployeePanel extends JPanel {
     private static final Color TEXT_DARK = new Color(15, 29, 69);
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
     private static final Color MUTED = new Color(91, 112, 145);
+
+    // Khởi tạo DAO
+    private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
 
     private DefaultTableModel tableModel;
     private JTable table;
@@ -44,7 +50,7 @@ public class EmployeePanel extends JPanel {
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
 
-        JLabel lblSub = new JLabel("Quản lý thông tin chi tiết nhân sự, nha sĩ, y tá và lễ tân phòng khám");
+        JLabel lblSub = new JLabel("Quản lý thông tin chi tiết nhân sự, nha sĩ, y tá và lễ tân phòng khám từ cơ sở dữ liệu");
         lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSub.setForeground(MUTED);
 
@@ -90,15 +96,9 @@ public class EmployeePanel extends JPanel {
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
 
-        String[] columns = {"Mã NV", "Họ và tên", "Chức vụ", "Số điện thoại", "Email"};
-        Object[][] data = {
-            {"NV001", "Phan Lê Ngọc Ánh", "NV Quản lý", "0901234567", "anhpln@smiledental.vn"},
-            {"NV002", "Nguyễn Minh Sỹ Luân", "Nha sĩ", "0912345678", "luanms@smiledental.vn"},
-            {"NV003", "Nguyễn Ngọc Minh Châu", "Lễ tân", "0987654321", "chaunnm@smiledental.vn"},
-            {"NV004", "Nguyễn Gia Băng", "Y tá", "0933987654", "bangng@smiledental.vn"}
-        };
+        String[] columns = {"Mã NV", "Họ và tên", "Chức vụ", "Số điện thoại", "Lương"};
 
-        tableModel = new DefaultTableModel(data, columns) {
+        tableModel = new DefaultTableModel(null, columns) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
@@ -129,6 +129,9 @@ public class EmployeePanel extends JPanel {
         centerContainer.add(formPanel, BorderLayout.EAST);
 
         add(centerContainer, BorderLayout.CENTER);
+
+        // Nạp dữ liệu thực tế từ Database lên bảng
+        loadDataFromDatabase();
     }
 
     private JPanel createInlineFormPanel() {
@@ -164,7 +167,7 @@ public class EmployeePanel extends JPanel {
         JLabel lblRole = createFieldLabel("Chức vụ:");
         panel.add(lblRole);
         panel.add(Box.createVerticalStrut(4));
-        cbRole = new JComboBox<>(new String[]{"NV Quản lý", "Nha sĩ", "Lễ tân", "Y tá"});
+        cbRole = new JComboBox<>(new String[]{"Bác sĩ trưởng", "Bác sĩ nha khoa", "Lễ tân", "Điều dưỡng"});
         cbRole.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         cbRole.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -173,7 +176,7 @@ public class EmployeePanel extends JPanel {
         panel.add(Box.createVerticalStrut(12));
 
         txtPhone = addFieldToForm(panel, "Số điện thoại:");
-        txtEmail = addFieldToForm(panel, "Email:");
+        txtEmail = addFieldToForm(panel, "Mức lương:"); // Tận dụng field này cho lương hoặc thêm field nếu cần
 
         JPanel btnBox = new JPanel(new GridLayout(1, 2, 10, 0));
         btnBox.setOpaque(false);
@@ -254,10 +257,37 @@ public class EmployeePanel extends JPanel {
         table.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 
+    private void loadDataFromDatabase() {
+        tableModel.setRowCount(0);
+        List<NhanVien> list = nhanVienDAO.getAllNhanVien();
+        for (NhanVien nv : list) {
+            tableModel.addRow(new Object[]{
+                nv.getMaNhanVien(),
+                nv.getTenNhanVien(),
+                nv.getChucVu(),
+                nv.getSdt(),
+                nv.getMucLuong()
+            });
+        }
+    }
+
     private void performSearch() {
         String keyword = txtSearch.getText().trim();
-        if (keyword.isEmpty()) rowSorter.setRowFilter(null);
-        else rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + keyword));
+        if (keyword.isEmpty()) {
+            loadDataFromDatabase();
+            return;
+        }
+        tableModel.setRowCount(0);
+        List<NhanVien> list = nhanVienDAO.search(keyword);
+        for (NhanVien nv : list) {
+            tableModel.addRow(new Object[]{
+                nv.getMaNhanVien(),
+                nv.getTenNhanVien(),
+                nv.getChucVu(),
+                nv.getSdt(),
+                nv.getMucLuong()
+            });
+        }
     }
 
     private void clearForm() {
@@ -271,7 +301,7 @@ public class EmployeePanel extends JPanel {
         txtEmail.setText("");
         table.clearSelection();
         txtSearch.setText("");
-        rowSorter.setRowFilter(null);
+        loadDataFromDatabase();
     }
 
     private void loadDataToFormForEdit() {
@@ -283,7 +313,8 @@ public class EmployeePanel extends JPanel {
         txtEmpName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
         cbRole.setSelectedItem(tableModel.getValueAt(selectedRowIndex, 2));
         txtPhone.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
-        txtEmail.setText((String) tableModel.getValueAt(selectedRowIndex, 4));
+        Object salaryObj = tableModel.getValueAt(selectedRowIndex, 4);
+        txtEmail.setText(salaryObj != null ? salaryObj.toString() : "0.0");
         isEditing = true;
     }
 
@@ -292,25 +323,44 @@ public class EmployeePanel extends JPanel {
         String name = txtEmpName.getText().trim();
         String role = (String) cbRole.getSelectedItem();
         String phone = txtPhone.getText().trim();
-        String email = txtEmail.getText().trim();
+        double salary = 0.0;
+        try {
+            salary = Double.parseDouble(txtEmail.getText().trim());
+        } catch (NumberFormatException e) {
+            salary = 10000000.0; // Mặc định nếu nhập sai định dạng số
+        }
 
         if (id.isEmpty() || name.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã và Họ tên nhân viên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (!isEditing) {
-            tableModel.addRow(new Object[]{id, name, role, phone, email});
-            JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            tableModel.setValueAt(name, selectedRowIndex, 1);
-            tableModel.setValueAt(role, selectedRowIndex, 2);
-            tableModel.setValueAt(phone, selectedRowIndex, 3);
-            tableModel.setValueAt(email, selectedRowIndex, 4);
-            JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            NhanVien nv = new NhanVien(id, name, null, phone, role, null, salary);
+            boolean success;
+            if (!isEditing) {
+                success = nhanVienDAO.insert(nv);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Thêm thất bại (Trùng mã nhân viên hoặc lỗi CSDL)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } else {
+                success = nhanVienDAO.update(nv);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Cập nhật thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            loadDataFromDatabase();
+            clearForm();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi cơ sở dữ liệu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
-        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Nhân viên - mã " + id);
-        clearForm();
     }
 
     private void performDelete() {
@@ -320,13 +370,23 @@ public class EmployeePanel extends JPanel {
             return;
         }
         int modelRow = table.convertRowIndexToModel(viewRow);
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa nhân viên " + id + "?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
-            String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-            tableModel.removeRow(modelRow);
-            AuditLog.event("DELETE", "Nhân viên - mã " + id);
-            clearForm();
-            JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                boolean success = nhanVienDAO.delete(id);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    loadDataFromDatabase();
+                    clearForm();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa nhân viên này (đang có dữ liệu liên quan)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
         }
     }
 }
