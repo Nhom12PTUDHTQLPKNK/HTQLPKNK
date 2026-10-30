@@ -291,16 +291,44 @@ public class StandardMedicinePanel extends JPanel {
             if (medicine != null) showMedicine(medicine);
         });
 
+        // Xử lý sự kiện nút Thêm thuốc
         btnAdd.addActionListener(e -> showNotConnectedMessage("Thêm thuốc"));
+
+        // Xử lý sự kiện nút Sửa thuốc
         btnEdit.addActionListener(e -> {
             if (selectedMedicine == null) showSelectMessage();
             else showNotConnectedMessage("Sửa thuốc");
         });
+
+        // Xử lý sự kiện nút Xóa thuốc (Đã tích hợp mẫu lệnh SQL DELETE trực tiếp nếu muốn dùng)
         btnDelete.addActionListener(e -> {
-            if (selectedMedicine == null) { showSelectMessage(); return; }
-            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa thuốc " + selectedMedicine.name + "?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) showNotConnectedMessage("Xóa thuốc");
+            if (selectedMedicine == null) { 
+                showSelectMessage(); 
+                return; 
+            }
+            int confirm = JOptionPane.showConfirmDialog(
+                this, 
+                "Bạn có chắc chắn muốn xóa thuốc " + selectedMedicine.name + "?", 
+                "Xác nhận xóa", 
+                JOptionPane.YES_NO_OPTION
+            );
+            if (confirm == JOptionPane.YES_OPTION) {
+                String sql = "DELETE FROM THUOC WHERE MaThuoc = ?";
+                try (Connection conn = DBConnection.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, selectedMedicine.code);
+                    int affectedRows = pstmt.executeUpdate();
+                    if (affectedRows > 0) {
+                        JOptionPane.showMessageDialog(this, "Xóa thuốc thành công!");
+                        loadMedicinesFromDatabase();
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "Không thể xóa thuốc này vì đang được sử dụng ở bảng khác!", "Lỗi SQL", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         });
+
         btnRefresh.addActionListener(e -> {
             cbGroup.setSelectedIndex(0); cbForm.setSelectedIndex(0); cbRoute.setSelectedIndex(0); cbStatus.setSelectedIndex(0);
             txtSearch.setText(""); currentPage = 1; medicineTable.clearSelection(); clearDetail();
@@ -626,6 +654,7 @@ public class StandardMedicinePanel extends JPanel {
         int totalPages = getTotalPages();
         if (currentPage > totalPages) currentPage = totalPages;
 
+        // Đã sửa lại lỗi cú pháp ngắt dòng ở đây
         int start = (currentPage - 1) * pageSize;
         int end = Math.min(start + pageSize, total);
 
@@ -641,186 +670,158 @@ public class StandardMedicinePanel extends JPanel {
     }
 
     // ================= KẾT NỐI VÀ LẤY DỮ LIỆU TỪ SQL SERVER =================
+    public void loadMedicinesFromDatabase() {
+        medicines.clear();
 
-public void loadMedicinesFromDatabase() {
+        String query =
+            "SELECT " +
+            "T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
+            "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, " +
+            "T.NhaSanXuat, T.NuocSanXuat, T.QuyCachDongGoi, " +
+            "T.MoTa, T.HinhAnh, T.TrangThai, " +
 
-    medicines.clear();
+            "LD.DoiTuong, LD.LieuDung, LD.TanSuat, " +
+            "LD.ThoiGianSuDung, LD.HuongDanSuDung, " +
 
-    String query =
-        "SELECT " +
-        "T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
-        "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, " +
-        "T.NhaSanXuat, T.NuocSanXuat, T.QuyCachDongGoi, " +
-        "T.MoTa, T.HinhAnh, T.TrangThai, " +
+            "CD.NoiDungChiDinh, " +
+            "LY.LoaiLuuY, LY.NoiDung AS NoiDungLuuY " +
 
-        "LD.DoiTuong, LD.LieuDung, LD.TanSuat, " +
-        "LD.ThoiGianSuDung, LD.HuongDanSuDung, " +
+            "FROM THUOC T " +
 
-        "CD.NoiDungChiDinh, " +
-        "LY.LoaiLuuY, LY.NoiDung AS NoiDungLuuY " +
+            "LEFT JOIN NHOMTHUOC N " +
+            "ON T.MaNhomThuoc = N.MaNhomThuoc " +
 
-        "FROM THUOC T " +
+            "LEFT JOIN DANGBAOCHE DBC " +
+            "ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
 
-        "LEFT JOIN NHOMTHUOC N " +
-        "ON T.MaNhomThuoc = N.MaNhomThuoc " +
+            "LEFT JOIN DUONGDUNG DD " +
+            "ON T.MaDuongDung = DD.MaDuongDung " +
 
-        "LEFT JOIN DANGBAOCHE DBC " +
-        "ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
+            "LEFT JOIN THUOCLIEUDUNG LD " +
+            "ON T.MaThuoc = LD.MaThuoc " +
 
-        "LEFT JOIN DUONGDUNG DD " +
-        "ON T.MaDuongDung = DD.MaDuongDung " +
+            "LEFT JOIN THUOCCHIDINH CD " +
+            "ON T.MaThuoc = CD.MaThuoc " +
 
-        "LEFT JOIN THUOCLIEUDUNG LD " +
-        "ON T.MaThuoc = LD.MaThuoc " +
+            "LEFT JOIN THUOCLUUY LY " +
+            "ON T.MaThuoc = LY.MaThuoc " +
 
-        "LEFT JOIN THUOCCHIDINH CD " +
-        "ON T.MaThuoc = CD.MaThuoc " +
+            "ORDER BY T.MaThuoc";
 
-        "LEFT JOIN THUOCLUUY LY " +
-        "ON T.MaThuoc = LY.MaThuoc " +
+        try (
+            Connection conn = DBConnection.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            ResultSet rs = pstmt.executeQuery()
+        ) {
 
-        "ORDER BY T.MaThuoc";
+            Map<String, MedicineData> medicineMap =
+                new LinkedHashMap<String, MedicineData>();
 
-    try (
-        Connection conn = DBConnection.getConnection();
-        PreparedStatement pstmt = conn.prepareStatement(query);
-        ResultSet rs = pstmt.executeQuery()
-    ) {
+            while (rs.next()) {
 
-        Map<String, MedicineData> medicineMap =
-            new LinkedHashMap<String, MedicineData>();
+                String code = rs.getString("MaThuoc");
 
-        while (rs.next()) {
+                MedicineData m = medicineMap.get(code);
 
-            String code = rs.getString("MaThuoc");
+                if (m == null) {
 
-            MedicineData m = medicineMap.get(code);
+                    m = new MedicineData();
 
-            if (m == null) {
+                    m.code = code;
+                    m.name = rs.getString("TenThuoc");
+                    m.activeIngredient = rs.getString("HoatChatChinh");
 
-                m = new MedicineData();
+                    m.group = rs.getString("TenNhomThuoc");
+                    m.form = rs.getString("TenDangBaoChe");
+                    m.route = rs.getString("TenDuongDung");
 
-                m.code = code;
-                m.name = rs.getString("TenThuoc");
-                m.activeIngredient = rs.getString("HoatChatChinh");
+                    m.manufacturer = rs.getString("NhaSanXuat");
+                    m.country = rs.getString("NuocSanXuat");
+                    m.packageInfo = rs.getString("QuyCachDongGoi");
 
-                m.group = rs.getString("TenNhomThuoc");
-                m.form = rs.getString("TenDangBaoChe");
-                m.route = rs.getString("TenDuongDung");
+                    m.description = rs.getString("MoTa");
+                    m.imagePath = rs.getString("HinhAnh");
 
-                m.manufacturer = rs.getString("NhaSanXuat");
-                m.country = rs.getString("NuocSanXuat");
-                m.packageInfo = rs.getString("QuyCachDongGoi");
+                    m.status = rs.getBoolean("TrangThai")
+                        ? "Đang kinh doanh"
+                        : "Ngừng kinh doanh";
 
-                m.description = rs.getString("MoTa");
-                m.imagePath = rs.getString("HinhAnh");
+                    m.adultDosage = "";
+                    m.childDosage = "";
+                    m.frequency = "";
+                    m.duration = "";
+                    m.dosageNote = "";
+                    m.indication = "";
+                    m.caution = "";
 
-                m.status = rs.getBoolean("TrangThai")
-                    ? "Đang kinh doanh"
-                    : "Ngừng kinh doanh";
+                    medicineMap.put(code, m);
+                }
 
-                m.adultDosage = "";
-                m.childDosage = "";
-                m.frequency = "";
-                m.duration = "";
-                m.dosageNote = "";
-                m.indication = "";
-                m.caution = "";
+                // LIỀU DÙNG
+                String doiTuong = rs.getString("DoiTuong");
+                String lieuDung = rs.getString("LieuDung");
 
-                medicineMap.put(code, m);
-            }
+                if (doiTuong != null) {
+                    if (doiTuong.toLowerCase().contains("trẻ em")) {
+                        m.childDosage = appendText(m.childDosage, lieuDung);
+                    } else {
+                        m.adultDosage = appendText(m.adultDosage, lieuDung);
+                    }
+                }
 
-            // LIỀU DÙNG
-            String doiTuong = rs.getString("DoiTuong");
-            String lieuDung = rs.getString("LieuDung");
+                m.frequency = appendText(m.frequency, rs.getString("TanSuat"));
+                m.duration = appendText(m.duration, rs.getString("ThoiGianSuDung"));
+                m.dosageNote = appendText(m.dosageNote, rs.getString("HuongDanSuDung"));
 
-            if (doiTuong != null) {
+                // CHỈ ĐỊNH
+                m.indication = appendText(m.indication, rs.getString("NoiDungChiDinh"));
 
-                if (doiTuong.toLowerCase().contains("trẻ em")) {
-                    m.childDosage = appendText(
-                        m.childDosage, lieuDung
-                    );
-                } else {
-                    m.adultDosage = appendText(
-                        m.adultDosage, lieuDung
+                // LƯU Ý VÀ CHỐNG CHỈ ĐỊNH
+                String loaiLuuY = rs.getString("LoaiLuuY");
+                String noiDung = rs.getString("NoiDungLuuY");
+
+                if (noiDung != null) {
+                    m.caution = appendText(
+                        m.caution,
+                        (loaiLuuY == null ? "" : loaiLuuY + ": ") + noiDung
                     );
                 }
             }
 
-            m.frequency = appendText(
-                m.frequency, rs.getString("TanSuat")
+            medicines.addAll(medicineMap.values());
+
+            System.out.println("Đã tải thành công " + medicines.size() + " thuốc từ SQL Server!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                this,
+                "Lỗi tải dữ liệu thuốc: " + e.getMessage(),
+                "Lỗi SQL",
+                JOptionPane.ERROR_MESSAGE
             );
-
-            m.duration = appendText(
-                m.duration, rs.getString("ThoiGianSuDung")
-            );
-
-            m.dosageNote = appendText(
-                m.dosageNote, rs.getString("HuongDanSuDung")
-            );
-
-            // CHỈ ĐỊNH
-            m.indication = appendText(
-                m.indication,
-                rs.getString("NoiDungChiDinh")
-            );
-
-            // LƯU Ý VÀ CHỐNG CHỈ ĐỊNH
-            String loaiLuuY = rs.getString("LoaiLuuY");
-            String noiDung = rs.getString("NoiDungLuuY");
-
-            if (noiDung != null) {
-                m.caution = appendText(
-                    m.caution,
-                    (loaiLuuY == null ? "" : loaiLuuY + ": ")
-                    + noiDung
-                );
-            }
         }
 
-        medicines.addAll(medicineMap.values());
+        if (medicineTable != null) {
+            medicineTable.clearSelection();
+        }
 
-        System.out.println(
-            "Đã tải thành công " + medicines.size() + " thuốc từ SQL Server!"
-        );
-
-    } catch (SQLException e) {
-
-        e.printStackTrace();
-
-        JOptionPane.showMessageDialog(
-            this,
-            "Lỗi tải dữ liệu thuốc: " + e.getMessage(),
-            "Lỗi SQL",
-            JOptionPane.ERROR_MESSAGE
-        );
+        clearDetail();
+        applyFilter();
     }
 
-    if (medicineTable != null) {
-        medicineTable.clearSelection();
+    private String appendText(String oldText, String newText) {
+        if (newText == null || newText.trim().isEmpty()) {
+            return oldText;
+        }
+        if (oldText == null || oldText.trim().isEmpty()) {
+            return newText;
+        }
+        if (oldText.contains(newText)) {
+            return oldText;
+        }
+        return oldText + "\n" + newText;
     }
-
-    clearDetail();
-    applyFilter();
-}
-
-private String appendText(String oldText, String newText) {
-
-    if (newText == null || newText.trim().isEmpty()) {
-        return oldText;
-    }
-
-    if (oldText == null || oldText.trim().isEmpty()) {
-        return newText;
-    }
-
-    if (oldText.contains(newText)) {
-        return oldText;
-    }
-
-    return oldText + "\n" + newText;
-}
-
 
     // ================= FIND MEDICINE =================
     private MedicineData findMedicine(String code) {
