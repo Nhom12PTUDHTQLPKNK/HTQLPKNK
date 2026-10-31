@@ -22,7 +22,7 @@ public class AppointmentController {
     }
 
     /**
-     * Tạo lịch hẹn mới và lưu xuống CSDL
+     * Tạo lịch hẹn mới và lưu xuống CSDL (Mặc định trạng thái là 'Chờ khám')
      */
     public boolean createAppointment(LichHen lichHen) throws SQLException {
         if (lichHen == null || lichHen.getMaKhachHang() == null || lichHen.getMaNhanVien() == null || lichHen.getNgayHen() == null || lichHen.getGioKham() == null) {
@@ -36,7 +36,18 @@ public class AppointmentController {
             return false;
         }
 
-        lichHen.setTrangThai("Đã xác nhận");
+        // Đồng bộ trạng thái ban đầu là 'Chờ khám' khớp với giao diện Panel
+        lichHen.setTrangThai("Chờ khám");
         return lichHenDAO.insert(lichHen);
+    }
+
+    /**
+     * Hủy lịch hẹn
+     */
+    public boolean cancelAppointment(String maLichHen) {
+        if (maLichHen == null || maLichHen.trim().isEmpty()) {
+            return false;
+        }
+        return lichHenDAO.cancelAppointment(maLichHen);
     }
 }

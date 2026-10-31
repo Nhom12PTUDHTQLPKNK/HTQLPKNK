@@ -78,6 +78,8 @@ public class ExaminationProcessPanel extends JPanel {
         btnReception.setBackground(BG);
         btnReception.setForeground(NAVY);
     }
+    
+    //TAG 1 Ở ĐÂY NÈ ÁNH -><-
 
     private JPanel createReceptionPage() {
         JPanel main = new JPanel(new BorderLayout(10, 12));
@@ -175,6 +177,16 @@ public class ExaminationProcessPanel extends JPanel {
         return main;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    //tag2 
     private JPanel createExaminationPage() {
         JPanel main = new JPanel(new BorderLayout(10, 12));
         main.setBackground(BG);
@@ -245,6 +257,11 @@ public class ExaminationProcessPanel extends JPanel {
         label.setForeground(NAVY);
         return label;
     }
+    
+    
+    
+    
+    
 
     private JPanel createToothForm() {
         JPanel panel = createCard();
