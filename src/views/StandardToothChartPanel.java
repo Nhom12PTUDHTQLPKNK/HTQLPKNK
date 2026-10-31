@@ -15,7 +15,8 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
-
+///=======
+///>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
 import java.util.function.Consumer;
 
@@ -610,6 +611,7 @@ public class StandardToothChartPanel extends JPanel {
     public JPanel createClinicalChartCard(Consumer<ToothData> listener) {
         this.toothSelectionListener = listener;
         return createChartCard();
+
 
     }
 
