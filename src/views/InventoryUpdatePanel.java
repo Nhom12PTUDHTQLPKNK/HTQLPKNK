@@ -24,11 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-/**
- * Cập nhật kho vật tư, thiết bị, thuốc.
- *  - Tạo giao dịch NHẬP / XUẤT / ĐIỀU CHỈNH (có lô, hạn sử dụng, lý do).
- *  - Giao dịch mới ở trạng thái "Chờ xác nhận"; chỉ khi bấm "Xác nhận" thì tồn kho mới thay đổi.
- */
+
 public class InventoryUpdatePanel extends JPanel {
 
     private static final String[] COLS = {"Mã GD", "Thời gian lập", "Loại", "Mã hàng", "Tên hàng", "Lô",
@@ -80,7 +76,6 @@ public class InventoryUpdatePanel extends JPanel {
         JPanel root = UiKit.pageRoot();
         add(root, BorderLayout.CENTER);
 
-        // ----- header + toolbar
         JPanel tb = UiKit.toolbar();
         txtSearch.setPreferredSize(new Dimension(180, 36));
         txtSearch.setToolTipText("Tìm theo mã GD, mã/tên hàng, lô, lý do...");
@@ -104,7 +99,6 @@ public class InventoryUpdatePanel extends JPanel {
         root.add(UiKit.pageHeader("Cập Nhật Kho - Nhập, Xuất, Điều Chỉnh",
                 "Tồn kho chỉ thay đổi sau khi giao dịch được xác nhận", tb), BorderLayout.NORTH);
 
-        // ----- bảng + form
         JPanel center = new JPanel(new BorderLayout(15, 0));
         center.setOpaque(false);
 
@@ -127,7 +121,6 @@ public class InventoryUpdatePanel extends JPanel {
         reloadAll();
     }
 
-    // ------------------------------------------------------------------ form
     private JPanel buildForm() {
         JPanel p = UiKit.card();
         p.setPreferredSize(new Dimension(360, 0));
@@ -218,7 +211,6 @@ public class InventoryUpdatePanel extends JPanel {
         return o == null ? "" : o.toString().trim();
     }
 
-    /** Đổi nhãn / danh sách lô theo loại giao dịch và mặt hàng. */
     private void syncForm() {
         if (adjusting) return;
         adjusting = true;
@@ -280,7 +272,6 @@ public class InventoryUpdatePanel extends JPanel {
         syncForm();
     }
 
-    // ------------------------------------------------------------------ hành động
     private void onCreate() {
         Item item = selectedItem();
         if (item == null) { UiKit.warn(this, "Vui lòng chọn mặt hàng."); return; }
@@ -335,7 +326,6 @@ public class InventoryUpdatePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------------ bảng
     private void reloadAll() {
         String keep = selectedTxnId();
         Item selItem = selectedItem();
@@ -400,7 +390,6 @@ public class InventoryUpdatePanel extends JPanel {
         return new UiKit.ColorTextRenderer(m);
     }
 
-    // ------------------------------------------------------------------ vòng đời
     @Override public void addNotify() { super.addNotify(); store.addListener(refreshListener); reloadAll(); }
     @Override public void removeNotify() { store.removeListener(refreshListener); super.removeNotify(); }
 }

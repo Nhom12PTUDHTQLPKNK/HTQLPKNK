@@ -17,10 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Tra cứu tồn kho thuốc / vật tư / thiết bị: lọc theo từ khóa, loại, lô, hạn sử dụng, tình trạng;
- * cảnh báo hàng sắp hết hoặc gần hết hạn (ngưỡng {@link InventoryStore#NEAR_EXPIRY_DAYS} ngày).
- */
 public class InventorySearchPanel extends JPanel {
 
     private static final String[] COLS = {"Mã hàng", "Tên hàng", "Loại", "Lô", "Hạn sử dụng", "SL tồn (lô)",
@@ -69,7 +65,6 @@ public class InventorySearchPanel extends JPanel {
         card.setLayout(new BorderLayout(0, 8));
         card.setBorder(new EmptyBorder(12, 16, 12, 16));
 
-        // dải cảnh báo
         lblAlert.setFont(UiKit.font(Font.BOLD, 13));
         lblAlert.setBorder(new EmptyBorder(6, 10, 6, 10));
         lblAlert.setOpaque(true);
@@ -143,8 +138,7 @@ public class InventorySearchPanel extends JPanel {
         p.add(lblCount, BorderLayout.SOUTH);
         return p;
     }
-
-    /** @param interactive true khi người dùng bấm tìm (báo lỗi nhập liệu), false khi tự làm mới. */
+    
     private void search(boolean interactive) {
         LocalDate expiryTo = null;
         try {
