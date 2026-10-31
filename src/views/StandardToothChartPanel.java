@@ -14,11 +14,19 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+<<<<<<< HEAD
 //<<<<<<< HEAD
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
+///=======
+///>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
+<<<<<<< HEAD
 //=======
 //>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 import java.util.function.Consumer;
 
 public class StandardToothChartPanel extends JPanel {
@@ -612,10 +620,17 @@ public class StandardToothChartPanel extends JPanel {
     public JPanel createClinicalChartCard(Consumer<ToothData> listener) {
         this.toothSelectionListener = listener;
         return createChartCard();
+<<<<<<< HEAD
 //<<<<<<< HEAD
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
+<<<<<<< HEAD
 //=======
 //>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
+
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     }
 
     // ================= DETAIL CARD =================

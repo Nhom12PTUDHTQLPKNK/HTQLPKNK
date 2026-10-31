@@ -11,15 +11,20 @@ import java.util.List;
 public class TaiKhoanDAO {
 
     /**
-     * Tìm thông tin tài khoản dựa trên tên đăng nhập
+     * Tìm thông tin tài khoản linh hoạt (Hỗ trợ tìm theo tenDN, maNhanVien hoặc tenNhanVien)
      */
-    public Account findByUsername(String username) {
-        String sql = "SELECT * FROM TaiKhoan WHERE tenDN = ? AND trangThai = 1";
+    public Account findByUsername(String input) {
+        String sql = "SELECT t.* FROM TaiKhoan t " +
+                     "LEFT JOIN NhanVien n ON t.maNhanVien = n.maNhanVien " +
+                     "WHERE t.tenDN = ? OR t.maNhanVien = ? OR n.tenNhanVien = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, username);
+            stmt.setString(1, input);
+            stmt.setString(2, input);
+            stmt.setString(3, input);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
+                String username = rs.getString("tenDN");
                 String pass = rs.getString("matKhau");
                 String quyenStr = rs.getString("quyen");
                 Role role = Role.fromString(quyenStr);
@@ -32,9 +37,6 @@ public class TaiKhoanDAO {
         return null;
     }
 
-    /**
-     * Lấy toàn bộ danh sách tài khoản đổ lên bảng quản lý
-     */
     public List<Object[]> getAllAccounts() {
         List<Object[]> list = new ArrayList<>();
         String sql = "SELECT tenDN, maNhanVien, quyen, trangThai FROM TaiKhoan";
@@ -55,9 +57,6 @@ public class TaiKhoanDAO {
         return list;
     }
 
-    /**
-     * Thêm tài khoản mới (Mật khẩu mặc định là 123456 nếu để trống)
-     */
     public boolean insertAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien) {
         String sql = "INSERT INTO TaiKhoan (tenDN, matKhau, quyen, trangThai, maNhanVien) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
@@ -78,9 +77,6 @@ public class TaiKhoanDAO {
         return false;
     }
 
-    /**
-     * Cập nhật thông tin tài khoản
-     */
     public boolean updateAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien, boolean updatePassword) {
         String sql;
         if (updatePassword) {
@@ -118,14 +114,24 @@ public class TaiKhoanDAO {
         return false;
     }
 
-    /**
-     * Xóa tài khoản theo tên đăng nhập
-     */
     public boolean deleteAccount(String tenDN) {
         String sql = "DELETE FROM TaiKhoan WHERE tenDN = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, tenDN);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    public boolean updatePassword(String tenDN, String newMatKhau) {
+        String sql = "UPDATE TaiKhoan SET matKhau = ? WHERE tenDN = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newMatKhau);
+            stmt.setString(2, tenDN);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
