@@ -21,7 +21,8 @@ public class PromotionProcessPanel extends JPanel {
 
     private DefaultTableModel tableModel;
     private JTable table;
-    private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount, txtEndDate;
+    private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount;
+    private datepicker.DatePickerField txtEndDate;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
@@ -143,7 +144,7 @@ public class PromotionProcessPanel extends JPanel {
         txtPromoId = addField(panel, "Mã Khuyến Mãi (Tự nhập):");
         txtPromoName = addField(panel, "Tên Chương Trình:");
         txtDiscount = addField(panel, "Mức Giảm (%):");
-        txtEndDate = addField(panel, "Ngày Kết Thúc (dd/MM/yyyy):");
+        txtEndDate = addDateField(panel, "Ngày Kết Thúc (dd/MM/yyyy):");
 
         // Nhóm nút Lưu / Xóa
         JPanel btnBox1 = new JPanel(new GridLayout(1, 2, 8, 0));
@@ -202,6 +203,16 @@ public class PromotionProcessPanel extends JPanel {
         return t;
     }
 
+    private datepicker.DatePickerField addDateField(JPanel p, String labelText) {
+        p.add(createFieldLabel(labelText));
+        p.add(Box.createVerticalStrut(3));
+        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(field);
+        p.add(Box.createVerticalStrut(10));
+        return field;
+    }
     private void performSave() {
         String id = txtPromoId.getText().trim();
         String name = txtPromoName.getText().trim();
@@ -210,6 +221,11 @@ public class PromotionProcessPanel extends JPanel {
 
         if (id.isEmpty() || name.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ Mã khuyến mãi và Tên chương trình!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!endDate.isEmpty() && !txtEndDate.isValidDate()) {
+            JOptionPane.showMessageDialog(this, "Ngày kết thúc không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 

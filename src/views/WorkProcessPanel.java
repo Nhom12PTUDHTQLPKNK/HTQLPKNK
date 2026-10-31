@@ -21,7 +21,8 @@ public class WorkProcessPanel extends JPanel {
 
     private DefaultTableModel tableModel;
     private JTable table;
-    private JTextField txtSearch, txtShiftId, txtStaffName, txtDate;
+    private JTextField txtSearch, txtShiftId, txtStaffName;
+    private datepicker.DatePickerField txtDate;
     private JComboBox<String> cbShiftTime;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
@@ -147,7 +148,7 @@ public class WorkProcessPanel extends JPanel {
         panel.add(cbShiftTime);
         panel.add(Box.createVerticalStrut(10));
 
-        txtDate = addField(panel, "Ngày Trực (dd/MM/yyyy):");
+        txtDate = addDateField(panel, "Ngày Trực (dd/MM/yyyy):");
 
         JPanel btnBox1 = new JPanel(new GridLayout(1, 2, 8, 0));
         btnBox1.setOpaque(false);
@@ -201,6 +202,16 @@ public class WorkProcessPanel extends JPanel {
         return t;
     }
 
+    private datepicker.DatePickerField addDateField(JPanel p, String labelText) {
+        p.add(createFieldLabel(labelText));
+        p.add(Box.createVerticalStrut(3));
+        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(field);
+        p.add(Box.createVerticalStrut(10));
+        return field;
+    }
     private void performSave() {
         String id = txtShiftId.getText().trim();
         String name = txtStaffName.getText().trim();
@@ -209,6 +220,11 @@ public class WorkProcessPanel extends JPanel {
 
         if (id.isEmpty() || name.isEmpty() || date.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin phân ca!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!txtDate.isValidDate()) {
+            JOptionPane.showMessageDialog(this, "Ngày trực không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
