@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -7,6 +8,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.time.LocalDate;
 
 public class ActivityLogPanel extends JPanel {
     private static final Color BLUE = new Color(0, 126, 255);
@@ -226,6 +228,19 @@ public class ActivityLogPanel extends JPanel {
         txtSearch.setText("");
         if (actionRowSorter != null) actionRowSorter.setRowFilter(null);
         if (sessionRowSorter != null) sessionRowSorter.setRowFilter(null);
+        refreshTables();
+    }
+
+    public void refreshTables() {
+        if (actionTableModel == null || sessionTableModel == null) return;
+        actionTableModel.setRowCount(0);
+        for (Object[] row : AuditLog.eventRows(LocalDate.MIN, LocalDate.MAX)) {
+            actionTableModel.addRow(row);
+        }
+        sessionTableModel.setRowCount(0);
+        for (Object[] row : AuditLog.sessionRows(LocalDate.MIN, LocalDate.MAX)) {
+            sessionTableModel.addRow(row);
+        }
     }
 
     private void styleTable(JTable table) {
