@@ -31,6 +31,7 @@ public class RolePermissionPanel extends JPanel {
     private JComboBox<String> cbMaVaiTro, cbQuyenHanRole;
     private JTextField txtTenVaiTroRole;
     private TableRowSorter<DefaultTableModel> roleRowSorter;
+    private boolean isEditingRole = false;
 
     // Tab 2: Tài khoản
     private DefaultTableModel accountTableModel;
@@ -242,6 +243,7 @@ public class RolePermissionPanel extends JPanel {
     }
 
     private void clearRoleForm() {
+        isEditingRole = false;
         txtMaNVRole.setText("");
         txtMaNVRole.setEnabled(true);
         cbMaVaiTro.setSelectedIndex(0);
@@ -259,6 +261,7 @@ public class RolePermissionPanel extends JPanel {
         cbMaVaiTro.setSelectedItem(roleTableModel.getValueAt(mRow, 1));
         txtTenVaiTroRole.setText((String) roleTableModel.getValueAt(mRow, 2));
         cbQuyenHanRole.setSelectedItem(roleTableModel.getValueAt(mRow, 3));
+        isEditingRole = true;
     }
 
     private void saveRole() {
