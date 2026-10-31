@@ -22,6 +22,7 @@ public class AppointmentController {
     }
 
     /**
+<<<<<<< HEAD
      * Tạo lịch hẹn mới và lưu xuống CSDL
      */
     public boolean createAppointment(LichHen lichHen) throws SQLException {
@@ -38,5 +39,34 @@ public class AppointmentController {
 
         lichHen.setTrangThai("Đã xác nhận");
         return lichHenDAO.insert(lichHen);
+=======
+     * Tạo lịch hẹn mới và lưu xuống CSDL (Mặc định trạng thái là 'Chờ khám')
+     */
+    public boolean createAppointment(LichHen lichHen) throws SQLException {
+        if (lichHen == null || lichHen.getMaKhachHang() == null || lichHen.getMaNhanVien() == null || lichHen.getNgayHen() == null || lichHen.getGioKham() == null) {
+            System.err.println("Lỗi: Dữ liệu lịch hẹn không đầy đủ!");
+            return false;
+        }
+
+        // Kiểm tra xem nha sĩ đã bị trùng lịch vào khung giờ đó chưa
+        if (checkOverlappingAppointment(lichHen.getMaNhanVien(), lichHen.getNgayHen(), lichHen.getGioKham())) {
+            System.err.println("Nha sĩ đã có lịch hẹn trùng vào khung giờ này trong ngày!");
+            return false;
+        }
+
+        // Đồng bộ trạng thái ban đầu là 'Chờ khám' khớp với giao diện Panel
+        lichHen.setTrangThai("Chờ khám");
+        return lichHenDAO.insert(lichHen);
+    }
+
+    /**
+     * Hủy lịch hẹn
+     */
+    public boolean cancelAppointment(String maLichHen) {
+        if (maLichHen == null || maLichHen.trim().isEmpty()) {
+            return false;
+        }
+        return lichHenDAO.cancelAppointment(maLichHen);
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     }
 }
