@@ -5,10 +5,13 @@ import sql.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -25,7 +28,16 @@ public class AppointmentBookingPanel extends JPanel {
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
     private static final Color MUTED = new Color(91, 112, 145);
 
-    // Các khung giờ chuẩn (dùng chung cho combobox và kiểm tra giờ trống)
+    // Màu nền nhẹ cho badge trạng thái khách hàng
+    private static final Color BADGE_BLUE_BG = new Color(225, 240, 255);
+    private static final Color BADGE_ORANGE_BG = new Color(255, 243, 220);
+    private static final Color BADGE_GRAY_BG = new Color(240, 244, 248);
+
+    // Số ghế nha khoa tối đa của phòng khám (số ca được khám cùng một giờ).
+    // CSDL chưa có bảng ghế nên cấu hình tạm bằng hằng số.
+    private static final int MAX_CHAIRS = 3;
+
+    // Các khung giờ chuẩn
     private static final String[] STANDARD_TIMES = {
         "08:00", "08:30",
         "09:00", "09:30",
@@ -48,6 +60,11 @@ public class AppointmentBookingPanel extends JPanel {
     private JTextField txtCustName;
     private JTextField txtPhone;
     private JTextField txtAppDate;
+
+    // Thông tin bổ sung, chỉ hiện khi là khách hàng mới
+    private JPanel panelNewCustomer;
+    private JTextField txtNewBirth;
+    private JTextField txtNewHistory;
 
     private JComboBox<ServiceItem> cbService;
     private JComboBox<EmployeeItem> cbDoctor;
@@ -263,11 +280,24 @@ public class AppointmentBookingPanel extends JPanel {
 
         JPanel formPanel = createFormPanel();
 
+        // Form nằm trong ScrollPane để khi hiện thêm ô thông tin
+        // khách hàng mới vẫn không bị tràn màn hình nhỏ
+        JScrollPane formScroll = new JScrollPane(
+            formPanel,
+            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        );
+
+        formScroll.setBorder(BorderFactory.createEmptyBorder());
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        formScroll.getViewport().setBackground(BG_CANVAS);
+        formScroll.setPreferredSize(new Dimension(350, 0));
+
         JPanel centerPanel = new JPanel(new BorderLayout(15, 0));
         centerPanel.setOpaque(false);
 
         centerPanel.add(tablePanel, BorderLayout.CENTER);
-        centerPanel.add(formPanel, BorderLayout.EAST);
+        centerPanel.add(formScroll, BorderLayout.EAST);
 
         add(centerPanel, BorderLayout.CENTER);
     }
@@ -290,8 +320,6 @@ public class AppointmentBookingPanel extends JPanel {
             )
         );
 
-        panel.setPreferredSize(new Dimension(330, 0));
-
         JLabel lblTitle = new JLabel("Thông Tin Đặt Lịch Hẹn");
 
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -310,21 +338,55 @@ public class AppointmentBookingPanel extends JPanel {
         txtCustName = addTextField(panel, "Tên khách hàng:");
         txtPhone = addTextField(panel, "Số điện thoại:");
 
-        lblCustomerStatus = new JLabel(
-            "Chưa kiểm tra khách hàng"
-        );
+        // Badge trạng thái khách hàng cũ / mới
+        lblCustomerStatus = new JLabel();
 
         lblCustomerStatus.setFont(
             new Font("Segoe UI", Font.BOLD, 11)
         );
 
-        lblCustomerStatus.setForeground(MUTED);
+        lblCustomerStatus.setOpaque(true);
+        lblCustomerStatus.setBorder(new EmptyBorder(4, 8, 4, 8));
         lblCustomerStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        setBadge("Chưa kiểm tra khách hàng", MUTED, BADGE_GRAY_BG);
 
         panel.add(lblCustomerStatus);
         panel.add(Box.createVerticalStrut(12));
 
+        // Thông tin bổ sung cho khách hàng mới (ẩn mặc định)
+        panelNewCustomer = new JPanel();
+        panelNewCustomer.setLayout(
+            new BoxLayout(panelNewCustomer, BoxLayout.Y_AXIS)
+        );
+        panelNewCustomer.setOpaque(false);
+        panelNewCustomer.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        txtNewBirth = addTextField(
+            panelNewCustomer, "Ngày sinh (dd/MM/yyyy, tùy chọn):"
+        );
+
+        txtNewHistory = addTextField(
+            panelNewCustomer, "Tiền sử bệnh / dị ứng (tùy chọn):"
+        );
+
+        panelNewCustomer.setVisible(false);
+        panel.add(panelNewCustomer);
+
+        // Tự tra cứu khi nhấn Enter hoặc khi rời khỏi ô số điện thoại
         txtPhone.addActionListener(e -> lookupCustomerByPhone());
+
+        txtPhone.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+
+                if (!isEditing
+                        && txtPhone.getText().trim().length() >= 10) {
+
+                    lookupCustomerByPhone();
+                }
+            }
+        });
 
         // DỊCH VỤ LẤY TỪ SQL
         cbService = new JComboBox<>();
@@ -345,7 +407,7 @@ public class AppointmentBookingPanel extends JPanel {
         addComboBox(panel, "Giờ hẹn:", cbTime);
 
         JButton btnAvailable = createButton(
-            "Xem giờ trống của nha sĩ", BLUE_PRIMARY
+            "Xem giờ trống của nha sĩ", GREEN_ACCENT
         );
 
         btnAvailable.setMaximumSize(
@@ -475,14 +537,24 @@ public class AppointmentBookingPanel extends JPanel {
 
     private JButton createButton(String text, Color color) {
 
+        final Color normalColor = color;
+        final Color hoverColor = color.darker();
+
         JButton btn = new JButton(text);
+
+        // Dùng UI cơ bản để màu nền tô kín 100% ô nút
+        // (một số giao diện hệ thống như Windows sẽ bỏ qua setBackground)
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
 
         btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setForeground(Color.WHITE);
-        btn.setBackground(color);
+        btn.setBackground(normalColor);
 
-        btn.setFocusPainted(false);
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
         btn.setBorderPainted(false);
+        btn.setBorder(new EmptyBorder(6, 14, 6, 14));
+        btn.setFocusPainted(false);
 
         btn.setCursor(
             Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
@@ -490,11 +562,45 @@ public class AppointmentBookingPanel extends JPanel {
 
         btn.setPreferredSize(new Dimension(100, 36));
 
+        // Hiệu ứng rê chuột: xanh đậm hơn một chút
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btn.setBackground(hoverColor);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btn.setBackground(normalColor);
+            }
+        });
+
         return btn;
     }
 
-    private void styleTable(JTable table) {
+    // Cập nhật badge trạng thái khách hàng
+    private void setBadge(String text, Color fg, Color bg) {
 
+        lblCustomerStatus.setText(text);
+        lblCustomerStatus.setForeground(fg);
+        lblCustomerStatus.setBackground(bg);
+    }
+
+    // Hiện / ẩn ô thông tin bổ sung của khách hàng mới
+    private void setNewCustomerMode(boolean isNew) {
+
+        panelNewCustomer.setVisible(isNew);
+
+        if (!isNew) {
+            txtNewBirth.setText("");
+            txtNewHistory.setText("");
+        }
+
+        panelNewCustomer.revalidate();
+        panelNewCustomer.repaint();
+    }
+
+    private void styleTable(JTable table) {
         table.setRowHeight(38);
 
         table.setFont(
@@ -523,6 +629,41 @@ public class AppointmentBookingPanel extends JPanel {
         table.getTableHeader().setPreferredSize(
             new Dimension(0, 36)
         );
+
+        // TÙY CHỈNH MÀU SẮC TRẠNG THÁI TRÊN BẢNG
+        table.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+                if (!isSelected) {
+                    setBackground(Color.WHITE);
+                    String status = value != null ? value.toString() : "";
+                    if (status.equals("Chờ xác nhận")) {
+                        setForeground(TEXT_DARK);
+                        setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    } else if (status.equals("Hoàn thành")) {
+                        setForeground(GREEN_ACCENT);
+                        setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    } else if (status.equals("Đã xác nhận")) {
+                        setForeground(BLUE_PRIMARY);
+                        setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    } else if (status.equals("Đã hủy")) {
+                        setForeground(PINK_ACCENT);
+                        setFont(new Font("Segoe UI", Font.BOLD, 13));
+                    } else {
+                        setForeground(TEXT_DARK);
+                        setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    }
+                } else {
+                    setForeground(table.getSelectionForeground());
+                    setBackground(table.getSelectionBackground());
+                }
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
+            }
+        });
     }
 
     // =====================================================
@@ -667,7 +808,7 @@ public class AppointmentBookingPanel extends JPanel {
     }
 
     // =====================================================
-    // TRA CỨU KHÁCH HÀNG BẰNG SĐT
+    // TRA CỨU KHÁCH HÀNG BẰNG SĐT (CŨ / MỚI + ĐIỂM TÍCH LŨY)
     // =====================================================
 
     private boolean lookupCustomerByPhone() {
@@ -690,6 +831,7 @@ public class AppointmentBookingPanel extends JPanel {
 
             try (ResultSet rs = ps.executeQuery()) {
 
+                // ----- Khách hàng cũ -----
                 if (rs.next()) {
 
                     txtCustId.setText(
@@ -700,30 +842,32 @@ public class AppointmentBookingPanel extends JPanel {
                         rs.getString("tenKH")
                     );
 
+                    // Điểm tích lũy lấy trực tiếp từ cột diemTichLuy trong SQL
                     int points = rs.getInt("diemTichLuy");
 
-                    lblCustomerStatus.setText(
-                        "Khách hàng cũ - "
-                        + points + " điểm tích lũy"
+                    setBadge(
+                        "Khách hàng cũ đã đến khám - "
+                        + points + " điểm tích lũy",
+                        BLUE_PRIMARY,
+                        BADGE_BLUE_BG
                     );
 
-                    lblCustomerStatus.setForeground(
-                        BLUE_PRIMARY
-                    );
+                    setNewCustomerMode(false);
 
                     return true;
                 }
             }
 
+            // ----- Khách hàng mới -----
             txtCustId.setText("");
 
-            lblCustomerStatus.setText(
-                "Khách hàng mới - Tạo hồ sơ khi lưu"
+            setBadge(
+                "Khách hàng mới - Tạo hồ sơ khi lưu",
+                new Color(190, 110, 0),
+                BADGE_ORANGE_BG
             );
 
-            lblCustomerStatus.setForeground(
-                new Color(220, 140, 20)
-            );
+            setNewCustomerMode(true);
 
             return false;
 
@@ -758,10 +902,8 @@ public class AppointmentBookingPanel extends JPanel {
         refreshNextAppointmentId();
     }
 
-    // =====================================================
     // TRA CỨU LỊCH HẸN BẰNG SĐT
-    // =====================================================
-
+    
     private void performPhoneLookup() {
 
         String phone = txtSearchPhone.getText().trim();
@@ -789,7 +931,8 @@ public class AppointmentBookingPanel extends JPanel {
 
             JOptionPane.showMessageDialog(
                 this,
-                "Không tìm thấy khách hàng có số điện thoại này!",
+                "Không tìm thấy khách hàng có số điện thoại này!\n"
+                + "Bạn có thể nhập thêm thông tin để tạo hồ sơ mới.",
                 "Thông báo",
                 JOptionPane.INFORMATION_MESSAGE
             );
@@ -806,8 +949,7 @@ public class AppointmentBookingPanel extends JPanel {
             )
         );
 
-        // Không tự chọn dòng đầu: chọn dòng sẽ đẩy form sang chế độ SỬA
-        // và làm nút "Lưu Lịch" cập nhật lịch cũ thay vì tạo lịch mới.
+        // Không tự chọn dòng đầu: chọn dòng sẽ đẩy form sang chế độ SỬA và làm nút "Lưu Lịch" cập nhật lịch cũ thay vì tạo lịch mới.
         if (tableLichDat.getRowCount() == 0) {
 
             JOptionPane.showMessageDialog(
@@ -889,7 +1031,9 @@ public class AppointmentBookingPanel extends JPanel {
     private String findOrCreateCustomer(
             Connection conn,
             String name,
-            String phone) throws SQLException {
+            String phone,
+            java.sql.Date birthDate,
+            String medicalHistory) throws SQLException {
 
         String sqlFind =
             "SELECT maKhachHang, tenKH "
@@ -918,14 +1062,27 @@ public class AppointmentBookingPanel extends JPanel {
 
         String sqlInsert =
             "INSERT INTO KhachHang "
-            + "(maKhachHang, tenKH, sdt, diemTichLuy) "
-            + "VALUES (?, ?, ?, 0)";
+            + "(maKhachHang, tenKH, sdt, ngaySinh, "
+            + "tienSuBenh, diemTichLuy) "
+            + "VALUES (?, ?, ?, ?, ?, 0)";
 
         try (PreparedStatement ps = conn.prepareStatement(sqlInsert)) {
 
             ps.setString(1, newId);
             ps.setString(2, name);
             ps.setString(3, phone);
+
+            if (birthDate != null) {
+                ps.setDate(4, birthDate);
+            } else {
+                ps.setNull(4, Types.DATE);
+            }
+
+            if (medicalHistory != null && !medicalHistory.isEmpty()) {
+                ps.setString(5, medicalHistory);
+            } else {
+                ps.setNull(5, Types.NVARCHAR);
+            }
 
             ps.executeUpdate();
         }
@@ -937,7 +1094,7 @@ public class AppointmentBookingPanel extends JPanel {
     }
 
     // =====================================================
-    // KIỂM TRA TRÙNG LỊCH
+    // KIỂM TRA TRÙNG LỊCH NHA SĨ
     // =====================================================
 
     private boolean isDuplicateAppointment(
@@ -975,7 +1132,42 @@ public class AppointmentBookingPanel extends JPanel {
     }
 
     // =====================================================
-    // KIỂM TRA GIỜ TRỐNG
+    // KIỂM TRA GHẾ NHA KHOA (tối đa MAX_CHAIRS ca / cùng giờ)
+    // =====================================================
+
+    private boolean isChairFull(
+            Connection conn,
+            java.sql.Date appointmentDate,
+            String time,
+            String appointmentId) throws SQLException {
+
+        String sql =
+            "SELECT COUNT(*) "
+            + "FROM LichHen "
+            + "WHERE ngayHen = ? "
+            + "AND gioKham = ? "
+            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
+            + "AND maLichHen <> ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, appointmentDate);
+            ps.setString(2, time);
+            ps.setString(3, appointmentId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt(1) >= MAX_CHAIRS;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // =====================================================
+    // KIỂM TRA GIỜ TRỐNG (theo nha sĩ + theo số ghế)
     // =====================================================
 
     private void showAvailableTimes() {
@@ -1013,7 +1205,12 @@ public class AppointmentBookingPanel extends JPanel {
             return;
         }
 
-        String sql =
+        String excludeId = isEditing
+            ? txtAppId.getText().trim()
+            : "";
+
+        // Giờ nha sĩ đã bận
+        String sqlDoctor =
             "SELECT gioKham "
             + "FROM LichHen "
             + "WHERE maNhanVien = ? "
@@ -1021,22 +1218,48 @@ public class AppointmentBookingPanel extends JPanel {
             + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
             + "AND maLichHen <> ?";
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        // Giờ mà số ghế đã đầy (tính cả các nha sĩ khác)
+        String sqlChairs =
+            "SELECT gioKham "
+            + "FROM LichHen "
+            + "WHERE ngayHen = ? "
+            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
+            + "AND maLichHen <> ? "
+            + "GROUP BY gioKham "
+            + "HAVING COUNT(*) >= ?";
 
-            ps.setString(1, doctor.id);
-            ps.setDate(2, date);
-            ps.setString(3, isEditing
-                ? txtAppId.getText().trim()
-                : "");
+        try (Connection conn = DBConnection.getConnection()) {
 
             java.util.Set<String> occupied =
                 new java.util.HashSet<>();
 
-            try (ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps =
+                    conn.prepareStatement(sqlDoctor)) {
 
-                while (rs.next()) {
-                    occupied.add(rs.getString("gioKham"));
+                ps.setString(1, doctor.id);
+                ps.setDate(2, date);
+                ps.setString(3, excludeId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+                        occupied.add(rs.getString("gioKham"));
+                    }
+                }
+            }
+
+            try (PreparedStatement ps =
+                    conn.prepareStatement(sqlChairs)) {
+
+                ps.setDate(1, date);
+                ps.setString(2, excludeId);
+                ps.setInt(3, MAX_CHAIRS);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+                        occupied.add(rs.getString("gioKham"));
+                    }
                 }
             }
 
@@ -1054,7 +1277,7 @@ public class AppointmentBookingPanel extends JPanel {
 
                 JOptionPane.showMessageDialog(
                     this,
-                    "Nha sĩ không còn giờ trống trong ngày này!",
+                    "Không còn giờ trống trong ngày này!",
                     "Thông báo",
                     JOptionPane.INFORMATION_MESSAGE
                 );
@@ -1109,10 +1332,8 @@ public class AppointmentBookingPanel extends JPanel {
         return new java.sql.Date(date.getTime());
     }
 
-    // =====================================================
     // LƯU LỊCH HẸN
-    // =====================================================
-
+    
     private void performSave() {
 
         String name = txtCustName.getText().trim();
@@ -1198,6 +1419,49 @@ public class AppointmentBookingPanel extends JPanel {
             return;
         }
 
+        // Thông tin bổ sung của khách hàng mới (tùy chọn)
+        java.sql.Date birthDate = null;
+        String medicalHistory = null;
+
+        if (panelNewCustomer.isVisible()) {
+
+            String birthText = txtNewBirth.getText().trim();
+
+            if (!birthText.isEmpty()) {
+
+                try {
+
+                    birthDate = parseDate(birthText);
+
+                } catch (ParseException e) {
+
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Ngày sinh không đúng định dạng dd/MM/yyyy!",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+
+                    return;
+                }
+
+                if (birthDate.toLocalDate()
+                        .isAfter(java.time.LocalDate.now())) {
+
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Ngày sinh không được lớn hơn ngày hiện tại!",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+
+                    return;
+                }
+            }
+
+            medicalHistory = txtNewHistory.getText().trim();
+        }
+
         String appointmentId = txtAppId.getText().trim();
 
         boolean editing = isEditing;
@@ -1212,30 +1476,55 @@ public class AppointmentBookingPanel extends JPanel {
                     appointmentId = generateAppointmentId(conn);
                 }
 
-                if (!"Đã hủy".equals(status)
-                        && isDuplicateAppointment(
+                if (!"Đã hủy".equals(status)) {
+
+                    // 1. Trùng lịch của nha sĩ
+                    if (isDuplicateAppointment(
                             conn,
                             doctor.id,
                             appointmentDate,
                             time,
                             appointmentId)) {
 
-                    conn.rollback();
+                        conn.rollback();
 
-                    JOptionPane.showMessageDialog(
-                        this,
-                        "Nha sĩ đã có lịch hẹn vào "
-                        + time + " ngày " + dateText
-                        + ". Vui lòng chọn giờ khác!",
-                        "Trùng lịch",
-                        JOptionPane.WARNING_MESSAGE
-                    );
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Nha sĩ " + doctor.name
+                            + " đã có lịch hẹn vào lúc " + time
+                            + " ngày " + dateText
+                            + ", vui lòng chọn khung giờ khác!",
+                            "Trùng lịch nha sĩ",
+                            JOptionPane.ERROR_MESSAGE
+                        );
 
-                    return;
+                        return;
+                    }
+
+                    // 2. Hết ghế nha khoa
+                    if (isChairFull(
+                            conn,
+                            appointmentDate,
+                            time,
+                            appointmentId)) {
+
+                        conn.rollback();
+
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "Khung giờ " + time + " ngày " + dateText
+                            + " đã đủ " + MAX_CHAIRS
+                            + " ghế nha khoa, vui lòng chọn khung giờ khác!",
+                            "Hết ghế",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+
+                        return;
+                    }
                 }
 
                 String customerId = findOrCreateCustomer(
-                    conn, name, phone
+                    conn, name, phone, birthDate, medicalHistory
                 );
 
                 if (!editing) {
@@ -1436,13 +1725,12 @@ public class AppointmentBookingPanel extends JPanel {
 
                     isEditing = true;
 
-                    lblCustomerStatus.setText(
-                        "Đang chỉnh sửa lịch hẹn "
-                        + appointmentId
-                    );
+                    setNewCustomerMode(false);
 
-                    lblCustomerStatus.setForeground(
-                        BLUE_PRIMARY
+                    setBadge(
+                        "Đang chỉnh sửa lịch hẹn " + appointmentId,
+                        BLUE_PRIMARY,
+                        BADGE_BLUE_BG
                     );
                 }
             }
@@ -1565,11 +1853,13 @@ public class AppointmentBookingPanel extends JPanel {
 
         txtSearchPhone.setText("");
 
-        lblCustomerStatus.setText(
-            "Chưa kiểm tra khách hàng"
-        );
+        setNewCustomerMode(false);
 
-        lblCustomerStatus.setForeground(MUTED);
+        setBadge(
+            "Chưa kiểm tra khách hàng",
+            MUTED,
+            BADGE_GRAY_BG
+        );
 
         tableLichDat.clearSelection();
 
