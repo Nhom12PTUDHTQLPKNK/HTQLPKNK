@@ -25,7 +25,8 @@ public class AppointmentUpdatePanel extends JPanel {
     private TableRowSorter<DefaultTableModel> sorterChoXuLy, sorterDaLam;
     private JTextField txtSearchPhone;
 
-    private JTextField txtAppId, txtCustName, txtPhone, txtAppDate, txtTime;
+    private JTextField txtAppId, txtCustName, txtPhone, txtTime;
+    private datepicker.DatePickerField txtAppDate;
     private JComboBox<String> cbService, cbDoctor, cbStatus;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
@@ -263,7 +264,7 @@ public class AppointmentUpdatePanel extends JPanel {
         panel.add(cbDoctor);
         panel.add(Box.createVerticalStrut(12));
 
-        txtAppDate = addFieldToForm(panel, "Ngày khám (dd/MM/yyyy):");
+        txtAppDate = addDateFieldToForm(panel, "Ngày khám (dd/MM/yyyy):");
         txtTime = addFieldToForm(panel, "Giờ khám (HH:mm):");
 
         JLabel lblStatus = createFieldLabel("Trạng thái (Chọn 'Hoàn thành' sẽ chuyển sang Đã làm):");
@@ -319,6 +320,16 @@ public class AppointmentUpdatePanel extends JPanel {
         return txt;
     }
 
+    private datepicker.DatePickerField addDateFieldToForm(JPanel form, String labelText) {
+        form.add(createFieldLabel(labelText));
+        form.add(Box.createVerticalStrut(4));
+        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(field);
+        form.add(Box.createVerticalStrut(12));
+        return field;
+    }
     private JButton createStaticButton(String text, Color bg, int width) {
         JButton btn = new JButton(text) {
             @Override
@@ -401,6 +412,11 @@ public class AppointmentUpdatePanel extends JPanel {
 
         if (id.isEmpty() || name.isEmpty() || phone.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin lịch hẹn!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!txtAppDate.isValidDate()) {
+            JOptionPane.showMessageDialog(this, "Ngày hẹn không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
