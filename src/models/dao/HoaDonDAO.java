@@ -19,7 +19,7 @@ public class HoaDonDAO {
             stmt.setString(3, hd.getMaKhachHang());
             stmt.setString(4, hd.getMaNhanVien());
             stmt.setString(5, hd.getMaKhuyenMai());
-            stmt.setDate(6, hd.getNgayLap());
+            stmt.setDate(6, hd.getNgayLap() != null ? new java.sql.Date(hd.getNgayLap().getTime()) : null);
             boolean saved = stmt.executeUpdate() > 0;
             if (saved) AuditLog.event("CREATE", "Hóa đơn " + hd.getMaHoaDon());
             return saved;
@@ -34,7 +34,7 @@ public class HoaDonDAO {
             stmt.setString(2, hd.getMaKhachHang());
             stmt.setString(3, hd.getMaNhanVien());
             stmt.setString(4, hd.getMaKhuyenMai());
-            stmt.setDate(5, hd.getNgayLap());
+            stmt.setDate(5, hd.getNgayLap() != null ? new java.sql.Date(hd.getNgayLap().getTime()) : null);
             stmt.setString(6, hd.getMaHoaDon());
             boolean updated = stmt.executeUpdate() > 0;
             if (updated) AuditLog.event("UPDATE", "Hóa đơn " + hd.getMaHoaDon());
@@ -89,13 +89,13 @@ public class HoaDonDAO {
     }
 
     private HoaDon mapHoaDon(ResultSet rs) throws SQLException {
-        return new HoaDon(
-            rs.getString("maHoaDon"),
-            rs.getString("maBenhAn"),
-            rs.getString("maKhachHang"),
-            rs.getString("maNhanVien"),
-            rs.getString("maKhuyenMai"),
-            rs.getDate("ngayLap")
-        );
+        HoaDon hd = new HoaDon();
+        hd.setMaHoaDon(rs.getString("maHoaDon"));
+        hd.setMaBenhAn(rs.getString("maBenhAn"));
+        hd.setMaKhachHang(rs.getString("maKhachHang"));
+        hd.setMaNhanVien(rs.getString("maNhanVien"));
+        hd.setMaKhuyenMai(rs.getString("maKhuyenMai"));
+        hd.setNgayLap(rs.getDate("ngayLap"));
+        return hd;
     }
 }

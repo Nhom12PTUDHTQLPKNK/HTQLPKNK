@@ -42,10 +42,8 @@ public class ChiTietHoaDon {
         return "ChiTietHoaDon{" +
                 "maHoaDon='" + maHoaDon + '\'' +
                 ", maDichVu='" + maDichVu + '\'' +
-                ", maVatTu='" + maVatTu + '\'' +
                 ", soLuong=" + soLuong +
                 ", donGia=" + donGia +
-                ", thanhTien=" + getThanhTien() +
                 '}';
     }
 }
