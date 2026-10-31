@@ -141,14 +141,20 @@ public class BookingProcessPanel extends JPanel {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
         searchPanel.setOpaque(false);
 
-        txtSearch = new JTextField(15);
+        txtSearch = new PlaceholderTextField(
+                "Nhập tên, SĐT hoặc mã lịch hẹn..."
+        );
+
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtSearch.setPreferredSize(new Dimension(190, 38));
+        txtSearch.setPreferredSize(new Dimension(270, 38));
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_LIGHT),
                 new EmptyBorder(5, 12, 5, 12)
         ));
-        txtSearch.setToolTipText("Nhập mã lịch hẹn, tên khách hàng hoặc số điện thoại");
+
+        txtSearch.setToolTipText(
+                "Nhập mã lịch hẹn, tên khách hàng hoặc số điện thoại"
+        );
 
         txtSearch.addActionListener(e -> performSearch());
 
@@ -156,8 +162,13 @@ public class BookingProcessPanel extends JPanel {
         btnSearch.setPreferredSize(new Dimension(100, 38));
         btnSearch.addActionListener(e -> performSearch());
 
-        JButton btnRefresh = createButton("Tải lại", new Color(105, 125, 150));
+        JButton btnRefresh = createButton(
+                "Tải lại",
+                new Color(105, 125, 150)
+        );
+
         btnRefresh.setPreferredSize(new Dimension(85, 38));
+
         btnRefresh.addActionListener(e -> {
             txtSearch.setText("");
             performSearch();
@@ -210,6 +221,10 @@ public class BookingProcessPanel extends JPanel {
         lblConfirmedCount = (JLabel) confirmedCard.getClientProperty("countLabel");
         lblHistoryCount = (JLabel) historyCard.getClientProperty("countLabel");
 
+        makeCardClickable(pendingCard, 0);
+        makeCardClickable(confirmedCard, 1);
+        makeCardClickable(historyCard, 2);
+
         panel.add(pendingCard);
         panel.add(confirmedCard);
         panel.add(historyCard);
@@ -226,11 +241,12 @@ public class BookingProcessPanel extends JPanel {
     ) {
 
         RoundedPanel card = new RoundedPanel(16, CARD_BG);
-        card.setLayout(new BorderLayout(12, 0));
+        card.setLayout(new BorderLayout(15, 0));
         card.setBorder(new EmptyBorder(16, 18, 16, 18));
-        card.setPreferredSize(new Dimension(200, 105));
 
-        // Xác định hình ảnh theo từng loại lịch hẹn
+        card.setPreferredSize(new Dimension(200, 115));
+        card.setMinimumSize(new Dimension(200, 115));
+
         String imagePath;
 
         if (title.contains("CHỜ")) {
@@ -241,17 +257,18 @@ public class BookingProcessPanel extends JPanel {
             imagePath = "/img/ca-cancel.png";
         }
 
-        // Hiển thị hình ảnh
         JPanel iconPanel = new JPanel(new GridBagLayout());
         iconPanel.setOpaque(true);
         iconPanel.setBackground(lightColor);
         iconPanel.setPreferredSize(new Dimension(52, 52));
+        iconPanel.setMinimumSize(new Dimension(52, 52));
 
         java.net.URL imageURL = getClass().getResource(imagePath);
 
         JLabel icon = new JLabel();
 
         if (imageURL != null) {
+
             ImageIcon originalIcon = new ImageIcon(imageURL);
 
             Image scaledImage = originalIcon.getImage().getScaledInstance(
@@ -259,6 +276,7 @@ public class BookingProcessPanel extends JPanel {
             );
 
             icon.setIcon(new ImageIcon(scaledImage));
+
         } else {
             System.out.println("Không tìm thấy hình ảnh: " + imagePath);
         }
@@ -268,18 +286,22 @@ public class BookingProcessPanel extends JPanel {
         JPanel textPanel = new JPanel();
         textPanel.setOpaque(false);
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setAlignmentY(Component.CENTER_ALIGNMENT);
 
         JLabel lblTitle = new JLabel(title);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblTitle.setForeground(TEXT_GRAY);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblNumber = new JLabel(number);
         lblNumber.setFont(new Font("Segoe UI", Font.BOLD, 25));
         lblNumber.setForeground(TEXT_DARK);
+        lblNumber.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblDescription = new JLabel(description);
         lblDescription.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblDescription.setForeground(TEXT_GRAY);
+        lblDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         textPanel.add(lblTitle);
         textPanel.add(Box.createVerticalStrut(3));
@@ -294,23 +316,74 @@ public class BookingProcessPanel extends JPanel {
         return card;
     }
 
+    // ==================== CLICKABLE STATISTIC CARDS ====================
+
+    private void makeCardClickable(
+            Component component,
+            final int tabIndex
+    ) {
+
+        component.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
+
+        component.addMouseListener(new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+
+                if (tabbedPane != null) {
+                    tabbedPane.setSelectedIndex(tabIndex);
+                }
+            }
+        });
+
+        if (component instanceof Container) {
+
+            Component[] children =
+                    ((Container) component).getComponents();
+
+            for (Component child : children) {
+                makeCardClickable(child, tabIndex);
+            }
+        }
+    }
+
+    // ==================== UPDATE STATISTICS ====================
+
     private void updateStatistics() {
 
+        int pendingCount = tableModelPending.getRowCount();
+        int confirmedCount = tableModelConfirmed.getRowCount();
+        int historyCount = tableModelHistory.getRowCount();
+
         if (lblPendingCount != null) {
-            lblPendingCount.setText(
-                    String.valueOf(tableModelPending.getRowCount())
-            );
+            lblPendingCount.setText(String.valueOf(pendingCount));
         }
 
         if (lblConfirmedCount != null) {
-            lblConfirmedCount.setText(
-                    String.valueOf(tableModelConfirmed.getRowCount())
-            );
+            lblConfirmedCount.setText(String.valueOf(confirmedCount));
         }
 
         if (lblHistoryCount != null) {
-            lblHistoryCount.setText(
-                    String.valueOf(tableModelHistory.getRowCount())
+            lblHistoryCount.setText(String.valueOf(historyCount));
+        }
+
+        if (tabbedPane != null) {
+
+            tabbedPane.setTitleAt(
+                    0,
+                    "Chờ xác nhận (" + pendingCount + ")"
+            );
+
+            tabbedPane.setTitleAt(
+                    1,
+                    "Đã xác nhận (" + confirmedCount + ")"
+            );
+
+            tabbedPane.setTitleAt(
+                    2,
+                    "Lịch sử xử lý (" + historyCount + ")"
             );
         }
     }
@@ -391,9 +464,9 @@ public class BookingProcessPanel extends JPanel {
         tabbedPane.setForeground(TEXT_DARK);
         tabbedPane.setBackground(Color.WHITE);
 
-        tabbedPane.addTab("Chờ xác nhận", scrollPending);
-        tabbedPane.addTab("Đã xác nhận", scrollConfirmed);
-        tabbedPane.addTab("Lịch sử xử lý", scrollHistory);
+        tabbedPane.addTab("Chờ xác nhận (0)", scrollPending);
+        tabbedPane.addTab("Đã xác nhận (0)", scrollConfirmed);
+        tabbedPane.addTab("Lịch sử xử lý (0)", scrollHistory);
 
         panel.add(titlePanel, BorderLayout.NORTH);
         panel.add(tabbedPane, BorderLayout.CENTER);
@@ -478,7 +551,7 @@ public class BookingProcessPanel extends JPanel {
         cbDoctor = addComboBox(formFields, "Nha sĩ phụ trách");
 
         txtAppDate = addField(formFields, "Ngày hẹn (dd/MM/yyyy)");
-        txtAppTime = addField(formFields, "Giờ hẹn (HH:mm)");
+        txtAppTime = addField(formFields, "Giờ hẹn");
 
         JScrollPane formScroll = new JScrollPane(formFields);
         formScroll.setBorder(null);
@@ -493,8 +566,8 @@ public class BookingProcessPanel extends JPanel {
         buttonPanel.setOpaque(false);
 
         JButton btnSave = createButton("Lưu thông tin", GREEN_ACCENT);
-        JButton btnDelete = createButton("Hủy lịch hẹn", RED_ACCENT);
-        JButton btnClear = createButton("Làm mới biểu mẫu", new Color(105, 125, 150));
+        JButton btnDelete = createButton("Hủy lịch hẹn", ORANGE_ACCENT);
+        JButton btnClear = createButton("Làm mới biểu mẫu", BLUE_PRIMARY);
 
         btnSave.addActionListener(e -> performSave());
         btnDelete.addActionListener(e -> performDelete());
@@ -1168,6 +1241,50 @@ public class BookingProcessPanel extends JPanel {
         return button;
     }
 
+    // ==================== PLACEHOLDER TEXT FIELD ====================
+
+    private static class PlaceholderTextField extends JTextField {
+
+        private final String placeholder;
+
+        public PlaceholderTextField(String placeholder) {
+            this.placeholder = placeholder;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+
+            super.paintComponent(g);
+
+            if (getText().isEmpty() && !isFocusOwner()) {
+
+                Graphics2D g2 = (Graphics2D) g.create();
+
+                g2.setRenderingHint(
+                        RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+                );
+
+                g2.setColor(new Color(160, 170, 185));
+
+                Insets insets = getInsets();
+
+                FontMetrics fm = g2.getFontMetrics(getFont());
+
+                int y = (getHeight() - fm.getHeight()) / 2
+                        + fm.getAscent();
+
+                g2.drawString(
+                        placeholder,
+                        insets.left + 2,
+                        y
+                );
+
+                g2.dispose();
+            }
+        }
+    }
+
     // ==================== ROUNDED PANEL ====================
 
     private static class RoundedPanel extends JPanel {
@@ -1212,8 +1329,7 @@ public class BookingProcessPanel extends JPanel {
             super.paintComponent(g);
         }
     }
-
-    public void refreshData() {
+ public void refreshData() {
         loadServices();
         loadDoctors();
         loadAppointments();
