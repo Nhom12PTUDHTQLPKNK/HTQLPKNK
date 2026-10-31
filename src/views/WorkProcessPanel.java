@@ -1,15 +1,24 @@
 package views;
 
-	import javax.swing.*;
-	import javax.swing.table.DefaultTableModel;
-	import java.awt.*;
+import Audit.AuditLog;
+import report.PdfTableExport;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+import java.awt.*;
 
-	public class WorkProcessPanel extends JPanel {
+public class WorkProcessPanel extends JPanel {
+    private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
+    private static final Color GREEN_ACCENT = new Color(40, 167, 69);
+    private static final Color RED_ACCENT = new Color(220, 53, 69);
+    private static final Color PINK_ACCENT = new Color(239, 63, 131);
+    private static final Color BG_CANVAS = new Color(243, 248, 253);
+    private static final Color CARD_BG = Color.WHITE;
+    private static final Color TEXT_DARK = new Color(15, 29, 69);
+    private static final Color BORDER_LIGHT = new Color(224, 233, 243);
+    private static final Color MUTED = new Color(91, 112, 145);
 
-<<<<<<< HEAD
-	    private JTable tblSchedule;
-	    private DefaultTableModel tableModel;
-=======
     private DefaultTableModel tableModel;
     private JTable table;
     private JTextField txtSearch, txtShiftId, txtStaffName;
@@ -18,48 +27,42 @@ package views;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
-	    public WorkProcessPanel() {
-	        setLayout(new BorderLayout(10, 10));
-	        setBackground(Color.WHITE);
-	        initUI();
-	    }
+    public WorkProcessPanel() {
+        setLayout(new BorderLayout(0, 15));
+        setBackground(BG_CANVAS);
+        setBorder(new EmptyBorder(20, 30, 20, 30));
 
-	    private void initUI() {
-	        JPanel pnlForm = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-	        pnlForm.setBorder(BorderFactory.createTitledBorder("Phân ca làm việc & Kiểm tra trùng lịch"));
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
 
-	        pnlForm.add(new JLabel("Nhân viên/Nha sĩ:"));
-	        pnlForm.add(new JComboBox<>(new String[]{"BS. Nguyễn Văn A (Nha sĩ)", "NV. Trần Văn Luân (Phụ tá)"}));
-	        pnlForm.add(new JLabel("Ngày làm:"));
-	        pnlForm.add(new JTextField("2026-11-01", 8));
-	        pnlForm.add(new JLabel("Ca làm:"));
-	        pnlForm.add(new JComboBox<>(new String[]{"Ca Sáng (08:00 - 12:00)", "Ca Chiều (13:30 - 17:30)"}));
+        JLabel lblTitle = new JLabel("Phân Ca Lịch Làm Việc");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblTitle.setForeground(TEXT_DARK);
 
-	        JButton btnCheck = new JButton("🔍 Kiểm tra trùng ca");
-	        JButton btnAssign = new JButton("➕ Phân ca");
-	        btnAssign.setBackground(new Color(0, 123, 255));
-	        btnAssign.setForeground(Color.WHITE);
 
-	        pnlForm.add(btnCheck);
-	        pnlForm.add(btnAssign);
+        JPanel titleBox = new JPanel();
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        titleBox.setOpaque(false);
+        titleBox.add(lblTitle);
+        titleBox.add(Box.createVerticalStrut(2));
+        headerPanel.add(titleBox, BorderLayout.WEST);
 
-	        add(pnlForm, BorderLayout.NORTH);
+        JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        toolbarPanel.setOpaque(false);
 
-	        String[] cols = {"Mã NV", "Họ và Tên", "Chức vụ", "Ngày làm", "Ca làm", "Thời gian", "Phòng / Ghế nha", "Trạng thái"};
-	        tableModel = new DefaultTableModel(cols, 0);
-	        tblSchedule = new JTable(tableModel);
-	        tblSchedule.setRowHeight(26);
+        txtSearch = new JTextField(14);
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtSearch.setPreferredSize(new Dimension(160, 36));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1),
+                new EmptyBorder(4, 10, 4, 10)
+        ));
+        txtSearch.addActionListener(e -> performSearch());
 
-	        tableModel.addRow(new Object[]{"NV001", "BS. Nguyễn Văn A", "Nha sĩ", "2026-11-01", "Ca Sáng", "08:00 - 12:00", "Phòng khám 1 - Ghế 1", "Đã phân ca"});
-	        tableModel.addRow(new Object[]{"NV002", "Trần Văn Luân", "Phụ tá", "2026-11-01", "Ca Sáng", "08:00 - 12:00", "Phòng khám 1 - Ghế 1", "Đã phân ca"});
+        JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 75);
+        btnSearch.addActionListener(e -> performSearch());
 
-<<<<<<< HEAD
-	        add(new JScrollPane(tblSchedule), BorderLayout.CENTER);
-	    }
-	}
-=======
         toolbarPanel.add(txtSearch);
         toolbarPanel.add(btnSearch);
         headerPanel.add(toolbarPanel, BorderLayout.EAST);
@@ -306,4 +309,3 @@ package views;
         t.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 }
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
