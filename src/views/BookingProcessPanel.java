@@ -1,4 +1,3 @@
-
 package views;
 
 import Audit.AuditLog;
@@ -54,13 +53,13 @@ public class BookingProcessPanel extends JPanel {
     private LichHenDAO lichHenDAO;
 
     public BookingProcessPanel() {
-
         lichHenDAO = new LichHenDAO();
 
         setLayout(new BorderLayout(0, 15));
         setBackground(BG_CANVAS);
         setBorder(new EmptyBorder(20, 30, 20, 30));
 
+        // --- HEADER ---
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -68,9 +67,7 @@ public class BookingProcessPanel extends JPanel {
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
 
-        JLabel lblSubTitle = new JLabel(
-            "Quản lý riêng biệt lịch hẹn chờ xác nhận và đã xác nhận"
-        );
+        JLabel lblSubTitle = new JLabel("Quản lý riêng biệt lịch hẹn chờ xác nhận và đã xác nhận");
         lblSubTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubTitle.setForeground(new Color(100, 110, 130));
 
@@ -83,6 +80,7 @@ public class BookingProcessPanel extends JPanel {
 
         headerPanel.add(titleBox, BorderLayout.WEST);
 
+        // --- SEARCH BAR ---
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         toolbarPanel.setOpaque(false);
 
@@ -109,6 +107,7 @@ public class BookingProcessPanel extends JPanel {
         headerPanel.add(toolbarPanel, BorderLayout.EAST);
         add(headerPanel, BorderLayout.NORTH);
 
+        // --- CENTER CONTAINER ---
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
 
@@ -136,20 +135,18 @@ public class BookingProcessPanel extends JPanel {
         styleTable(tablePending);
         styleTable(tableConfirmed);
 
+        // Lắng nghe sự kiện chọn dòng trên bảng Chờ xử lý
         tablePending.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && tablePending.getSelectedRow() != -1) {
-                int row = tablePending.convertRowIndexToModel(
-                    tablePending.getSelectedRow()
-                );
+                int row = tablePending.convertRowIndexToModel(tablePending.getSelectedRow());
                 fillFormFromTable(tableModelPending, row);
             }
         });
 
+        // Lắng nghe sự kiện chọn dòng trên bảng Đã xác nhận
         tableConfirmed.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && tableConfirmed.getSelectedRow() != -1) {
-                int row = tableConfirmed.convertRowIndexToModel(
-                    tableConfirmed.getSelectedRow()
-                );
+                int row = tableConfirmed.convertRowIndexToModel(tableConfirmed.getSelectedRow());
                 fillFormFromTable(tableModelConfirmed, row);
             }
         });
@@ -186,7 +183,7 @@ public class BookingProcessPanel extends JPanel {
         };
     }
 
-    // Làm mới dữ liệu hai tab
+    // Làm mới dữ liệu hiển thị ở cả 2 tab
     public void refreshData() {
         tableModelPending.setRowCount(0);
         tableModelConfirmed.setRowCount(0);
@@ -291,7 +288,6 @@ public class BookingProcessPanel extends JPanel {
 
     private void loadServices() {
         cbService.removeAllItems();
-
         String sql = "SELECT tenDichVu FROM DichVu ORDER BY tenDichVu";
 
         try (Connection conn = DBConnection.getConnection();
@@ -307,18 +303,13 @@ public class BookingProcessPanel extends JPanel {
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,
-                "Lỗi tải dịch vụ:\n" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách dịch vụ:\n" + e.getMessage());
         }
     }
 
     private void loadDoctors() {
         cbDoctor.removeAllItems();
-
-        String sql =
-            "SELECT tenNhanVien FROM NhanVien " +
-            "WHERE chucVu LIKE N'%Bác sĩ%' " +
-            "ORDER BY tenNhanVien";
+        String sql = "SELECT tenNhanVien FROM NhanVien WHERE chucVu LIKE N'%Bác sĩ%' ORDER BY tenNhanVien";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -333,8 +324,7 @@ public class BookingProcessPanel extends JPanel {
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,
-                "Lỗi tải nha sĩ:\n" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách nha sĩ:\n" + e.getMessage());
         }
     }
 
@@ -348,11 +338,8 @@ public class BookingProcessPanel extends JPanel {
         cbDoctor.setSelectedItem(model.getValueAt(row, 3));
 
         Object dateValue = model.getValueAt(row, 4);
-
         if (dateValue instanceof java.sql.Date) {
-            txtAppDate.setText(
-                new SimpleDateFormat("dd/MM/yyyy").format(dateValue)
-            );
+            txtAppDate.setText(new SimpleDateFormat("dd/MM/yyyy").format(dateValue));
         } else {
             txtAppDate.setText(String.valueOf(dateValue));
         }
@@ -361,15 +348,11 @@ public class BookingProcessPanel extends JPanel {
         isEditing = true;
     }
 
-    // Xác nhận lịch hẹn
+    // Xác nhận lịch hẹn từ Tab 1
     private void performConfirm() {
         int selectedRow = tablePending.getSelectedRow();
-
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                "Vui lòng chọn lịch hẹn cần xác nhận!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lịch hẹn cần xác nhận!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -384,23 +367,16 @@ public class BookingProcessPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             if (lichHenDAO.xacNhanLichHen(id)) {
                 AuditLog.event("UPDATE", "Xác nhận lịch hẹn - mã " + id);
-
-                JOptionPane.showMessageDialog(this,
-                    "Xác nhận lịch hẹn thành công!");
-
+                JOptionPane.showMessageDialog(this, "Xác nhận lịch hẹn thành công!");
                 refreshData();
                 tabbedPane.setSelectedIndex(1);
-
             } else {
-                JOptionPane.showMessageDialog(this,
-                    "Xác nhận lịch hẹn thất bại!",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Xác nhận lịch hẹn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    // Lưu hoặc cập nhật lịch hẹn
+    // Thêm mới hoặc cập nhật thông tin lịch hẹn
     private void performSave() {
         String id = txtAppId.getText().trim();
         String name = txtCustomerName.getText().trim();
@@ -410,42 +386,34 @@ public class BookingProcessPanel extends JPanel {
         String date = txtAppDate.getText().trim();
         String time = txtAppTime.getText().trim();
 
-        if (id.isEmpty() || name.isEmpty() || phone.isEmpty()
-                || date.isEmpty() || time.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "Vui lòng nhập đầy đủ thông tin!",
-                "Cảnh báo",
-                JOptionPane.WARNING_MESSAGE);
+        if (id.isEmpty() || name.isEmpty() || phone.isEmpty() || date.isEmpty() || time.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         if (!phone.matches("\\d{10,15}")) {
-            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!");
+            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ (nhập từ 10 - 15 chữ số)!");
             return;
         }
 
         if (doctor == null || doctor.equals("Không có nha sĩ")) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn nha sĩ!");
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn nha sĩ phụ trách!");
             return;
         }
 
         java.sql.Date sqlDate;
-
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
             sdf.setLenient(false);
             Date parsedDate = sdf.parse(date);
             sqlDate = new java.sql.Date(parsedDate.getTime());
-
         } catch (ParseException e) {
-            JOptionPane.showMessageDialog(this,
-                "Ngày hẹn phải có định dạng dd/MM/yyyy!");
+            JOptionPane.showMessageDialog(this, "Ngày hẹn không đúng định dạng dd/MM/yyyy!");
             return;
         }
 
         if (!time.matches("([01]\\d|2[0-3]):[0-5]\\d")) {
-            JOptionPane.showMessageDialog(this,
-                "Giờ hẹn không hợp lệ! Vui lòng nhập HH:mm.");
+            JOptionPane.showMessageDialog(this, "Giờ hẹn không hợp lệ! Vui lòng nhập định dạng HH:mm.");
             return;
         }
 
@@ -454,50 +422,31 @@ public class BookingProcessPanel extends JPanel {
 
             try {
                 String customerId = lichHenDAO.findCustomerId(conn, phone);
-
                 if (customerId == null) {
                     customerId = lichHenDAO.createCustomer(conn, name, phone);
                 }
 
                 String doctorId = lichHenDAO.findDoctorId(conn, doctor);
-
                 if (doctorId == null) {
-                    throw new SQLException("Không tìm thấy nha sĩ!");
+                    throw new SQLException("Không tìm thấy nha sĩ được chọn!");
                 }
 
-                if (lichHenDAO.isDuplicateAppointment(
-                        conn, doctorId, sqlDate, time, isEditing ? id : "")) {
-
+                if (lichHenDAO.isDuplicateAppointment(conn, doctorId, sqlDate, time, isEditing ? id : "")) {
                     conn.rollback();
-
-                    JOptionPane.showMessageDialog(this,
-                        "Nha sĩ đã có lịch hẹn vào thời gian này!",
-                        "Trùng lịch",
-                        JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Nha sĩ đã có lịch hẹn vào thời gian này!", "Trùng lịch", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
                 if (isEditing) {
-                    lichHenDAO.updateAppointment(
-                        conn, id, customerId, doctorId,
-                        sqlDate, time, service
-                    );
+                    lichHenDAO.updateAppointment(conn, id, customerId, doctorId, sqlDate, time, service);
                 } else {
-                    lichHenDAO.insertAppointment(
-                        conn, id, customerId, doctorId,
-                        sqlDate, time, service
-                    );
+                    lichHenDAO.insertAppointment(conn, id, customerId, doctorId, sqlDate, time, service);
                 }
 
                 conn.commit();
 
-                AuditLog.event(
-                    isEditing ? "UPDATE" : "CREATE",
-                    "Quản lý lịch hẹn - mã " + id
-                );
-
-                JOptionPane.showMessageDialog(this,
-                    isEditing ? "Cập nhật thành công!" : "Tạo lịch hẹn thành công!");
+                AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Quản lý lịch hẹn - mã " + id);
+                JOptionPane.showMessageDialog(this, isEditing ? "Cập nhật thành công!" : "Tạo lịch hẹn thành công!");
 
                 refreshData();
 
@@ -507,28 +456,18 @@ public class BookingProcessPanel extends JPanel {
             }
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                "Lỗi lưu lịch hẹn:\n" + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi khi lưu lịch hẹn:\n" + e.getMessage(), "Lỗi SQL", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Hủy lịch hẹn
+    // Hủy lịch hẹn được chọn
     private void performDelete() {
-        JTable activeTable = tabbedPane.getSelectedIndex() == 0
-            ? tablePending : tableConfirmed;
-
-        DefaultTableModel activeModel = tabbedPane.getSelectedIndex() == 0
-            ? tableModelPending : tableModelConfirmed;
+        JTable activeTable = (tabbedPane.getSelectedIndex() == 0) ? tablePending : tableConfirmed;
+        DefaultTableModel activeModel = (tabbedPane.getSelectedIndex() == 0) ? tableModelPending : tableModelConfirmed;
 
         int selectedRow = activeTable.getSelectedRow();
-
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                "Vui lòng chọn lịch hẹn cần hủy!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lịch hẹn cần hủy!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -543,17 +482,10 @@ public class BookingProcessPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             if (lichHenDAO.cancelAppointment(id)) {
                 AuditLog.event("UPDATE", "Hủy lịch hẹn - mã " + id);
-
-                JOptionPane.showMessageDialog(this,
-                    "Hủy lịch hẹn thành công!");
-
+                JOptionPane.showMessageDialog(this, "Hủy lịch hẹn thành công!");
                 refreshData();
-
             } else {
-                JOptionPane.showMessageDialog(this,
-                    "Không thể hủy lịch hẹn!",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Không thể hủy lịch hẹn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -569,13 +501,8 @@ public class BookingProcessPanel extends JPanel {
         txtAppDate.setText("");
         txtAppTime.setText("");
 
-        if (cbService.getItemCount() > 0) {
-            cbService.setSelectedIndex(0);
-        }
-
-        if (cbDoctor.getItemCount() > 0) {
-            cbDoctor.setSelectedIndex(0);
-        }
+        if (cbService.getItemCount() > 0) cbService.setSelectedIndex(0);
+        if (cbDoctor.getItemCount() > 0) cbDoctor.setSelectedIndex(0);
 
         tablePending.clearSelection();
         tableConfirmed.clearSelection();
@@ -583,12 +510,9 @@ public class BookingProcessPanel extends JPanel {
 
     private void performSearch() {
         String keyword = txtSearch.getText().trim();
-
         RowFilter<DefaultTableModel, Object> filter = keyword.isEmpty()
             ? null
-            : RowFilter.regexFilter(
-                "(?i)" + Pattern.quote(keyword), 2
-            );
+            : RowFilter.regexFilter("(?i)" + Pattern.quote(keyword), 2);
 
         rowSorterPending.setRowFilter(filter);
         rowSorterConfirmed.setRowFilter(filter);
@@ -602,14 +526,8 @@ public class BookingProcessPanel extends JPanel {
         table.setSelectionBackground(new Color(225, 240, 255));
         table.setSelectionForeground(TEXT_DARK);
 
-        table.getTableHeader().setFont(
-            new Font("Segoe UI", Font.BOLD, 13)
-        );
-
-        table.getTableHeader().setBackground(
-            new Color(245, 248, 253)
-        );
-
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.getTableHeader().setBackground(new Color(245, 248, 253));
         table.getTableHeader().setForeground(TEXT_DARK);
         table.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
@@ -630,7 +548,6 @@ public class BookingProcessPanel extends JPanel {
         textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         textField.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         textField.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER_LIGHT),
             new EmptyBorder(3, 8, 3, 8)
@@ -647,17 +564,9 @@ public class BookingProcessPanel extends JPanel {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-
-                g2.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-                );
-
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bg);
-                g2.fillRoundRect(
-                    0, 0, getWidth(), getHeight(), 8, 8
-                );
-
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
