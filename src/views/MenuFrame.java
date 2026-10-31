@@ -31,6 +31,7 @@ public class MenuFrame extends JFrame {
     private DashboardPanel dashboardPanel;
     private ActivityLogPanel activityLogPanel;
     private AppointmentBookingPanel bookingPanel;
+    private BookingProcessPanel bookingProcessPanel;
 
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -271,11 +272,12 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new EmployeePanel(), CARD_EMPLOYEES);
         mainContentPanel.add(new MedicalRecordPanel(), CARD_MEDICAL_RECORDS);
 
-      // cập nhật
+     // cập nhật
         mainContentPanel.add(new InventoryUpdatePanel(), CARD_INVENTORY_UPDATE);
-        mainContentPanel.add(new AppointmentUpdatePanel(), CARD_APPOINTMENT_UPDATE);
+        bookingProcessPanel = new BookingProcessPanel();
+        mainContentPanel.add(bookingProcessPanel, CARD_APPOINTMENT_UPDATE);
         mainContentPanel.add(new PersonnelAccountUpdatePanel(), CARD_PERSONNEL_UPDATE);
-
+        
       // xử lý
         bookingPanel = new AppointmentBookingPanel();
         mainContentPanel.add(bookingPanel, CARD_BOOKING);
@@ -329,9 +331,15 @@ public class MenuFrame extends JFrame {
             if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
                 dashboardPanel.refreshDashboardData();
             }
-            // Tải lại dịch vụ / nha sĩ / lịch hẹn mới nhất từ SQL mỗi lần mở
+         // Tải lại dữ liệu đặt lịch
             if (CARD_BOOKING.equals(cardName) && bookingPanel != null) {
                 bookingPanel.refreshData();
+            }
+
+            // Tải lại dữ liệu tiếp nhận lịch hẹn
+            if (CARD_APPOINTMENT_UPDATE.equals(cardName)
+                    && bookingProcessPanel != null) {
+                bookingProcessPanel.refreshData();
             }
         }
     }
