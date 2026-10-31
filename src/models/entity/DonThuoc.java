@@ -1,6 +1,5 @@
 package models.entity;
 
-import java.time.LocalDate;
 import java.util.Date;
 
 /**
@@ -67,9 +66,7 @@ public class DonThuoc {
     public String toString() {
         return "DonThuoc{" +
                 "maDonThuoc='" + maDonThuoc + '\'' +
-                ", maThuoc='" + maThuoc + '\'' +
                 ", tenThuoc='" + tenThuoc + '\'' +
-                ", ngayKe=" + ngayKe +
                 ", soLuong=" + soLuong +
                 '}';
     }

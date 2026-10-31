@@ -1,4 +1,4 @@
- package test;
+package test;
 
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;

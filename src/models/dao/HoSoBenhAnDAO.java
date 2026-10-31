@@ -17,7 +17,7 @@ public class HoSoBenhAnDAO {
             stmt.setString(1, hs.getMaBenhAn());
             stmt.setString(2, hs.getMaKhachHang());
             stmt.setString(3, hs.getMaNhanVien());
-            stmt.setDate(4, hs.getNgayKham());
+            stmt.setDate(4, hs.getNgayKham() != null ? new java.sql.Date(hs.getNgayKham().getTime()) : null);
             stmt.setString(5, hs.getKetQuaKham());
             stmt.setString(6, hs.getChuanDoan());
             stmt.setString(7, hs.getTrangThai());
@@ -33,7 +33,7 @@ public class HoSoBenhAnDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, hs.getMaKhachHang());
             stmt.setString(2, hs.getMaNhanVien());
-            stmt.setDate(3, hs.getNgayKham());
+            stmt.setDate(3, hs.getNgayKham() != null ? new java.sql.Date(hs.getNgayKham().getTime()) : null);
             stmt.setString(4, hs.getKetQuaKham());
             stmt.setString(5, hs.getChuanDoan());
             stmt.setString(6, hs.getTrangThai());
@@ -106,14 +106,14 @@ public class HoSoBenhAnDAO {
     }
 
     private HoSoBenhAn mapHoSoBenhAn(ResultSet rs) throws SQLException {
-        return new HoSoBenhAn(
-            rs.getString("maBenhAn"),
-            rs.getString("maKhachHang"),
-            rs.getString("maNhanVien"),
-            rs.getDate("ngayKham"),
-            rs.getString("ketQuaKham"),
-            rs.getString("chuanDoan"),
-            rs.getString("trangThai")
-        );
+        HoSoBenhAn hs = new HoSoBenhAn();
+        hs.setMaBenhAn(rs.getString("maBenhAn"));
+        hs.setMaKhachHang(rs.getString("maKhachHang"));
+        hs.setMaNhanVien(rs.getString("maNhanVien"));
+        hs.setNgayKham(rs.getDate("ngayKham"));
+        hs.setKetQuaKham(rs.getString("ketQuaKham"));
+        hs.setChuanDoan(rs.getString("chuanDoan"));
+        hs.setTrangThai(rs.getString("trangThai"));
+        return hs;
     }
 }
