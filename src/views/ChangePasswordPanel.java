@@ -1,5 +1,9 @@
 package views;
 
+import models.dao.TaiKhoanDAO;
+import models.entity.Account;
+import validation.InputValidator;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -20,8 +24,11 @@ public class ChangePasswordPanel extends JPanel {
     private JPasswordField txtNewPass;
     private JPasswordField txtConfirmPass;
 
-    public ChangePasswordPanel() {
-        // Tải ảnh nền tổng từ package img
+    private String currentUsername;
+
+    public ChangePasswordPanel(String currentUsername) {
+        this.currentUsername = currentUsername;
+
         bgDangNhapImage = loadImageSafe("/img/bgmatkhau.png");
         if (bgDangNhapImage == null) {
             bgDangNhapImage = loadImageSafe("/img/bgmatkhau.jpg");
@@ -30,7 +37,6 @@ public class ChangePasswordPanel extends JPanel {
         setLayout(new GridBagLayout());
         setBackground(new Color(243, 248, 253));
 
-        // Thẻ card tổng kích thước lớn
         JPanel mainCard = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -47,9 +53,7 @@ public class ChangePasswordPanel extends JPanel {
         mainCard.setOpaque(false);
         mainCard.setPreferredSize(new Dimension(1160, 640));
 
-        // =========================================================================
         // CỘT BÊN TRÁI
-        // =========================================================================
         JPanel leftBanner = new JPanel() {
             private final Image bgImage = loadBannerBg();
 
@@ -90,7 +94,6 @@ public class ChangePasswordPanel extends JPanel {
         leftBanner.setLayout(new BoxLayout(leftBanner, BoxLayout.Y_AXIS));
         leftBanner.setBorder(new EmptyBorder(50, 40, 30, 40));
 
-        // 1. Logo & Tên hệ thống (Dùng file logo1.png và giữ nguyên vẹn ảnh gốc sắc nét)
         JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         logoPanel.setOpaque(false);
         logoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -120,7 +123,6 @@ public class ChangePasswordPanel extends JPanel {
         leftBanner.add(logoPanel);
         leftBanner.add(Box.createVerticalStrut(45));
 
-        // 2. Nút "Quay lại"
         JButton btnBack = new JButton("← Quay lại");
         btnBack.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         btnBack.setForeground(new Color(180, 200, 225));
@@ -130,13 +132,9 @@ public class ChangePasswordPanel extends JPanel {
         btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnBack.setAlignmentX(Component.LEFT_ALIGNMENT);
         btnBack.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        btnBack.addActionListener(e -> {
-            // TODO: Code chuyển màn hình
-        });
         leftBanner.add(btnBack);
         leftBanner.add(Box.createVerticalStrut(35));
 
-        // 3. Tiêu đề mục tài khoản trong banner trái
         JPanel bannerTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         bannerTitlePanel.setOpaque(false);
         bannerTitlePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -182,7 +180,6 @@ public class ChangePasswordPanel extends JPanel {
         leftBanner.add(bannerTitlePanel);
         leftBanner.add(Box.createVerticalStrut(45));
 
-        // 4. Đoạn mô tả bảo mật
         JPanel tipBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
         tipBox.setOpaque(false);
         tipBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -207,7 +204,6 @@ public class ChangePasswordPanel extends JPanel {
         leftBanner.add(tipBox);
         leftBanner.add(Box.createVerticalGlue());
 
-        // 5. Hình minh họa chiếc răng ở đáy trái
         JLabel lblToothArt = new JLabel("🦷✨", SwingConstants.CENTER);
         lblToothArt.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
         lblToothArt.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -215,15 +211,12 @@ public class ChangePasswordPanel extends JPanel {
 
         mainCard.add(leftBanner, BorderLayout.WEST);
 
-        // =========================================================================
         // CỘT BÊN PHẢI (Form Nhập Liệu)
-        // =========================================================================
         JPanel rightForm = new JPanel();
         rightForm.setOpaque(false);
         rightForm.setLayout(new BoxLayout(rightForm, BoxLayout.Y_AXIS));
         rightForm.setBorder(new EmptyBorder(50, 50, 20, 50));
 
-        // Header Tiêu đề form
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -273,7 +266,6 @@ public class ChangePasswordPanel extends JPanel {
         rightForm.add(headerRow);
         rightForm.add(Box.createVerticalStrut(35));
 
-        // Các trường nhập mật khẩu
         rightForm.add(createFieldLabel("Mật khẩu hiện tại *"));
         rightForm.add(Box.createVerticalStrut(8));
         txtOldPass = createPasswordField();
@@ -292,7 +284,6 @@ public class ChangePasswordPanel extends JPanel {
         rightForm.add(createInputContainer(txtConfirmPass, "Nhập lại mật khẩu mới"));
         rightForm.add(Box.createVerticalStrut(30));
 
-        // Nút hành động
         JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         btnBox.setOpaque(false);
         btnBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -312,7 +303,6 @@ public class ChangePasswordPanel extends JPanel {
         rightWrapper.setOpaque(false);
         rightWrapper.add(rightForm, BorderLayout.CENTER);
 
-        // Chú thích dưới cùng bên phải có đường kẻ ngang ở 2 bên
         JPanel bottomNotePanel = new JPanel(new GridBagLayout());
         bottomNotePanel.setOpaque(false);
         bottomNotePanel.setBorder(new EmptyBorder(0, 35, 20, 35));
@@ -378,13 +368,10 @@ public class ChangePasswordPanel extends JPanel {
             if (url != null) {
                 return new ImageIcon(url).getImage();
             }
-        } catch (Exception e) {
-            // Bỏ qua nếu lỗi
-        }
+        } catch (Exception e) {}
         return null;
     }
 
-    // Nạp ảnh logo1 trực tiếp sắc nét nguyên bản, không dùng bộ lọc để tránh mất nét
     private JLabel createLogoLabel(String path, int size) {
         try {
             URL url = getClass().getResource(path);
@@ -393,9 +380,7 @@ public class ChangePasswordPanel extends JPanel {
                 Image img = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
                 return new JLabel(new ImageIcon(img));
             }
-        } catch (Exception e) {
-            // Fallback
-        }
+        } catch (Exception e) {}
         JLabel lbl = new JLabel("🦷");
         lbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, size));
         lbl.setForeground(PINK_ACCENT);
@@ -573,8 +558,21 @@ public class ChangePasswordPanel extends JPanel {
         String newPass = new String(txtNewPass.getPassword()).trim();
         String confirmPass = new String(txtConfirmPass.getPassword()).trim();
 
-        if (oldPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty() || oldPass.contains("Nhập")) {
+        if (currentUsername == null || currentUsername.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Lỗi phiên đăng nhập: Không xác định được tài khoản hiện tại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (oldPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty() 
+            || oldPass.contains("Nhập") || newPass.contains("Nhập") || confirmPass.contains("Nhập")) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ tất cả các trường!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String passwordError = InputValidator.validatePassword(newPass);
+        if (passwordError != null) {
+            JOptionPane.showMessageDialog(this, passwordError, "Lỗi định dạng mật khẩu", JOptionPane.WARNING_MESSAGE);
+            txtNewPass.requestFocusInWindow();
             return;
         }
 
@@ -584,13 +582,35 @@ public class ChangePasswordPanel extends JPanel {
             return;
         }
 
-        if (newPass.length() < 6) {
-            JOptionPane.showMessageDialog(this, "Mật khẩu mới phải có ít nhất 6 ký tự!", "Mật khẩu yếu", JOptionPane.WARNING_MESSAGE);
-            txtNewPass.requestFocusInWindow();
-            return;
-        }
+        try {
+            TaiKhoanDAO dao = new TaiKhoanDAO();
+            
+            // Tìm tài khoản linh hoạt (khớp cả tên đăng nhập, mã NV hoặc họ tên)
+            Account acc = dao.findByUsername(currentUsername);
+            if (acc == null) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thông tin tài khoản tương ứng trong cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-        JOptionPane.showMessageDialog(this, "Đổi mật khẩu thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        clearForm();
+            // Kiểm tra mật khẩu cũ
+            if (!acc.getPassword().equals(oldPass)) {
+                JOptionPane.showMessageDialog(this, "Mật khẩu hiện tại không chính xác!", "Lỗi bảo mật", JOptionPane.ERROR_MESSAGE);
+                txtOldPass.requestFocusInWindow();
+                return;
+            }
+
+            // Dùng tên đăng nhập chuẩn (tenDN) lấy được từ object acc để update xuống CSDL
+            boolean success = dao.updatePassword(acc.getUsername(), newPass);
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Đổi mật khẩu thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+            } else {
+                JOptionPane.showMessageDialog(this, "Đổi mật khẩu thất bại do lỗi cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
     }
 }
