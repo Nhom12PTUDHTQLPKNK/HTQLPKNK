@@ -257,7 +257,7 @@ public class MenuFrame extends JFrame {
        // hệ thống 
         dashboardPanel = new DashboardPanel();
         mainContentPanel.add(dashboardPanel, CARD_DASHBOARD);
-        mainContentPanel.add(new ChangePasswordPanel(), CARD_CHANGE_PASS);
+        mainContentPanel.add(new ChangePasswordPanel(displayName), CARD_CHANGE_PASS);
         mainContentPanel.add(new HelpPanel(), CARD_HELP);
         activityLogPanel = new ActivityLogPanel();
         mainContentPanel.add(activityLogPanel, CARD_LOGS);
