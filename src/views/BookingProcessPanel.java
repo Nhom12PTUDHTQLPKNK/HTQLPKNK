@@ -3,6 +3,7 @@ package views;
 
 import Audit.AuditLog;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import report.PdfTableExport;
 import sql.DBConnection;
 
@@ -1124,6 +1125,8 @@ public class BookingProcessPanel extends JPanel {
                 new Dimension(0, 36)
         );
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 import models.dao.LichHenDAO;
 import report.PdfTableExport;
 import sql.DBConnection;
@@ -2479,6 +2482,9 @@ private String getCellText(
         loadServices();
         loadDoctors();
         loadAppointments();
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     }
 }

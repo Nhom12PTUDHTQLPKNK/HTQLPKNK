@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 package models.dao;
 
 import Audit.AuditLog;
@@ -124,6 +124,8 @@ public class LichHenDAO {
     }
 }
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
 package models.dao;
 
@@ -599,4 +601,7 @@ public class LichHenDAO {
         }
     }
 }
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git

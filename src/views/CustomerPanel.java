@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 package views;
 
 import controllers.PatientController;
@@ -392,6 +393,8 @@ public class CustomerPanel extends JPanel {
     }
 }
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
 package views;
 
@@ -1421,4 +1424,7 @@ public class CustomerPanel extends JPanel {
         );
     }
 }
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git

@@ -22,7 +22,6 @@ public class RolePermissionPanel extends JPanel {
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
     private static final Color MUTED = new Color(91, 112, 145);
 
-    // Khởi tạo DAO
     private final TaiKhoanDAO taiKhoanDAO = new TaiKhoanDAO();
 
     // Tab 1: Phân quyền
@@ -33,7 +32,6 @@ public class RolePermissionPanel extends JPanel {
     private JTextField txtTenVaiTroRole;
     private TableRowSorter<DefaultTableModel> roleRowSorter;
     private boolean isEditingRole = false;
-    private int selectedRoleRow = -1;
 
     // Tab 2: Tài khoản
     private DefaultTableModel accountTableModel;
@@ -42,7 +40,6 @@ public class RolePermissionPanel extends JPanel {
     private JComboBox<String> cbRoleBox, cbStatusBox;
     private TableRowSorter<DefaultTableModel> accountRowSorter;
     private boolean isEditingAccount = false;
-    private int selectedAccountRow = -1;
 
     public RolePermissionPanel() {
         setLayout(new BorderLayout(0, 15));
@@ -113,7 +110,7 @@ public class RolePermissionPanel extends JPanel {
         JPanel center = new JPanel(new BorderLayout(15, 0));
         center.setOpaque(false);
 
-        String[] cols = {"maNV", "Mã Vai Trò", "Tên Vai Trò", "Quyền Hạn"};
+        String[] cols = {"Mã NV", "Mã Vai Trò", "Tên Vai Trò", "Quyền Hạn"};
         roleTableModel = new DefaultTableModel(null, cols) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -155,11 +152,11 @@ public class RolePermissionPanel extends JPanel {
         form.add(lbl);
         form.add(Box.createVerticalStrut(12));
 
-        txtMaNVRole = addFieldToForm(form, "maNV:");
+        txtMaNVRole = addFieldToForm(form, "Mã Nhân Viên (maNV):");
 
         form.add(createFieldLabel("Mã Vai Trò:"));
         form.add(Box.createVerticalStrut(4));
-        cbMaVaiTro = new JComboBox<>(new String[]{"ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"});
+        cbMaVaiTro = new JComboBox<>(new String[]{"QUAN_LY", "NHA_SI", "LE_TAN", "Y_TA"});
         cbMaVaiTro.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbMaVaiTro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         cbMaVaiTro.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -170,7 +167,7 @@ public class RolePermissionPanel extends JPanel {
 
         txtTenVaiTroRole = addFieldToForm(form, "Tên Vai Trò:");
         txtTenVaiTroRole.setEditable(false);
-        txtTenVaiTroRole.setText("Quản lý");
+        txtTenVaiTroRole.setText("Nhân viên quản lý");
 
         form.add(createFieldLabel("Quyền Hạn:"));
         form.add(Box.createVerticalStrut(4));
@@ -190,7 +187,7 @@ public class RolePermissionPanel extends JPanel {
         JPanel btnGrid = createButton2x2Grid(
             e -> saveRole(),
             e -> deleteRole(),
-            e -> loadRoleToForm(),
+            e -> updateRole(),
             e -> clearRoleForm()
         );
         form.add(btnGrid);
@@ -201,19 +198,19 @@ public class RolePermissionPanel extends JPanel {
         String selected = (String) cbMaVaiTro.getSelectedItem();
         if (selected == null) return;
         switch (selected) {
-            case "ADMIN":
-                txtTenVaiTroRole.setText("Quản lý");
+            case "QUAN_LY":
+                txtTenVaiTroRole.setText("Nhân viên quản lý");
                 cbQuyenHanRole.setSelectedIndex(0);
                 break;
-            case "DOCTOR":
-                txtTenVaiTroRole.setText("Bác sĩ");
+            case "NHA_SI":
+                txtTenVaiTroRole.setText("Nha sĩ");
                 cbQuyenHanRole.setSelectedIndex(1);
                 break;
-            case "RECEPTIONIST":
+            case "LE_TAN":
                 txtTenVaiTroRole.setText("Lễ tân");
                 cbQuyenHanRole.setSelectedIndex(2);
                 break;
-            case "NURSE":
+            case "Y_TA":
                 txtTenVaiTroRole.setText("Y tá");
                 cbQuyenHanRole.setSelectedIndex(3);
                 break;
@@ -226,17 +223,17 @@ public class RolePermissionPanel extends JPanel {
         for (Object[] row : data) {
             String maNV = (String) row[1];
             String quyen = (String) row[2];
-            String maVaiTro = "ADMIN";
-            String tenVaiTro = "Quản lý";
+            String maVaiTro = "QUAN_LY";
+            String tenVaiTro = "Nhân viên quản lý";
             String quyenHan = "Quản lý toàn bộ hệ thống, nhân viên và cấu hình";
 
             if (quyen != null) {
-                if (quyen.equalsIgnoreCase("Bác sĩ")) {
-                    maVaiTro = "DOCTOR"; tenVaiTro = "Bác sĩ"; quyenHan = "Khám bệnh, lập kế hoạch điều trị và kê đơn thuốc";
-                } else if (quyen.equalsIgnoreCase("Lễ tân")) {
-                    maVaiTro = "RECEPTIONIST"; tenVaiTro = "Lễ tân"; quyenHan = "Tiếp đón khách hàng, đặt lịch hẹn và thanh toán hóa đơn";
-                } else if (quyen.equalsIgnoreCase("Điều dưỡng")) {
-                    maVaiTro = "NURSE"; tenVaiTro = "Y tá"; quyenHan = "Hỗ trợ thủ thuật nha khoa và quản lý kho vật tư tiêu hao";
+                if (quyen.contains("Nha sĩ") || quyen.equalsIgnoreCase("NHA_SI") || quyen.contains("Bác sĩ")) {
+                    maVaiTro = "NHA_SI"; tenVaiTro = "Nha sĩ"; quyenHan = "Khám bệnh, lập kế hoạch điều trị và kê đơn thuốc";
+                } else if (quyen.contains("Lễ tân") || quyen.equalsIgnoreCase("LE_TAN")) {
+                    maVaiTro = "LE_TAN"; tenVaiTro = "Lễ tân"; quyenHan = "Tiếp đón khách hàng, đặt lịch hẹn và thanh toán hóa đơn";
+                } else if (quyen.contains("Y tá") || quyen.equalsIgnoreCase("Y_TA") || quyen.contains("Điều dưỡng")) {
+                    maVaiTro = "Y_TA"; tenVaiTro = "Y tá"; quyenHan = "Hỗ trợ thủ thuật nha khoa và quản lý kho vật tư tiêu hao";
                 }
             }
             if (maNV != null && !maNV.isEmpty()) {
@@ -247,11 +244,10 @@ public class RolePermissionPanel extends JPanel {
 
     private void clearRoleForm() {
         isEditingRole = false;
-        selectedRoleRow = -1;
         txtMaNVRole.setText("");
         txtMaNVRole.setEnabled(true);
         cbMaVaiTro.setSelectedIndex(0);
-        txtTenVaiTroRole.setText("Quản lý");
+        txtTenVaiTroRole.setText("Nhân viên quản lý");
         cbQuyenHanRole.setSelectedIndex(0);
         roleTable.clearSelection();
     }
@@ -259,32 +255,41 @@ public class RolePermissionPanel extends JPanel {
     private void loadRoleToForm() {
         int vRow = roleTable.getSelectedRow();
         if (vRow == -1) return;
-        selectedRoleRow = roleTable.convertRowIndexToModel(vRow);
-        txtMaNVRole.setText((String) roleTableModel.getValueAt(selectedRoleRow, 0));
+        int mRow = roleTable.convertRowIndexToModel(vRow);
+        txtMaNVRole.setText((String) roleTableModel.getValueAt(mRow, 0));
         txtMaNVRole.setEnabled(false);
-        cbMaVaiTro.setSelectedItem(roleTableModel.getValueAt(selectedRoleRow, 1));
-        txtTenVaiTroRole.setText((String) roleTableModel.getValueAt(selectedRoleRow, 2));
-        cbQuyenHanRole.setSelectedItem(roleTableModel.getValueAt(selectedRoleRow, 3));
+        cbMaVaiTro.setSelectedItem(roleTableModel.getValueAt(mRow, 1));
+        txtTenVaiTroRole.setText((String) roleTableModel.getValueAt(mRow, 2));
+        cbQuyenHanRole.setSelectedItem(roleTableModel.getValueAt(mRow, 3));
         isEditingRole = true;
     }
 
     private void saveRole() {
-        String maNV = txtMaNVRole.getText().trim();
+        String maNV = txtMaNVRole.getText().trim().toUpperCase();
         String tenVaiTro = txtTenVaiTroRole.getText().trim();
 
         if (maNV.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập maNV!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã nhân viên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         boolean success = taiKhoanDAO.updateAccount(maNV, null, tenVaiTro, true, maNV, false);
-        if (success || true) {
+        if (success) {
             JOptionPane.showMessageDialog(this, "Cập nhật phân quyền thành công!");
             loadRolesFromDB();
             clearRoleForm();
         } else {
-            JOptionPane.showMessageDialog(this, "Lỗi cập nhật phân quyền!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không tìm thấy tài khoản tương ứng với Mã NV để phân quyền!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void updateRole() {
+        int vRow = roleTable.getSelectedRow();
+        if (vRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần sửa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        saveRole();
     }
 
     private void deleteRole() {
@@ -298,13 +303,12 @@ public class RolePermissionPanel extends JPanel {
         if (JOptionPane.showConfirmDialog(this, "Xóa phân quyền nhân viên " + maNV + "?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             roleTableModel.removeRow(mRow);
             clearRoleForm();
-            JOptionPane.showMessageDialog(this, "Xóa thành công!");
+            JOptionPane.showMessageDialog(this, "Xóa phân quyền thành công!");
         }
     }
 
-
     // =========================================================================
-    // TAB 2: QUẢN LÝ TÀI KHOẢN (MẶT ĐỊNH MẬT KHẨU LÀ 123456)
+    // TAB 2: QUẢN LÝ TÀI KHOẢN
     // =========================================================================
     private JPanel createAccountPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
@@ -345,7 +349,6 @@ public class RolePermissionPanel extends JPanel {
         accountTable.setRowSorter(accountRowSorter);
         styleTable(accountTable);
 
-        // Cấu hình độ rộng cột cân đối
         accountTable.getColumnModel().getColumn(0).setPreferredWidth(140);
         accountTable.getColumnModel().getColumn(1).setPreferredWidth(100);
         accountTable.getColumnModel().getColumn(2).setPreferredWidth(130);
@@ -393,7 +396,7 @@ public class RolePermissionPanel extends JPanel {
 
         form.add(createFieldLabel("Quyền hạn:"));
         form.add(Box.createVerticalStrut(4));
-        cbRoleBox = new JComboBox<>(new String[]{"Admin", "Bác sĩ", "Lễ tân", "Điều dưỡng"});
+        cbRoleBox = new JComboBox<>(new String[]{"Nhân viên quản lý", "Nha sĩ", "Lễ tân", "Y tá"});
         cbRoleBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbRoleBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         cbRoleBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -414,7 +417,7 @@ public class RolePermissionPanel extends JPanel {
         JPanel btnGrid = createButton2x2Grid(
             e -> saveAccount(),
             e -> deleteAccount(),
-            e -> loadAccountToForm(),
+            e -> updateAccountAction(),
             e -> clearAccountForm()
         );
         form.add(btnGrid);
@@ -431,7 +434,6 @@ public class RolePermissionPanel extends JPanel {
 
     private void clearAccountForm() {
         isEditingAccount = false;
-        selectedAccountRow = -1;
         txtUsername.setText("");
         txtUsername.setEnabled(true);
         txtPassword.setText("123456");
@@ -444,25 +446,30 @@ public class RolePermissionPanel extends JPanel {
     private void loadAccountToForm() {
         int vRow = accountTable.getSelectedRow();
         if (vRow == -1) return;
-        selectedAccountRow = accountTable.convertRowIndexToModel(vRow);
-        txtUsername.setText((String) accountTableModel.getValueAt(selectedAccountRow, 0));
+        int mRow = accountTable.convertRowIndexToModel(vRow);
+        txtUsername.setText((String) accountTableModel.getValueAt(mRow, 0));
         txtUsername.setEnabled(false);
         txtPassword.setText("123456");
-        txtStaffId.setText((String) accountTableModel.getValueAt(selectedAccountRow, 1));
-        cbRoleBox.setSelectedItem(accountTableModel.getValueAt(selectedAccountRow, 2));
-        cbStatusBox.setSelectedItem(accountTableModel.getValueAt(selectedAccountRow, 3));
+        txtStaffId.setText((String) accountTableModel.getValueAt(mRow, 1));
+        cbRoleBox.setSelectedItem(accountTableModel.getValueAt(mRow, 2));
+        cbStatusBox.setSelectedItem(accountTableModel.getValueAt(mRow, 3));
         isEditingAccount = true;
     }
 
     private void saveAccount() {
         String u = txtUsername.getText().trim();
         String p = txtPassword.getText().trim();
-        String id = txtStaffId.getText().trim();
+        String id = txtStaffId.getText().trim().toUpperCase();
         String r = (String) cbRoleBox.getSelectedItem();
         String s = (String) cbStatusBox.getSelectedItem();
 
         if (u.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập Tên đăng nhập!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (id.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã nhân viên (VD: NV001)!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -475,14 +482,24 @@ public class RolePermissionPanel extends JPanel {
             success = taiKhoanDAO.insertAccount(u, p.isEmpty() ? "123456" : p, r, active, id);
         }
 
-        if (success || true) {
+        if (success) {
             JOptionPane.showMessageDialog(this, isEditingAccount ? "Cập nhật tài khoản thành công!" : "Tạo tài khoản thành công!");
             clearAccountForm();
             loadAccountsFromDB();
             loadRolesFromDB();
         } else {
-            JOptionPane.showMessageDialog(this, "Lỗi thao tác cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi CSDL: Kiểm tra trùng tên đăng nhập hoặc Mã nhân viên (" + id + ") chưa tồn tại trong bảng NhanVien!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void updateAccountAction() {
+        int vRow = accountTable.getSelectedRow();
+        if (vRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn tài khoản cần sửa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        isEditingAccount = true;
+        saveAccount();
     }
 
     private void deleteAccount() {
@@ -495,21 +512,18 @@ public class RolePermissionPanel extends JPanel {
         String u = (String) accountTableModel.getValueAt(mRow, 0);
         if (JOptionPane.showConfirmDialog(this, "Xóa tài khoản " + u + "?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             boolean success = taiKhoanDAO.deleteAccount(u);
-            if (success || true) {
+            if (success) {
                 accountTableModel.removeRow(mRow);
                 clearAccountForm();
                 loadRolesFromDB();
-                JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                JOptionPane.showMessageDialog(this, "Xóa tài khoản thành công!");
             } else {
                 JOptionPane.showMessageDialog(this, "Không thể xóa tài khoản này!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-
-    // =========================================================================
-    // HÀM TIỆN ÍCH DÙNG CHUNG (UI HELPERS)
-    // =========================================================================
+    // UI Helpers
     private JPanel createCardContainer(int width) {
         JPanel panel = new JPanel() {
             @Override

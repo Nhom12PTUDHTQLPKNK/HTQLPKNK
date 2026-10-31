@@ -32,6 +32,7 @@ public class MenuFrame extends JFrame {
     private ActivityLogPanel activityLogPanel;
     private AppointmentBookingPanel bookingPanel;
 <<<<<<< HEAD
+<<<<<<< HEAD
 
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -567,6 +568,8 @@ public class MenuFrame extends JFrame {
     }
 }
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     private BookingProcessPanel bookingProcessPanel;
 
    // hệ thống
@@ -1109,4 +1112,7 @@ public class MenuFrame extends JFrame {
         menu.add(item);
     }
 }
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git

@@ -22,6 +22,7 @@ public class PromotionProcessPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JTable table;
 <<<<<<< HEAD
+<<<<<<< HEAD
     private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount, txtEndDate;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
@@ -212,6 +213,8 @@ public class PromotionProcessPanel extends JPanel {
         if (id.isEmpty() || name.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ Mã khuyến mãi và Tên chương trình!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount;
     private datepicker.DatePickerField txtEndDate;
     private TableRowSorter<DefaultTableModel> rowSorter;
@@ -417,6 +420,9 @@ public class PromotionProcessPanel extends JPanel {
 
         if (!endDate.isEmpty() && !txtEndDate.isValidDate()) {
             JOptionPane.showMessageDialog(this, "Ngày kết thúc không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
             return;
         }

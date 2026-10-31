@@ -26,6 +26,7 @@ public class AppointmentUpdatePanel extends JPanel {
     private JTextField txtSearchPhone;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     private JTextField txtAppId, txtCustName, txtPhone, txtAppDate, txtTime;
     private JComboBox<String> cbService, cbDoctor, cbStatus;
     private boolean isEditing = false;
@@ -403,6 +404,8 @@ public class AppointmentUpdatePanel extends JPanel {
         if (id.isEmpty() || name.isEmpty() || phone.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin lịch hẹn!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     private JTextField txtAppId, txtCustName, txtPhone, txtTime;
     private datepicker.DatePickerField txtAppDate;
     private JComboBox<String> cbService, cbDoctor, cbStatus;
@@ -795,6 +798,9 @@ public class AppointmentUpdatePanel extends JPanel {
 
         if (!txtAppDate.isValidDate()) {
             JOptionPane.showMessageDialog(this, "Ngày hẹn không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
             return;
         }
