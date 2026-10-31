@@ -383,7 +383,7 @@ public class MenuFrame extends JFrame {
             byte[] qrImage = new AuthController().regenerateCurrentUserLoginQr();
             if (qrImage == null) {
                 JOptionPane.showMessageDialog(this,
-                        "Không tìm thấy tài khoản đang hoạt động để tạo mã QR.",
+                       "Không tìm thấy tài khoản đang hoạt động để tạo mã QR.",
                         "Không thể tạo mã QR", JOptionPane.WARNING_MESSAGE);
                 return;
             }
