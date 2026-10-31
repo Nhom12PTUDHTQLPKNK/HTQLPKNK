@@ -10,6 +10,20 @@ import java.util.List;
 
 public class VatTuDAO {
 
+    /** Cộng tồn vật tư/thiết bị sau khi phiếu nhập kho được xác nhận. */
+    public boolean increaseInventory(String maVatTu, int soLuongNhap) throws SQLException {
+        if (soLuongNhap <= 0) throw new IllegalArgumentException("Số lượng nhập phải lớn hơn 0.");
+        String sql = "UPDATE VatTu SET soLuongTon = COALESCE(soLuongTon, 0) + ? WHERE maVatTu = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, soLuongNhap);
+            stmt.setString(2, maVatTu);
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Nhập kho vật tư/thiết bị " + maVatTu + ", số lượng " + soLuongNhap);
+            return updated;
+        }
+    }
+
     public boolean insert(VatTu vt) throws SQLException {
         String sql = "INSERT INTO VatTu (maVatTu, tenVatTu, donViTinh, soLuongTon, ngaySuDung) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();

@@ -98,27 +98,24 @@ public class ReportPanel extends JPanel {
     }
 
     private JButton createNavButton(String text, String cardName) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.setColor(BORDER_LIGHT);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setForeground(TEXT_DARK);
+        final Color normalColor = BLUE_PRIMARY.darker();
+        final Color hoverColor = normalColor.darker();
+        JButton btn = new JButton(text);
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(normalColor);
+        btn.setOpaque(true);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(false);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(new EmptyBorder(6, 14, 6, 14));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(190, 36));
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(hoverColor); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(normalColor); }
+        });
         btn.addActionListener(e -> showSubView(cardName));
         return btn;
     }

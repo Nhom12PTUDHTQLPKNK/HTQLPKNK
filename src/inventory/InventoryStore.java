@@ -202,6 +202,14 @@ public final class InventoryStore {
         return t;
     }
 
+    /** Kiểm tra giao dịch trước khi thực hiện cập nhật tồn kho trên CSDL. */
+    public synchronized void validatePending(String id) {
+        Txn t = requireTxn(id);
+        if (t.getStatus() != TxnStatus.CHO_XAC_NHAN)
+            throw bad("Giao dịch " + t.getId() + " không còn ở trạng thái chờ xác nhận.");
+        validate(t);
+    }
+
     public synchronized Txn cancel(String id, String user) {
         Txn t = requireTxn(id);
         if (t.getStatus() != TxnStatus.CHO_XAC_NHAN)

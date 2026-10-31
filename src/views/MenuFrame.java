@@ -81,7 +81,7 @@ public class MenuFrame extends JFrame {
     public MenuFrame() {
         setTitle("SMILE DENTAL MANAGEMENT SYSTEM - HỆ THỐNG QUẢN LÝ PHÒNG KHÁM");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1180, 700));
+        setMinimumSize(new Dimension(980, 650));
         setSize(1400, 900);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -212,7 +212,7 @@ public class MenuFrame extends JFrame {
         userMenu.add(itemSwitchAccount);
         userMenu.add(itemLogout);
 
-        JPanel userBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel userBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         userBadge.setOpaque(false);
         userBadge.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         userBadge.setBorder(new EmptyBorder(4, 4, 4, 4));
@@ -250,6 +250,13 @@ public class MenuFrame extends JFrame {
         topContainer.add(bottomShadow, BorderLayout.SOUTH);
 
         add(topContainer, BorderLayout.NORTH);
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                adaptHeader(getWidth(), menuBar, headerBar, centerContainer, logoPanel,
+                        lblLogoIcon, lblLogoText, lblSubLogo, btnNotification, lblUserAvatar, lblUserName);
+            }
+        });
 
         // Menu chính
         cardLayout = new CardLayout();
@@ -488,8 +495,52 @@ public class MenuFrame extends JFrame {
         return menuBar;
     }
 
+    /** Co giãn cỡ chữ, icon và khoảng đệm theo chiều rộng, giữ menu trên một hàng. */
+    private void adaptHeader(int width, JMenuBar menuBar, JPanel headerBar, JPanel centerContainer,
+                             JPanel logoPanel, JLabel logoIcon, JLabel logoText, JLabel subLogo,
+                             JButton notification, JLabel userAvatar, JLabel userName) {
+        double scale = Math.max(0.70, Math.min(1.15, width / 1400.0));
+        int fontSize = Math.max(11, (int) Math.round(16 * scale));
+        int menuIconSize = Math.max(15, (int) Math.round(22 * scale));
+
+        centerContainer.setLayout(new FlowLayout(FlowLayout.LEFT,
+                Math.max(2, (int) Math.round(5 * scale)), 0));
+        logoPanel.setLayout(new FlowLayout(FlowLayout.LEFT,
+                Math.max(4, (int) Math.round(8 * scale)), 0));
+        for (Component component : menuBar.getComponents()) {
+            if (!(component instanceof JMenu)) continue;
+            JMenu menu = (JMenu) component;
+            menu.setFont(new Font("Segoe UI", Font.BOLD, fontSize));
+            int verticalInset = Math.max(4, (int) Math.round(9 * scale));
+            int horizontalInset = Math.max(2, (int) Math.round(4 * scale));
+            menu.setBorder(BorderFactory.createEmptyBorder(verticalInset, horizontalInset,
+                    verticalInset, horizontalInset));
+            Object iconPath = menu.getClientProperty("sourceIconPath");
+            if (iconPath instanceof String) menu.setIcon(loadIcon((String) iconPath, menuIconSize, menuIconSize));
+        }
+        logoIcon.setIcon(loadIcon("/img/logo1.png", Math.max(48, (int) Math.round(68 * scale)),
+                Math.max(48, (int) Math.round(68 * scale))));
+        logoText.setFont(new Font("Segoe UI", Font.BOLD,
+                Math.max(17, (int) Math.round(25 * scale))));
+        subLogo.setFont(new Font("Segoe UI", Font.PLAIN,
+                Math.max(9, (int) Math.round(11 * scale))));
+        notification.setIcon(loadIcon("/img/bell.png", Math.max(30, (int) Math.round(42 * scale)),
+                Math.max(30, (int) Math.round(42 * scale))));
+        userAvatar.setIcon(loadIcon("/img/staff.png", Math.max(19, (int) Math.round(25 * scale)),
+                Math.max(19, (int) Math.round(25 * scale))));
+        userName.setFont(new Font("Segoe UI", Font.BOLD,
+                Math.max(9, (int) Math.round(11 * scale))));
+        int verticalInset = Math.max(8, (int) Math.round(20 * scale));
+        int horizontalInset = Math.max(10, (int) Math.round(25 * scale));
+        headerBar.setBorder(new EmptyBorder(verticalInset, horizontalInset, verticalInset, horizontalInset));
+        headerBar.setPreferredSize(new Dimension(0, (int) Math.round(105 * scale)));
+        headerBar.revalidate();
+        headerBar.repaint();
+    }
+
     private JMenu createStyledMenu(String text, String iconPath) {
         JMenu menu = new JMenu(text);
+        menu.putClientProperty("sourceIconPath", iconPath);
         menu.setFont(new Font("Segoe UI", Font.BOLD, 18));
         menu.setForeground(TEXT_LIGHT);
         menu.setBackground(NAVY_BG);

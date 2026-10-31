@@ -7,6 +7,8 @@ import inventory.InventoryStore.Txn;
 import inventory.InventoryStore.TxnStatus;
 import inventory.InventoryStore.TxnType;
 import report.PdfTableExport;
+import datepicker.DatePickerField;
+import models.dao.VatTuDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -51,7 +53,7 @@ public class InventoryUpdatePanel extends JPanel {
     private final JComboBox<TxnType> cbType = new JComboBox<TxnType>(TxnType.values());
     private final JComboBox<Item> cbItem = new JComboBox<Item>();
     private final JComboBox<String> cbLot = new JComboBox<String>();
-    private final JTextField txtExpiry = UiKit.textField();
+    private final DatePickerField txtExpiry = new DatePickerField();
     private final JTextField txtQty = UiKit.textField();
     private final JTextField txtReason = UiKit.textField();
     private final JLabel lblLot = UiKit.fieldLabel("Lô hàng (để trống nếu không có lô):");
@@ -294,6 +296,7 @@ public class InventoryUpdatePanel extends JPanel {
         LocalDate expiry;
         try {
             expiry = UiKit.parseDate(txtExpiry.getText());
+            if (!txtExpiry.getText().trim().isEmpty() && !txtExpiry.isValidDate()) throw new DateTimeParseException("Ngày không hợp lệ", txtExpiry.getText(), 0);
         } catch (DateTimeParseException ex) {
             UiKit.warn(this, "Hạn sử dụng phải đúng định dạng dd/MM/yyyy (ví dụ 31/12/2027).");
             return;
@@ -315,9 +318,23 @@ public class InventoryUpdatePanel extends JPanel {
         if (id == null) { UiKit.warn(this, "Vui lòng chọn giao dịch cần xác nhận."); return; }
         if (!UiKit.confirm(this, "Xác nhận giao dịch " + id + "?\nTồn kho sẽ được cập nhật và không thể hoàn tác (chỉ có thể điều chỉnh).")) return;
         try {
+            store.validatePending(id);
+            Txn pending = store.transaction(id);
+            if (pending != null && pending.getType() == TxnType.NHAP) {
+                Item importedItem = store.item(pending.getItemCode());
+                if (importedItem != null && importedItem.getCategory() != InventoryStore.Category.THUOC) {
+                    boolean updated = new VatTuDAO().increaseInventory(pending.getItemCode(), pending.getQty());
+                    if (!updated) {
+                        UiKit.warn(this, "Không tìm thấy mã vật tư/thiết bị " + pending.getItemCode() + " trong SQL Server. Phiếu chưa được xác nhận.");
+                        return;
+                    }
+                }
+            }
             Txn t = store.confirm(id, currentUser);
             AuditLog.event("CONFIRM", "Xác nhận giao dịch kho " + t.getId() + " (" + t.getType().getLabel() + ") - "
                     + t.getItemCode() + ", biến động " + t.getDelta());
+        } catch (java.sql.SQLException ex) {
+            UiKit.warn(this, "Không thể cập nhật tồn kho trên SQL Server. Phiếu chưa được xác nhận.\n" + ex.getMessage());
         } catch (IllegalArgumentException ex) {
             UiKit.warn(this, ex.getMessage());
         }

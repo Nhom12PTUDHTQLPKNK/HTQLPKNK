@@ -83,6 +83,16 @@ public class DatePickerField extends JPanel {
         }
     }
 
+    public boolean isEditable() {
+        return picker.getJFormattedTextField().isEditable();
+    }
+
+    public void setEditable(boolean editable) {
+        picker.getJFormattedTextField().setEditable(editable);
+        picker.getJFormattedTextField().setFocusable(editable);
+        picker.setEnabled(editable);
+    }
+
     public Date getDate() {
         Object value = model.getValue();
         return value instanceof Date ? (Date) value : null;

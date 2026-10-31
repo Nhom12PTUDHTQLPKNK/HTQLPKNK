@@ -208,12 +208,22 @@ public abstract class SqlDateReportPanel extends JPanel {
     }
 
     private void styleButton(JButton button, Color color) {
-        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        final Color normalColor = color.darker();
+        final Color hoverColor = normalColor.darker();
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
         button.setForeground(Color.WHITE);
-        button.setBackground(color);
+        button.setBackground(normalColor);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
         button.setFocusPainted(false);
+        button.setBorderPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { button.setBackground(hoverColor); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { button.setBackground(normalColor); }
+        });
     }
 
     private void styleTable(JTable table) {
