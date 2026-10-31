@@ -1,6 +1,6 @@
 package models.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 /**
  * Entity class cho bảng NhanVien
@@ -9,17 +9,19 @@ public class NhanVien {
     private String maNhanVien;
     private String tenNhanVien;
     private Date ngaySinh;
+    private String sdt;
     private String chucVu;
     private String lichLamViec;
     private String trinhDo;
-    private double mucLuong;
+    private Double mucLuong;
 
     public NhanVien() {}
 
-    public NhanVien(String maNhanVien, String tenNhanVien, Date ngaySinh, String chucVu, String lichLamViec, String trinhDo, double mucLuong) {
+    public NhanVien(String maNhanVien, String tenNhanVien, Date ngaySinh, String sdt, String chucVu, String lichLamViec, String trinhDo, Double mucLuong) {
         this.maNhanVien = maNhanVien;
         this.tenNhanVien = tenNhanVien;
         this.ngaySinh = ngaySinh;
+        this.sdt = sdt;
         this.chucVu = chucVu;
         this.lichLamViec = lichLamViec;
         this.trinhDo = trinhDo;
@@ -35,6 +37,9 @@ public class NhanVien {
     public Date getNgaySinh() { return ngaySinh; }
     public void setNgaySinh(Date ngaySinh) { this.ngaySinh = ngaySinh; }
 
+    public String getSdt() { return sdt; }
+    public void setSdt(String sdt) { this.sdt = sdt; }
+
     public String getChucVu() { return chucVu; }
     public void setChucVu(String chucVu) { this.chucVu = chucVu; }
 
@@ -44,23 +49,16 @@ public class NhanVien {
     public String getTrinhDo() { return trinhDo; }
     public void setTrinhDo(String trinhDo) { this.trinhDo = trinhDo; }
 
-    public double getMucLuong() { return mucLuong; }
-    public void setMucLuong(double mucLuong) { this.mucLuong = mucLuong; }
+    public Double getMucLuong() { return mucLuong; }
+    public void setMucLuong(Double mucLuong) { this.mucLuong = mucLuong; }
 
     @Override
     public String toString() {
         return "NhanVien{" +
                 "maNhanVien='" + maNhanVien + '\'' +
                 ", tenNhanVien='" + tenNhanVien + '\'' +
-                ", ngaySinh=" + ngaySinh +
                 ", chucVu='" + chucVu + '\'' +
-                ", trinhDo='" + trinhDo + '\'' +
-                ", mucLuong=" + mucLuong +
+                ", sdt='" + sdt + '\'' +
                 '}';
     }
-
-	public String getSdt() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
