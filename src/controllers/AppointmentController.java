@@ -23,6 +23,7 @@ public class AppointmentController {
 
     /**
 <<<<<<< HEAD
+<<<<<<< HEAD
      * Tạo lịch hẹn mới và lưu xuống CSDL
      */
     public boolean createAppointment(LichHen lichHen) throws SQLException {
@@ -40,6 +41,8 @@ public class AppointmentController {
         lichHen.setTrangThai("Đã xác nhận");
         return lichHenDAO.insert(lichHen);
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
      * Tạo lịch hẹn mới và lưu xuống CSDL (Mặc định trạng thái là 'Chờ khám')
      */
     public boolean createAppointment(LichHen lichHen) throws SQLException {
@@ -67,6 +70,9 @@ public class AppointmentController {
             return false;
         }
         return lichHenDAO.cancelAppointment(maLichHen);
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
     }
 }

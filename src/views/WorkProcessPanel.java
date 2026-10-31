@@ -3,6 +3,7 @@ package views;
 import Audit.AuditLog;
 import report.PdfTableExport;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -294,6 +295,8 @@ public class WorkProcessPanel extends JPanel {
         t.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 import schedule.ShiftStore;
 import schedule.ShiftStore.Preset;
 import schedule.ShiftStore.Role;
@@ -709,5 +712,8 @@ public class WorkProcessPanel extends JPanel {
 
     @Override public void addNotify() { super.addNotify(); store.addListener(refreshListener); reload(); }
     @Override public void removeNotify() { store.removeListener(refreshListener); super.removeNotify(); }
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 }

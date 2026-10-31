@@ -6,6 +6,7 @@ import sql.DBConnection;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
@@ -1572,6 +1573,8 @@ public class AppointmentBookingPanel extends JPanel {
 
         lblCustomerStatus.setForeground(MUTED);
 =======
+=======
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
@@ -3441,6 +3444,9 @@ public class AppointmentBookingPanel extends JPanel {
             MUTED,
             BADGE_GRAY_BG
         );
+<<<<<<< HEAD
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+=======
 >>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
         tableLichDat.clearSelection();
