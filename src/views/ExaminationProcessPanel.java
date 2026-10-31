@@ -103,21 +103,15 @@ public class ExaminationProcessPanel extends JPanel {
 
         JPanel filter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         filter.setOpaque(false);
-<<<<<<< HEAD
-<<<<<<< HEAD
-        JTextField txtDate = new JTextField(11);
-        JTextField txtSearch = new JTextField(20);
-        styleTextField(txtDate);
-=======
+
+        
+
         datepicker.DatePickerField txtDate = new datepicker.DatePickerField();
         JTextField txtSearch = new JTextField(20);
 
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
-=======
-        datepicker.DatePickerField txtDate = new datepicker.DatePickerField();
-        JTextField txtSearch = new JTextField(20);
 
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
+        
+
         styleTextField(txtSearch);
         txtSearch.setToolTipText("Tìm mã bệnh nhân hoặc họ tên");
         JButton btnSearch = createButton("⌕ Tìm kiếm", BLUE);
