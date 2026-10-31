@@ -61,20 +61,29 @@ public class BookingProcessPanel extends JPanel {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Tạo & Quản Lý Lịch Hẹn Khám");
+        JLabel lblTitle = new JLabel("Tiếp Nhận & Quản Lý Lịch Hẹn Khám");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
+
+        JLabel lblSubTitle = new JLabel("Nhập SĐT để tra cứu lịch hẹn; Quản lý riêng biệt 'Chờ xác nhận' và 'Đã xác nhận'");
+        lblSubTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubTitle.setForeground(new Color(100, 110, 130));
 
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(2));
+        titleBox.add(lblSubTitle);
 
         headerPanel.add(titleBox, BorderLayout.WEST);
 
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         toolbarPanel.setOpaque(false);
+
+        JLabel lblSearchSdt = new JLabel("Nhập SĐT:");
+        lblSearchSdt.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblSearchSdt.setForeground(TEXT_DARK);
 
         txtSearch = new JTextField(14);
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -88,6 +97,7 @@ public class BookingProcessPanel extends JPanel {
         JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 75);
         btnSearch.addActionListener(e -> performSearch());
 
+        toolbarPanel.add(lblSearchSdt);
         toolbarPanel.add(txtSearch);
         toolbarPanel.add(btnSearch);
         headerPanel.add(toolbarPanel, BorderLayout.EAST);
@@ -97,8 +107,8 @@ public class BookingProcessPanel extends JPanel {
         centerContainer.setOpaque(false);
 
         String[] cols = {
-            "Mã Lịch Hẹn", "Tên Khách Hàng", "Số Điện Thoại",
-            "Dịch Vụ Khám", "Nha Sĩ Phụ Trách", "Ngày Hẹn", "Giờ Hẹn", "Trạng Thái"
+            "Mã Lịch Hẹn", "Tên Khách Hàng", "SĐT",
+            "Dịch vụ khám", "Nha sĩ phụ trách", "Ngày hẹn", "Giờ", "Trạng thái"
         };
 
         tableModelPending = new DefaultTableModel(null, cols) {
@@ -111,7 +121,7 @@ public class BookingProcessPanel extends JPanel {
         tablePending = new JTable(tableModelPending);
         tableConfirmed = new JTable(tableModelConfirmed);
 
-        PdfTableExport.install(tablePending, "Lịch hẹn chờ xử lý");
+        PdfTableExport.install(tablePending, "Lịch hẹn chờ xác nhận");
         PdfTableExport.install(tableConfirmed, "Lịch hẹn đã xác nhận");
 
         rowSorterPending = new TableRowSorter<>(tableModelPending);
@@ -147,7 +157,7 @@ public class BookingProcessPanel extends JPanel {
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
         tabbedPane.addTab("Lịch Hẹn Chờ Xử Lý", scrollPending);
-        tabbedPane.addTab("Lịch Hẹn Đã Xác Nhận", scrollConfirmed);
+        tabbedPane.addTab("Lịch Hẹn Đã Xác Nhận", scrollConfirmed); // Tên tab chính xác
 
         centerContainer.add(tabbedPane, BorderLayout.CENTER);
         centerContainer.add(createBookingFormPanel(), BorderLayout.EAST);
@@ -191,7 +201,7 @@ public class BookingProcessPanel extends JPanel {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel title = new JLabel("Tạo, Cập Nhật Lịch Hẹn");
+        JLabel title = new JLabel("Xử Lý Tiếp Nhận Lịch");
         title.setFont(new Font("Segoe UI", Font.BOLD, 15));
         title.setForeground(TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -199,11 +209,11 @@ public class BookingProcessPanel extends JPanel {
         panel.add(title);
         panel.add(Box.createVerticalStrut(12));
 
-        txtAppId = addField(panel, "Mã Lịch Hẹn:");
-        txtCustomerName = addField(panel, "Tên Khách Hàng:");
-        txtPhone = addField(panel, "Số Điện Thoại:");
+        txtAppId = addField(panel, "Mã lịch hẹn:");
+        txtCustomerName = addField(panel, "Tên khách hàng:");
+        txtPhone = addField(panel, "Số điện thoại:");
 
-        panel.add(createFieldLabel("Dịch Vụ Khám:"));
+        panel.add(createFieldLabel("Dịch vụ khám:"));
         panel.add(Box.createVerticalStrut(3));
         cbService = new JComboBox<>();
         cbService.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -213,7 +223,7 @@ public class BookingProcessPanel extends JPanel {
         panel.add(cbService);
         panel.add(Box.createVerticalStrut(10));
 
-        panel.add(createFieldLabel("Nha Sĩ Phụ Trách:"));
+        panel.add(createFieldLabel("Nha sĩ phụ trách:"));
         panel.add(Box.createVerticalStrut(3));
         cbDoctor = new JComboBox<>();
         cbDoctor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -223,33 +233,39 @@ public class BookingProcessPanel extends JPanel {
         panel.add(cbDoctor);
         panel.add(Box.createVerticalStrut(10));
 
-        txtAppDate = addField(panel, "Ngày Hẹn (dd/MM/yyyy):");
-        txtAppTime = addField(panel, "Giờ Hẹn (HH:mm):");
+        txtAppDate = addField(panel, "Ngày khám (dd/MM/yyyy):");
+        txtAppTime = addField(panel, "Giờ (HH:mm):");
 
+        // Hàng nút 1: Lưu & Xác Nhận chuyển tab
         JPanel btnBox1 = new JPanel(new GridLayout(1, 2, 8, 0));
         btnBox1.setOpaque(false);
         btnBox1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         btnBox1.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton btnSave = createStaticButton("Lưu", GREEN_ACCENT, Integer.MAX_VALUE);
-        JButton btnDelete = createStaticButton("Hủy lịch", RED_ACCENT, Integer.MAX_VALUE);
+        JButton btnSave = createStaticButton("Lưu", BLUE_PRIMARY, Integer.MAX_VALUE);
+        JButton btnConfirm = createStaticButton("Xác Nhận", GREEN_ACCENT, Integer.MAX_VALUE);
 
         btnSave.addActionListener(e -> performSave());
-        btnDelete.addActionListener(e -> performDelete());
+        btnConfirm.addActionListener(e -> performConfirm()); // Chuyển lịch sang Đã xác nhận
 
         btnBox1.add(btnSave);
-        btnBox1.add(btnDelete);
+        btnBox1.add(btnConfirm);
         panel.add(btnBox1);
         panel.add(Box.createVerticalStrut(8));
 
+        // Hàng nút 2: Hủy lịch & Làm mới
         JPanel btnBox2 = new JPanel(new GridLayout(1, 2, 8, 0));
         btnBox2.setOpaque(false);
         btnBox2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         btnBox2.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        JButton btnDelete = createStaticButton("Hủy lịch", RED_ACCENT, Integer.MAX_VALUE);
         JButton btnClear = createStaticButton("Làm Mới", PINK_ACCENT, Integer.MAX_VALUE);
+
+        btnDelete.addActionListener(e -> performDelete());
         btnClear.addActionListener(e -> clearForm());
 
+        btnBox2.add(btnDelete);
         btnBox2.add(btnClear);
         panel.add(btnBox2);
 
@@ -262,12 +278,10 @@ public class BookingProcessPanel extends JPanel {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                cbService.addItem(rs.getString("tenDichVu"));
-            }
+            while (rs.next()) cbService.addItem(rs.getString("tenDichVu"));
             if (cbService.getItemCount() == 0) cbService.addItem("Không có dịch vụ");
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách dịch vụ:\n" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải dịch vụ:\n" + e.getMessage());
         }
     }
 
@@ -277,12 +291,10 @@ public class BookingProcessPanel extends JPanel {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                cbDoctor.addItem(rs.getString("tenNhanVien"));
-            }
+            while (rs.next()) cbDoctor.addItem(rs.getString("tenNhanVien"));
             if (cbDoctor.getItemCount() == 0) cbDoctor.addItem("Không có nha sĩ");
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách nha sĩ:\n" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải nha sĩ:\n" + e.getMessage());
         }
     }
 
@@ -292,11 +304,40 @@ public class BookingProcessPanel extends JPanel {
 
         List<Object[]> list = lichHenDAO.getAllAppointments();
         for (Object[] row : list) {
-            String trangThai = (String) row[7];
-            if (trangThai != null && trangThai.equalsIgnoreCase("Chờ xác nhận")) {
+            String trangThai = row[7] != null ? row[7].toString().trim() : "";
+            
+            // Tab 1: Chỉ nhận "Chờ xác nhận"
+            if (trangThai.equalsIgnoreCase("Chờ xác nhận")) {
                 tableModelPending.addRow(row);
-            } else {
+            } 
+            // Tab 2: Chỉ nhận "Đã xác nhận"
+            else if (trangThai.equalsIgnoreCase("Đã xác nhận")) {
                 tableModelConfirmed.addRow(row);
+            }
+        }
+    }
+
+    // Xử lý khi nhấn nút "Xác Nhận": chuyển dòng được chọn sang trạng thái "Đã xác nhận"
+    private void performConfirm() {
+        int selectedRow = tablePending.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lịch hẹn ở tab 'Lịch Hẹn Chờ Xử Lý' cần xác nhận!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int modelRow = tablePending.convertRowIndexToModel(selectedRow);
+        String id = tableModelPending.getValueAt(modelRow, 0).toString();
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xác nhận lịch hẹn " + id + " này?", "Xác nhận lịch hẹn", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (lichHenDAO.updateAppointmentStatus(id, "Đã xác nhận")) {
+                AuditLog.event("UPDATE", "Xác nhận lịch hẹn - mã " + id);
+                JOptionPane.showMessageDialog(this, "Xác nhận thành công! Lịch hẹn đã chuyển sang tab 'Lịch Hẹn Đã Xác Nhận'.");
+                clearForm();
+                loadAppointments();
+                tabbedPane.setSelectedIndex(1); // Tự động bật sang tab thứ 2 để người dùng xem kết quả
+            } else {
+                JOptionPane.showMessageDialog(this, "Cập nhật trạng thái thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
