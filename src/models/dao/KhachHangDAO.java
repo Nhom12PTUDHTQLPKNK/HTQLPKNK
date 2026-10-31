@@ -18,10 +18,10 @@ public class KhachHangDAO {
             stmt.setString(2, kh.getTenKH());
             stmt.setString(3, kh.getGioiTinh());
             stmt.setString(4, kh.getDiaChi());
-            stmt.setDate(5, kh.getNgaySinh());
+            stmt.setDate(5, (Date) kh.getNgaySinh());
             stmt.setString(6, kh.getSdt());
             stmt.setString(7, kh.getTienSuBenh());
-            stmt.setInt(8, kh.getDiemTichLuy());
+            stmt.setInt(8, kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0);
             boolean saved = stmt.executeUpdate() > 0;
             if (saved) AuditLog.event("CREATE", "Khách hàng " + kh.getMaKhachHang());
             return saved;
@@ -29,14 +29,17 @@ public class KhachHangDAO {
     }
 
     public boolean update(KhachHang kh) throws SQLException {
-        String sql = "UPDATE KhachHang SET tenKH = ?, gioiTinh = ?, diaChi = ?, sdt = ? WHERE maKhachHang = ?";
+        String sql = "UPDATE KhachHang SET tenKH = ?, gioiTinh = ?, diaChi = ?, ngaySinh = ?, sdt = ?, tienSuBenh = ?, diemTichLuy = ? WHERE maKhachHang = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, kh.getTenKH());
             stmt.setString(2, kh.getGioiTinh());
             stmt.setString(3, kh.getDiaChi());
-            stmt.setString(4, kh.getSdt());
-            stmt.setString(5, kh.getMaKhachHang());
+            stmt.setDate(4, (Date) kh.getNgaySinh());
+            stmt.setString(5, kh.getSdt());
+            stmt.setString(6, kh.getTienSuBenh());
+            stmt.setInt(7, kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0);
+            stmt.setString(8, kh.getMaKhachHang());
             boolean updated = stmt.executeUpdate() > 0;
             if (updated) AuditLog.event("UPDATE", "Khách hàng " + kh.getMaKhachHang());
             return updated;

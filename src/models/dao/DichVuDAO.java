@@ -10,37 +10,38 @@ import java.util.List;
 
 public class DichVuDAO {
 
-    // Thêm mới dịch vụ
     public boolean insert(DichVu dv) throws SQLException {
-        String sql = "INSERT INTO DichVu (maDichVu, tenDichVu, donGia, moTa) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO DichVu (maDichVu, tenDichVu, loaiDieuTri, donGia, donViTinh, moTa) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, dv.getMaDichVu());
             stmt.setString(2, dv.getTenDichVu());
-            stmt.setDouble(3, dv.getDonGia());
-            stmt.setString(4, dv.getMoTa());
+            stmt.setString(3, dv.getLoaiDieuTri());
+            stmt.setDouble(4, dv.getDonGia());
+            stmt.setString(5, dv.getDonViTinh());
+            stmt.setString(6, dv.getMoTa());
             boolean saved = stmt.executeUpdate() > 0;
             if (saved) AuditLog.event("CREATE", "Dịch vụ " + dv.getMaDichVu());
             return saved;
         }
     }
 
-    // Cập nhật thông tin dịch vụ
     public boolean update(DichVu dv) throws SQLException {
-        String sql = "UPDATE DichVu SET tenDichVu = ?, donGia = ?, moTa = ? WHERE maDichVu = ?";
+        String sql = "UPDATE DichVu SET tenDichVu = ?, loaiDieuTri = ?, donGia = ?, donViTinh = ?, moTa = ? WHERE maDichVu = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, dv.getTenDichVu());
-            stmt.setDouble(2, dv.getDonGia());
-            stmt.setString(3, dv.getMoTa());
-            stmt.setString(4, dv.getMaDichVu());
+            stmt.setString(2, dv.getLoaiDieuTri());
+            stmt.setDouble(3, dv.getDonGia());
+            stmt.setString(4, dv.getDonViTinh());
+            stmt.setString(5, dv.getMoTa());
+            stmt.setString(6, dv.getMaDichVu());
             boolean updated = stmt.executeUpdate() > 0;
             if (updated) AuditLog.event("UPDATE", "Dịch vụ " + dv.getMaDichVu());
             return updated;
         }
     }
 
-    // Xóa dịch vụ theo mã
     public boolean delete(String maDichVu) throws SQLException {
         String sql = "DELETE FROM DichVu WHERE maDichVu = ?";
         try (Connection conn = DBConnection.getConnection();
@@ -52,7 +53,6 @@ public class DichVuDAO {
         }
     }
 
-    // Lấy toàn bộ danh sách dịch vụ
     public List<DichVu> getAllDichVu() {
         List<DichVu> list = new ArrayList<>();
         String sql = "SELECT * FROM DichVu ORDER BY maDichVu";
@@ -68,15 +68,15 @@ public class DichVuDAO {
         return list;
     }
 
-    // Tìm kiếm dịch vụ theo mã hoặc tên (hỗ trợ tìm gần đúng)
     public List<DichVu> search(String keyword) {
         List<DichVu> list = new ArrayList<>();
-        String sql = "SELECT * FROM DichVu WHERE maDichVu LIKE ? OR tenDichVu LIKE ?";
+        String sql = "SELECT * FROM DichVu WHERE maDichVu LIKE ? OR tenDichVu LIKE ? OR loaiDieuTri LIKE ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             String searchPattern = "%" + keyword + "%";
             stmt.setString(1, searchPattern);
             stmt.setString(2, searchPattern);
+            stmt.setString(3, searchPattern);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapDichVu(rs));
@@ -92,7 +92,9 @@ public class DichVuDAO {
         return new DichVu(
             rs.getString("maDichVu"),
             rs.getString("tenDichVu"),
+            rs.getString("loaiDieuTri"),
             rs.getDouble("donGia"),
+            rs.getString("donViTinh"),
             rs.getString("moTa")
         );
     }

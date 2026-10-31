@@ -31,7 +31,7 @@ public class EmployeePanel extends JPanel {
     private JTextField txtSearch;
     private TableRowSorter<DefaultTableModel> rowSorter;
 
-    private JTextField txtEmpId, txtEmpName, txtPhone, txtEmail;
+    private JTextField txtEmpId, txtEmpName, txtPhone, txtSalary, txtTrinhDo;
     private JComboBox<String> cbRole;
     private JButton btnSave, btnClear;
 
@@ -96,7 +96,7 @@ public class EmployeePanel extends JPanel {
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
 
-        String[] columns = {"Mã NV", "Họ và tên", "Chức vụ", "Số điện thoại", "Lương"};
+        String[] columns = {"Mã NV", "Họ và tên", "Chức vụ", "Trình độ", "Số điện thoại", "Mức lương"};
 
         tableModel = new DefaultTableModel(null, columns) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
@@ -118,7 +118,7 @@ public class EmployeePanel extends JPanel {
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
-        table.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(4).setCellRenderer(centerRenderer);
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1));
@@ -167,7 +167,7 @@ public class EmployeePanel extends JPanel {
         JLabel lblRole = createFieldLabel("Chức vụ:");
         panel.add(lblRole);
         panel.add(Box.createVerticalStrut(4));
-        cbRole = new JComboBox<>(new String[]{"Bác sĩ trưởng", "Bác sĩ nha khoa", "Lễ tân", "Điều dưỡng"});
+        cbRole = new JComboBox<>(new String[]{"Chủ phòng khám (Quản lý)", "Nha sĩ", "Y tá", "Lễ tân"});
         cbRole.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         cbRole.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -175,8 +175,9 @@ public class EmployeePanel extends JPanel {
         panel.add(cbRole);
         panel.add(Box.createVerticalStrut(12));
 
+        txtTrinhDo = addFieldToForm(panel, "Trình độ:");
         txtPhone = addFieldToForm(panel, "Số điện thoại:");
-        txtEmail = addFieldToForm(panel, "Mức lương:"); // Tận dụng field này cho lương hoặc thêm field nếu cần
+        txtSalary = addFieldToForm(panel, "Mức lương:");
 
         JPanel btnBox = new JPanel(new GridLayout(1, 2, 10, 0));
         btnBox.setOpaque(false);
@@ -265,6 +266,7 @@ public class EmployeePanel extends JPanel {
                 nv.getMaNhanVien(),
                 nv.getTenNhanVien(),
                 nv.getChucVu(),
+                nv.getTrinhDo(),
                 nv.getSdt(),
                 nv.getMucLuong()
             });
@@ -284,6 +286,7 @@ public class EmployeePanel extends JPanel {
                 nv.getMaNhanVien(),
                 nv.getTenNhanVien(),
                 nv.getChucVu(),
+                nv.getTrinhDo(),
                 nv.getSdt(),
                 nv.getMucLuong()
             });
@@ -297,8 +300,9 @@ public class EmployeePanel extends JPanel {
         txtEmpId.setEnabled(true);
         txtEmpName.setText("");
         cbRole.setSelectedIndex(0);
+        txtTrinhDo.setText("");
         txtPhone.setText("");
-        txtEmail.setText("");
+        txtSalary.setText("");
         table.clearSelection();
         txtSearch.setText("");
         loadDataFromDatabase();
@@ -312,9 +316,10 @@ public class EmployeePanel extends JPanel {
         txtEmpId.setEnabled(false);
         txtEmpName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
         cbRole.setSelectedItem(tableModel.getValueAt(selectedRowIndex, 2));
-        txtPhone.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
-        Object salaryObj = tableModel.getValueAt(selectedRowIndex, 4);
-        txtEmail.setText(salaryObj != null ? salaryObj.toString() : "0.0");
+        txtTrinhDo.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
+        txtPhone.setText((String) tableModel.getValueAt(selectedRowIndex, 4));
+        Object salaryObj = tableModel.getValueAt(selectedRowIndex, 5);
+        txtSalary.setText(salaryObj != null ? salaryObj.toString() : "0.0");
         isEditing = true;
     }
 
@@ -322,12 +327,13 @@ public class EmployeePanel extends JPanel {
         String id = txtEmpId.getText().trim();
         String name = txtEmpName.getText().trim();
         String role = (String) cbRole.getSelectedItem();
+        String trinhDo = txtTrinhDo.getText().trim();
         String phone = txtPhone.getText().trim();
         double salary = 0.0;
         try {
-            salary = Double.parseDouble(txtEmail.getText().trim());
+            salary = Double.parseDouble(txtSalary.getText().trim());
         } catch (NumberFormatException e) {
-            salary = 10000000.0; // Mặc định nếu nhập sai định dạng số
+            salary = 0.0;
         }
 
         if (id.isEmpty() || name.isEmpty()) {
@@ -336,7 +342,8 @@ public class EmployeePanel extends JPanel {
         }
 
         try {
-            NhanVien nv = new NhanVien(id, name, null, phone, role, null, salary);
+            // Khởi tạo đối tượng NhanVien khớp với constructor đầy đủ của Entity NhanVien
+            NhanVien nv = new NhanVien(id, name, null, phone, role, null, trinhDo, salary);
             boolean success;
             if (!isEditing) {
                 success = nhanVienDAO.insert(nv);

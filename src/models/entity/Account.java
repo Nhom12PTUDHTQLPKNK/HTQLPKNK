@@ -9,11 +9,29 @@ public class Account {
     public String fullName;
     public Role role;
 
+    public Account() {}
+
     public Account(String username, String password, String fullName, Role role) {
         this.username = username;
         this.password = password;
         this.fullName = fullName;
         this.role = role;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getRole() {
+        return role == null ? null : role.toString();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     @Override
@@ -24,20 +42,4 @@ public class Account {
                 ", role=" + role +
                 '}';
     }
-
-	public String getFullName() {
-		return fullName;
-	}
-
-	public String getRole() {
-		return role == null ? null : role.toString();
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public String getPassword() {
-		return password;
-	}
 }

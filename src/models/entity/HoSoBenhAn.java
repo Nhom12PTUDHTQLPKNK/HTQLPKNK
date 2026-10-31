@@ -1,6 +1,6 @@
 package models.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 /**
  * Entity class cho bảng HoSoBenhAn
@@ -52,7 +52,6 @@ public class HoSoBenhAn {
         return "HoSoBenhAn{" +
                 "maBenhAn='" + maBenhAn + '\'' +
                 ", maKhachHang='" + maKhachHang + '\'' +
-                ", maNhanVien='" + maNhanVien + '\'' +
                 ", ngayKham=" + ngayKham +
                 ", chuanDoan='" + chuanDoan + '\'' +
                 ", trangThai='" + trangThai + '\'' +

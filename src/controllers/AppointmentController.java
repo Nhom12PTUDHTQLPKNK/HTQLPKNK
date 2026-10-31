@@ -1,9 +1,7 @@
 package controllers;
 
-import java.sql.Date;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 import models.dao.LichHenDAO;
 import models.entity.LichHen;
 
@@ -14,27 +12,27 @@ public class AppointmentController {
     private LichHenDAO lichHenDAO = new LichHenDAO();
 
     /**
-     * Kiểm tra tự động chống trùng lịch khám của Nha sĩ
+     * Kiểm tra tự động chống trùng lịch khám của Nha sĩ theo Ngày và Giờ khám
      */
-    public boolean checkOverlappingAppointment(String maNhanVien, Date ngayHen) {
-        if (maNhanVien == null || ngayHen == null) {
-            return true;
+    public boolean checkOverlappingAppointment(String maNhanVien, Date ngayHen, String gioKham) {
+        if (maNhanVien == null || ngayHen == null || gioKham == null) {
+            return true; 
         }
-        return lichHenDAO.checkOverlap(maNhanVien, ngayHen);
+        return lichHenDAO.checkOverlap(maNhanVien, ngayHen, gioKham);
     }
 
     /**
      * Tạo lịch hẹn mới và lưu xuống CSDL
-     * @throws SQLException 
      */
     public boolean createAppointment(LichHen lichHen) throws SQLException {
-        if (lichHen == null || lichHen.getMaKhachHang() == null || lichHen.getMaNhanVien() == null || lichHen.getNgayHen() == null) {
+        if (lichHen == null || lichHen.getMaKhachHang() == null || lichHen.getMaNhanVien() == null || lichHen.getNgayHen() == null || lichHen.getGioKham() == null) {
             System.err.println("Lỗi: Dữ liệu lịch hẹn không đầy đủ!");
             return false;
         }
 
-        if (checkOverlappingAppointment(lichHen.getMaNhanVien(), lichHen.getNgayHen())) {
-            System.err.println("Nha sĩ đã có lịch hẹn trùng khung giờ/ngày này!");
+        // Kiểm tra xem nha sĩ đã bị trùng lịch vào khung giờ đó chưa
+        if (checkOverlappingAppointment(lichHen.getMaNhanVien(), lichHen.getNgayHen(), lichHen.getGioKham())) {
+            System.err.println("Nha sĩ đã có lịch hẹn trùng vào khung giờ này trong ngày!");
             return false;
         }
 

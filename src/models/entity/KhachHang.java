@@ -1,6 +1,6 @@
 package models.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 /**
  * Entity class cho bảng KhachHang
@@ -13,23 +13,19 @@ public class KhachHang {
     private Date ngaySinh;
     private String sdt;
     private String tienSuBenh;
-    private int diemTichLuy;
+    private Integer diemTichLuy;
 
     public KhachHang() {}
 
-    public KhachHang(String maKhachHang, String tenKH, String gioiTinh, Date ngaySinh, String sdt, String tienSuBenh, int diemTichLuy) {
+    public KhachHang(String maKhachHang, String tenKH, String gioiTinh, String diaChi, Date ngaySinh, String sdt, String tienSuBenh, Integer diemTichLuy) {
         this.maKhachHang = maKhachHang;
         this.tenKH = tenKH;
         this.gioiTinh = gioiTinh;
+        this.diaChi = diaChi;
         this.ngaySinh = ngaySinh;
         this.sdt = sdt;
         this.tienSuBenh = tienSuBenh;
         this.diemTichLuy = diemTichLuy;
-    }
-
-    public KhachHang(String maKhachHang, String tenKH, String gioiTinh, String diaChi, Date ngaySinh, String sdt, String tienSuBenh, int diemTichLuy) {
-        this(maKhachHang, tenKH, gioiTinh, ngaySinh, sdt, tienSuBenh, diemTichLuy);
-        this.diaChi = diaChi;
     }
 
     public String getMaKhachHang() { return maKhachHang; }
@@ -53,8 +49,8 @@ public class KhachHang {
     public String getTienSuBenh() { return tienSuBenh; }
     public void setTienSuBenh(String tienSuBenh) { this.tienSuBenh = tienSuBenh; }
 
-    public int getDiemTichLuy() { return diemTichLuy; }
-    public void setDiemTichLuy(int diemTichLuy) { this.diemTichLuy = diemTichLuy; }
+    public Integer getDiemTichLuy() { return diemTichLuy; }
+    public void setDiemTichLuy(Integer diemTichLuy) { this.diemTichLuy = diemTichLuy; }
 
     @Override
     public String toString() {
@@ -62,7 +58,6 @@ public class KhachHang {
                 "maKhachHang='" + maKhachHang + '\'' +
                 ", tenKH='" + tenKH + '\'' +
                 ", gioiTinh='" + gioiTinh + '\'' +
-                ", ngaySinh=" + ngaySinh +
                 ", sdt='" + sdt + '\'' +
                 ", diemTichLuy=" + diemTichLuy +
                 '}';
