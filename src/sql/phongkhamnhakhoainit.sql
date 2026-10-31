@@ -13,6 +13,7 @@ END
 GO
 
 USE QuanLyPhongKhamNhaKhoa;
+
 GO
 
 -- Xóa bảng theo đúng thứ tự từ Bảng Con (có FK) đến Bảng Cha (Độc lập)
@@ -129,6 +130,15 @@ CREATE TABLE RANG (
     MoTaChung NVARCHAR(500) NULL,
     GhiChu NVARCHAR(500) NULL
 );
+
+SELECT Ham, COUNT(*) AS SoLuongRang
+FROM RANG
+GROUP BY Ham;
+
+
+SELECT COUNT(*) AS TongSoRang
+FROM RANG;
+
 
 -- 10. Nhật ký hệ thống (Audit Log)
 CREATE TABLE dbo.AuditLog (
@@ -560,3 +570,6 @@ INSERT INTO PhieuThanhToan (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThan
 ('PTT005', 'HD005', 'KH007', 'NV004', '2026-10-19', N'Tiền mặt', 200000.0, 0.0, N'Đã thanh toán'),
 ('PTT006', 'HD006', 'KH008', 'NV004', '2026-10-23', N'Tiền mặt', 0.0, 100000.0, N'Chưa thanh toán');
 GO
+
+
+
