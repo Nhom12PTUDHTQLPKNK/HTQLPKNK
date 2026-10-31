@@ -326,7 +326,7 @@ public class MenuFrame extends JFrame {
             cardLayout.show(mainContentPanel, cardName);
             AuditLog.event("VIEW", "Mở màn hình " + cardName);
             if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
-                activityLogPanel.refreshTables();
+                activityLogPanel.reloadSource();
             }
             if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
                 dashboardPanel.refreshDashboardData();
