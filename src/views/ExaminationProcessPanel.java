@@ -103,9 +103,9 @@ public class ExaminationProcessPanel extends JPanel {
 
         JPanel filter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         filter.setOpaque(false);
-        JTextField txtDate = new JTextField(11);
+        datepicker.DatePickerField txtDate = new datepicker.DatePickerField();
         JTextField txtSearch = new JTextField(20);
-        styleTextField(txtDate);
+
         styleTextField(txtSearch);
         txtSearch.setToolTipText("Tìm mã bệnh nhân hoặc họ tên");
         JButton btnSearch = createButton("⌕ Tìm kiếm", BLUE);

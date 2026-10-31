@@ -63,7 +63,7 @@ public class BookingProcessPanel extends JPanel {
     private JTextField txtAppId;
     private JTextField txtCustomerName;
     private JTextField txtPhone;
-    private JTextField txtAppDate;
+    private datepicker.DatePickerField txtAppDate;
     private JTextField txtAppTime;
 
     private JComboBox<String> cbService;
@@ -550,7 +550,7 @@ public class BookingProcessPanel extends JPanel {
         cbService = addComboBox(formFields, "Dịch vụ khám");
         cbDoctor = addComboBox(formFields, "Nha sĩ phụ trách");
 
-        txtAppDate = addField(formFields, "Ngày hẹn (dd/MM/yyyy)");
+        txtAppDate = addDateField(formFields, "Ngày hẹn (dd/MM/yyyy)");
         txtAppTime = addField(formFields, "Giờ hẹn");
 
         JScrollPane formScroll = new JScrollPane(formFields);
@@ -608,6 +608,16 @@ public class BookingProcessPanel extends JPanel {
         return field;
     }
 
+    private datepicker.DatePickerField addDateField(JPanel panel, String labelText) {
+        panel.add(createFieldLabel(labelText));
+        panel.add(Box.createVerticalStrut(5));
+        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(13));
+        return field;
+    }
     private JComboBox<String> addComboBox(
             JPanel panel,
             String labelText

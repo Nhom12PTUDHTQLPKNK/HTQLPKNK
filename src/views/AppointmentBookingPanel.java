@@ -59,11 +59,11 @@ public class AppointmentBookingPanel extends JPanel {
     private JTextField txtCustId;
     private JTextField txtCustName;
     private JTextField txtPhone;
-    private JTextField txtAppDate;
+    private datepicker.DatePickerField txtAppDate;
 
     // Thông tin bổ sung, chỉ hiện khi là khách hàng mới
     private JPanel panelNewCustomer;
-    private JTextField txtNewBirth;
+    private datepicker.DatePickerField txtNewBirth;
     private JTextField txtNewHistory;
 
     private JComboBox<ServiceItem> cbService;
@@ -362,7 +362,7 @@ public class AppointmentBookingPanel extends JPanel {
         panelNewCustomer.setOpaque(false);
         panelNewCustomer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        txtNewBirth = addTextField(
+        txtNewBirth = addDatePicker(
             panelNewCustomer, "Ngày sinh (dd/MM/yyyy, tùy chọn):"
         );
 
@@ -398,7 +398,7 @@ public class AppointmentBookingPanel extends JPanel {
 
         addComboBox(panel, "Nha sĩ phụ trách:", cbDoctor);
 
-        txtAppDate = addTextField(
+        txtAppDate = addDatePicker(
             panel, "Ngày hẹn (dd/MM/yyyy):"
         );
 
@@ -493,6 +493,20 @@ public class AppointmentBookingPanel extends JPanel {
         return txt;
     }
 
+    private datepicker.DatePickerField addDatePicker(JPanel panel, String label) {
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(TEXT_DARK);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(lbl);
+        panel.add(Box.createVerticalStrut(4));
+        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(10));
+        return field;
+    }
     private void addComboBox(
             JPanel panel,
             String label,
