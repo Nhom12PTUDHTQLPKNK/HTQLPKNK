@@ -17,9 +17,9 @@ public class KhuyenMaiDAO {
             stmt.setString(1, km.getMaKhuyenMai());
             stmt.setString(2, km.getTenKhuyenMai());
             stmt.setDouble(3, km.getGiaTriGiam());
-            stmt.setDate(4, km.getNgayBatDau());
-            stmt.setDate(5, km.getNgayKetThuc());
-            stmt.setBoolean(6, km.isTrangThai());
+            stmt.setDate(4, (Date) km.getNgayBatDau());
+            stmt.setDate(5, (Date) km.getNgayKetThuc());
+            stmt.setBoolean(6, km.getTrangThai() != null ? km.getTrangThai() : true);
             boolean saved = stmt.executeUpdate() > 0;
             if (saved) AuditLog.event("CREATE", "Khuyến mãi " + km.getMaKhuyenMai());
             return saved;
@@ -32,9 +32,9 @@ public class KhuyenMaiDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, km.getTenKhuyenMai());
             stmt.setDouble(2, km.getGiaTriGiam());
-            stmt.setDate(3, km.getNgayBatDau());
-            stmt.setDate(4, km.getNgayKetThuc());
-            stmt.setBoolean(5, km.isTrangThai());
+            stmt.setDate(3, (Date) km.getNgayBatDau());
+            stmt.setDate(4, (Date) km.getNgayKetThuc());
+            stmt.setBoolean(5, km.getTrangThai() != null ? km.getTrangThai() : true);
             stmt.setString(6, km.getMaKhuyenMai());
             boolean updated = stmt.executeUpdate() > 0;
             if (updated) AuditLog.event("UPDATE", "Khuyến mãi " + km.getMaKhuyenMai());
@@ -88,13 +88,13 @@ public class KhuyenMaiDAO {
     }
 
     private KhuyenMai mapKhuyenMai(ResultSet rs) throws SQLException {
-        return new KhuyenMai(
-            rs.getString("maKhuyenMai"),
-            rs.getString("tenKhuyenMai"),
-            rs.getDouble("giaTriGiam"),
-            rs.getDate("ngayBatDau"),
-            rs.getDate("ngayKetThuc"),
-            rs.getBoolean("trangThai")
-        );
+        KhuyenMai km = new KhuyenMai();
+        km.setMaKhuyenMai(rs.getString("maKhuyenMai"));
+        km.setTenKhuyenMai(rs.getString("tenKhuyenMai"));
+        km.setGiaTriGiam(rs.getDouble("giaTriGiam"));
+        km.setNgayBatDau(rs.getDate("ngayBatDau"));
+        km.setNgayKetThuc(rs.getDate("ngayKetThuc"));
+        km.setTrangThai(rs.getBoolean("trangThai"));
+        return km;
     }
 }

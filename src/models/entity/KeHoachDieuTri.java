@@ -1,6 +1,6 @@
 package models.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 /**
  * Entity class cho bảng KeHoachDieuTri
@@ -12,25 +12,12 @@ public class KeHoachDieuTri {
     private String maDichVu;
     private Date ngayLap;
     private String ghiChu;
-    private int soLankham;
+    private Integer soLankham;
     private String thoiGianDuKien;
-    private double tongChiPhiDuKien;
+    private Double tongChiPhiDuKien;
     private String trangThai;
 
     public KeHoachDieuTri() {}
-
-    public KeHoachDieuTri(String maKeHoach, String maBenhAn, String maNhanVien, String maDichVu, Date ngayLap, String ghiChu, int soLankham, String thoiGianDuKien, double tongChiPhiDuKien, String trangThai) {
-        this.maKeHoach = maKeHoach;
-        this.maBenhAn = maBenhAn;
-        this.maNhanVien = maNhanVien;
-        this.maDichVu = maDichVu;
-        this.ngayLap = ngayLap;
-        this.ghiChu = ghiChu;
-        this.soLankham = soLankham;
-        this.thoiGianDuKien = thoiGianDuKien;
-        this.tongChiPhiDuKien = tongChiPhiDuKien;
-        this.trangThai = trangThai;
-    }
 
     public String getMaKeHoach() { return maKeHoach; }
     public void setMaKeHoach(String maKeHoach) { this.maKeHoach = maKeHoach; }
@@ -50,14 +37,14 @@ public class KeHoachDieuTri {
     public String getGhiChu() { return ghiChu; }
     public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
 
-    public int getSoLankham() { return soLankham; }
-    public void setSoLankham(int soLankham) { this.soLankham = soLankham; }
+    public Integer getSoLankham() { return soLankham; }
+    public void setSoLankham(Integer soLankham) { this.soLankham = soLankham; }
 
     public String getThoiGianDuKien() { return thoiGianDuKien; }
     public void setThoiGianDuKien(String thoiGianDuKien) { this.thoiGianDuKien = thoiGianDuKien; }
 
-    public double getTongChiPhiDuKien() { return tongChiPhiDuKien; }
-    public void setTongChiPhiDuKien(double tongChiPhiDuKien) { this.tongChiPhiDuKien = tongChiPhiDuKien; }
+    public Double getTongChiPhiDuKien() { return tongChiPhiDuKien; }
+    public void setTongChiPhiDuKien(Double tongChiPhiDuKien) { this.tongChiPhiDuKien = tongChiPhiDuKien; }
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
@@ -67,9 +54,7 @@ public class KeHoachDieuTri {
         return "KeHoachDieuTri{" +
                 "maKeHoach='" + maKeHoach + '\'' +
                 ", maBenhAn='" + maBenhAn + '\'' +
-                ", maDichVu='" + maDichVu + '\'' +
-                ", ngayLap=" + ngayLap +
-                ", soLankham=" + soLankham +
+                ", tongChiPhiDuKien=" + tongChiPhiDuKien +
                 ", trangThai='" + trangThai + '\'' +
                 '}';
     }

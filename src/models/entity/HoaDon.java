@@ -1,6 +1,6 @@
 package models.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 /**
  * Entity class cho bảng HoaDon
@@ -14,15 +14,6 @@ public class HoaDon {
     private Date ngayLap;
 
     public HoaDon() {}
-
-    public HoaDon(String maHoaDon, String maBenhAn, String maKhachHang, String maNhanVien, String maKhuyenMai, Date ngayLap) {
-        this.maHoaDon = maHoaDon;
-        this.maBenhAn = maBenhAn;
-        this.maKhachHang = maKhachHang;
-        this.maNhanVien = maNhanVien;
-        this.maKhuyenMai = maKhuyenMai;
-        this.ngayLap = ngayLap;
-    }
 
     public String getMaHoaDon() { return maHoaDon; }
     public void setMaHoaDon(String maHoaDon) { this.maHoaDon = maHoaDon; }
@@ -46,9 +37,7 @@ public class HoaDon {
     public String toString() {
         return "HoaDon{" +
                 "maHoaDon='" + maHoaDon + '\'' +
-                ", maBenhAn='" + maBenhAn + '\'' +
                 ", maKhachHang='" + maKhachHang + '\'' +
-                ", maNhanVien='" + maNhanVien + '\'' +
                 ", ngayLap=" + ngayLap +
                 '}';
     }
