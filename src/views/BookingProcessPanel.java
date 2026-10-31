@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 
 public class BookingProcessPanel extends JPanel {
 
-    // ==================== COLORS ====================
 
     private static final Color BLUE_PRIMARY = new Color(45, 112, 220);
     private static final Color BLUE_LIGHT = new Color(232, 241, 255);
@@ -41,7 +40,6 @@ public class BookingProcessPanel extends JPanel {
     private static final Color TEXT_GRAY = new Color(119, 135, 157);
     private static final Color BORDER_LIGHT = new Color(225, 233, 243);
 
-    // ==================== TABLES ====================
 
     private DefaultTableModel tableModelPending;
     private DefaultTableModel tableModelConfirmed;
@@ -57,7 +55,6 @@ public class BookingProcessPanel extends JPanel {
     private TableRowSorter<DefaultTableModel> rowSorterConfirmed;
     private TableRowSorter<DefaultTableModel> rowSorterHistory;
 
-    // ==================== FORM ====================
 
     private JTextField txtSearch;
     private JTextField txtAppId;
@@ -74,14 +71,12 @@ public class BookingProcessPanel extends JPanel {
 
     private LichHenDAO lichHenDAO;
 
-    // ==================== STATISTICS ====================
 
     private JLabel lblPendingCount;
     private JLabel lblConfirmedCount;
     private JLabel lblHistoryCount;
 
-    // ==================== CONSTRUCTOR ====================
-
+    // CONSTRUCTOR
     public BookingProcessPanel() {
 
         lichHenDAO = new LichHenDAO();
@@ -186,7 +181,6 @@ public class BookingProcessPanel extends JPanel {
         return panel;
     }
 
-    // ==================== STATISTICS ====================
 
     private JPanel createStatisticsPanel() {
 
@@ -316,7 +310,6 @@ public class BookingProcessPanel extends JPanel {
         return card;
     }
 
-    // ==================== CLICKABLE STATISTIC CARDS ====================
 
     private void makeCardClickable(
             Component component,
@@ -349,7 +342,6 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== UPDATE STATISTICS ====================
 
     private void updateStatistics() {
 
@@ -514,7 +506,6 @@ public class BookingProcessPanel extends JPanel {
         });
     }
 
-    // ==================== BOOKING FORM ====================
 
     private JPanel createBookingFormPanel() {
 
@@ -641,7 +632,6 @@ public class BookingProcessPanel extends JPanel {
         return label;
     }
 
-    // ==================== LOAD SERVICES ====================
 
     private void loadServices() {
 
@@ -672,7 +662,6 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== LOAD DOCTORS ====================
 
     private void loadDoctors() {
 
@@ -705,7 +694,6 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== LOAD APPOINTMENTS ====================
 
     private void loadAppointments() {
 
@@ -750,7 +738,7 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== FILL FORM ====================
+    // FILL FORM
 
     private void fillFormFromTable(
             DefaultTableModel model,
@@ -772,7 +760,7 @@ public class BookingProcessPanel extends JPanel {
         isEditing = true;
     }
 
-    // ==================== SAVE APPOINTMENT ====================
+    // lich cho xac han
 
     private void performSave() {
 
@@ -939,7 +927,7 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== CANCEL APPOINTMENT ====================
+    //CANCEL APPOINTMENT 
 
     private void performDelete() {
 
@@ -1094,7 +1082,6 @@ public class BookingProcessPanel extends JPanel {
         rowSorterHistory.setRowFilter(filter);
     }
 
-    // ==================== TABLE STYLE ====================
 
     private void styleTable(JTable table) {
 
@@ -1138,7 +1125,6 @@ public class BookingProcessPanel extends JPanel {
         table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
     }
 
-    // ==================== STATUS RENDERER ====================
 
     private class StatusRenderer extends DefaultTableCellRenderer {
 
@@ -1191,7 +1177,7 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== BUTTON ====================
+    // BUTTON
 
     private JButton createButton(String text, Color background) {
 
@@ -1241,7 +1227,7 @@ public class BookingProcessPanel extends JPanel {
         return button;
     }
 
-    // ==================== PLACEHOLDER TEXT FIELD ====================
+    // PLACEHOLDER TEXT FIELD
 
     private static class PlaceholderTextField extends JTextField {
 
@@ -1285,8 +1271,7 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== ROUNDED PANEL ====================
-
+  
     private static class RoundedPanel extends JPanel {
 
         private final int radius;
