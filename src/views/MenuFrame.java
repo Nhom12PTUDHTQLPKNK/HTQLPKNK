@@ -295,10 +295,17 @@ public class MenuFrame extends JFrame {
         addBlankCard(CARD_REPORT_WAREHOUSE);
         addBlankCard(CARD_REPORT_EXPORT);
 
+<<<<<<< HEAD
       // các màn hình phụ bổ sung
         mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
         mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
         addBlankCard(CARD_EXAMINATION);
+=======
+      // CARD TRẮNG ĐÂY NÈ SỬA CÁC CLASS DÁN VÔ ĐÂY
+        mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
+        mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
+        mainContentPanel.add(new ExaminationProcessPanel(),CARD_EXAMINATION);
+>>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
         addBlankCard(CARD_TREATMENT_PLAN);
         addBlankCard(CARD_PRESCRIPTION);
         addBlankCard(CARD_REEXAMINATION);
