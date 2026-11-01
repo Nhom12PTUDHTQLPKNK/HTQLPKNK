@@ -1,4 +1,3 @@
-
 package views;
 
 import Audit.AuditLog;
@@ -217,7 +216,7 @@ public class AppointmentBookingPanel extends JPanel {
             ImageIcon originalIcon = new ImageIcon(imageURL);
 
             Image scaledImage = originalIcon.getImage()
-                    .getScaledInstance(38, 38, Image.SCALE_SMOOTH);
+                    .getScaledInstance(70, 70, Image.SCALE_SMOOTH);
 
             iconLabel.setIcon(new ImageIcon(scaledImage));
 
@@ -287,7 +286,7 @@ public class AppointmentBookingPanel extends JPanel {
 
         lblCustomerStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblCustomerStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        
+
         customerGroup.add(lblCustomerStatus);
         customerGroup.add(Box.createVerticalStrut(8));
         addRow(customerGroup, "Tên khách hàng", txtCustName);
@@ -1848,12 +1847,14 @@ public class AppointmentBookingPanel extends JPanel {
             );
 
         } catch (Exception ignored) {
+            // Không ảnh hưởng việc đặt lịch
         }
 
         showSuccessDialog(savedAppId, savedCustId, createdNewCustomer);
 
         clearForm();
     }
+
     private void showSuccessDialog(String appId, String custId, boolean isNew) {
         JDialog dialog = new JDialog(
                 SwingUtilities.getWindowAncestor(this),
@@ -1876,15 +1877,19 @@ public class AppointmentBookingPanel extends JPanel {
 
         if (imageURL != null) {
             ImageIcon originalIcon = new ImageIcon(imageURL);
-            Image scaledImage = originalIcon.getImage().getScaledInstance(160, 160, Image.SCALE_SMOOTH);
+            Image scaledImage = originalIcon.getImage().getScaledInstance(
+                    160, 160, Image.SCALE_SMOOTH
+            );
             icon.setIcon(new ImageIcon(scaledImage));
         } else {
-            icon.setFont(new Font("Segoe UI", Font.BOLD, 90));
+            icon.setText("☺");
+            icon.setFont(new Font("Segoe UI", Font.BOLD, 100));
             System.err.println("Không tìm thấy ảnh: /img/smile.png");
         }
 
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        icon.setPreferredSize(new Dimension(120, 120));
+        icon.setPreferredSize(new Dimension(165, 165));
+        icon.setMaximumSize(new Dimension(165, 165));
         icon.setHorizontalAlignment(SwingConstants.CENTER);
 
         JLabel title = new JLabel("ĐẶT LỊCH THÀNH CÔNG!");
@@ -1953,6 +1958,7 @@ public class AppointmentBookingPanel extends JPanel {
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
     }
+
     // clean 
 
     private void clearForm() {
