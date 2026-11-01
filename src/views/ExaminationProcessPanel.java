@@ -254,8 +254,8 @@ public class ExaminationProcessPanel extends JPanel {
                     String ngayHen   = String.valueOf(row[5]);
                     String gioKham   = String.valueOf(row[6]);
                     
-                    // Nếu DAO của bạn có trả về Tuổi và Giới tính ở vị trí khác, hãy điều chỉnh index mảng row cho phù hợp.
-                    // Tạm thời để giá trị mặc định hoặc lấy từ dữ liệu nếu DAO hỗ trợ:
+                    // Lấy chính xác Tuổi và Giới tính từ DAO (Điều chỉnh lại index nếu DAO của bạn trả về ở vị trí khác)
+                    // Ví dụ: Giả sử row[8] là Tuổi, row[9] là Giới tính. Nếu DAO chưa có, bạn cần JOIN sang bảng Khách hàng/Bệnh nhân trong câu lệnh SQL của DAO.
                     String tuoi      = row.length > 8 && row[8] != null ? String.valueOf(row[8]) : "--";
                     String gioiTinh  = row.length > 9 && row[9] != null ? String.valueOf(row[9]) : "--";
 
@@ -263,8 +263,8 @@ public class ExaminationProcessPanel extends JPanel {
                         stt++,
                         maLichHen,
                         tenKH,
-                        tuoi,
-                        gioiTinh,
+                        tuoi,      // Hiển thị đúng cột Tuổi
+                        gioiTinh,  // Hiển thị đúng cột Giới tính
                         sdt,
                         ngayHen,
                         gioKham,
@@ -280,7 +280,6 @@ public class ExaminationProcessPanel extends JPanel {
             e.printStackTrace();
         }
     }
-    
 
     private void performReceptionSearch(String keyword, String dateFilter) {
         if (receptionModel == null) return;
@@ -301,26 +300,34 @@ public class ExaminationProcessPanel extends JPanel {
                         tenKH.toLowerCase().contains(query) || 
                         sdt.contains(query);
                 
-                boolean matchDate = dateFilter.isEmpty() || ngayHen.contains(dateFilter);if (matchKeyword && matchDate && (status.equalsIgnoreCase("Đã xác nhận") || status.equalsIgnoreCase("Đang khám"))) {
+                boolean matchDate = dateFilter.isEmpty() || ngayHen.contains(dateFilter);
+                if (matchKeyword && matchDate && (status.equalsIgnoreCase("Đã xác nhận") || status.equalsIgnoreCase("Đang khám"))) {
+                    
+                    String tuoi = row.length > 8 && row[8] != null ? String.valueOf(row[8]) : "--";
+                    String gioiTinh = row.length > 9 && row[9] != null ? String.valueOf(row[9]) : "--";
+
                     receptionModel.addRow(new Object[]{
-                            stt++,
-                            maLichHen,
-                            ngayHen,
-                            String.valueOf(row[6]),
-                            tenKH,
-                            sdt,
-                            String.valueOf(row[3]),
-                            String.valueOf(row[4]),
-                            status,
-                            "Khám bệnh"
-                        });
-                    }
+                        stt++,
+                        maLichHen,
+                        tenKH,
+                        tuoi,      // Hiển thị đúng cột Tuổi khi tìm kiếm
+                        gioiTinh,  // Hiển thị đúng cột Giới tính khi tìm kiếm
+                        sdt,
+                        ngayHen,
+                        String.valueOf(row[6]),
+                        String.valueOf(row[3]),
+                        String.valueOf(row[4]),
+                        status,
+                        "Khám bệnh"
+                    });
                 }
-                updateReceptionTotalCount();
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+            updateReceptionTotalCount();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+    
 
         private void updateReceptionTotalCount() {
             if (lblTotalPatients != null && receptionModel != null) {
