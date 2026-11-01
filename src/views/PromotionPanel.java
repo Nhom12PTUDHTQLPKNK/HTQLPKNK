@@ -176,13 +176,40 @@ public class PromotionPanel extends JPanel {
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.weightx = 0.25;
 
-        // Dòng 1
+        // Dòng 1: Mã KM, Tên chương trình, Mức giảm, Tìm kiếm nhanh + Nút Tìm kiếm
         gbc.gridy = 0;
         gbc.gridx = 0; centerForm.add(createInputGroup("Mã khuyến mãi", txtId), gbc);
         gbc.gridx = 1; centerForm.add(createInputGroup("Tên chương trình", txtName), gbc);
         gbc.gridx = 2; centerForm.add(createInputGroup("Mức giảm (%)", txtDiscount), gbc);
         
         gbc.gridx = 3;
+        JButton btnSearch = createButton("Tìm kiếm", BLUE_PRIMARY, 95, 42);
+        btnSearch.addActionListener(e -> applyFilter());
+        
+        JPanel searchWrapper = new JPanel(new BorderLayout(0, 6));
+        searchWrapper.setOpaque(false);
+        searchWrapper.add(createFieldLabel("Tìm kiếm nhanh (Mã/Tên)"), BorderLayout.NORTH);
+        
+        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
+        searchRow.setOpaque(false);
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtSearch.setPreferredSize(new Dimension(140, 42));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_LIGHT), new EmptyBorder(8, 12, 8, 12)));
+        // Hỗ trợ gõ Enter là tìm kiếm ngay lập tức
+        txtSearch.addActionListener(e -> applyFilter());
+        
+        searchRow.add(txtSearch, BorderLayout.CENTER);
+        searchRow.add(btnSearch, BorderLayout.EAST);
+        searchWrapper.add(searchRow, BorderLayout.CENTER);
+        
+        centerForm.add(searchWrapper, gbc);
+
+        // Dòng 2: Ngày bắt đầu, Ngày kết thúc, Trạng thái, Các nút Thao tác
+        gbc.gridy = 1;
+        gbc.gridx = 0; centerForm.add(createInputGroup("Ngày bắt đầu", dateFrom), gbc);
+        gbc.gridx = 1; centerForm.add(createInputGroup("Ngày kết thúc", dateTo), gbc);
+        
+        gbc.gridx = 2;
         JPanel statusBox = new JPanel(new BorderLayout());
         statusBox.setOpaque(false);
         statusBox.add(createFieldLabel("Trạng thái"), BorderLayout.NORTH);
@@ -191,33 +218,32 @@ public class PromotionPanel extends JPanel {
         statusBox.add(chkActive, BorderLayout.CENTER);
         centerForm.add(statusBox, gbc);
 
-        // Dòng 2
-        gbc.gridy = 1;
-        gbc.gridx = 0; centerForm.add(createInputGroup("Ngày bắt đầu", dateFrom), gbc);
-        gbc.gridx = 1; centerForm.add(createInputGroup("Ngày kết thúc", dateTo), gbc);
-        gbc.gridx = 2; centerForm.add(createInputGroup("Tìm kiếm nhanh (Mã/Tên)", txtSearch), gbc);
-
-        // Cụm nút bấm to rõ, cân đối
         gbc.gridx = 3;
         JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         actionButtons.setOpaque(false);
 
-        JButton btnSearch = createButton("Tìm", BLUE_PRIMARY, 75, 42);
-        JButton btnClear = createButton("Làm mới", new Color(100, 115, 130), 90, 42);
-        JButton btnDelete = createButton("Xóa", RED_ACCENT, 70, 42);
-        JButton btnSave = createButton("Lưu / Thêm", GREEN_ACCENT, 110, 42);
+        JButton btnClear = createButton("Làm mới", new Color(100, 115, 130), 95, 42);
+        JButton btnDelete = createButton("Xóa", RED_ACCENT, 75, 42);
+        JButton btnSave = createButton("Lưu / Thêm", GREEN_ACCENT, 115, 42);
 
-        btnSearch.addActionListener(e -> applyFilter());
-        btnClear.addActionListener(e -> clearForm());
+        // Nút làm mới gọi hàm clearForm() kết hợp reload() lại dữ liệu gốc từ database
+        btnClear.addActionListener(e -> {
+            clearForm();
+            reload();
+        });
         btnDelete.addActionListener(e -> deletePromotion());
         btnSave.addActionListener(e -> savePromotion());
 
-        actionButtons.add(btnSearch);
         actionButtons.add(btnClear);
         actionButtons.add(btnDelete);
         actionButtons.add(btnSave);
 
-        centerForm.add(actionButtons, gbc);
+        JPanel actionWrapper = new JPanel(new BorderLayout(0, 6));
+        actionWrapper.setOpaque(false);
+        actionWrapper.add(new JLabel(" "), BorderLayout.NORTH);
+        actionWrapper.add(actionButtons, BorderLayout.CENTER);
+
+        centerForm.add(actionWrapper, gbc);
 
         panel.add(centerForm, BorderLayout.CENTER);
         return panel;
@@ -281,7 +307,7 @@ public class PromotionPanel extends JPanel {
         return panel;
     }
 
-    // ==================== TẠO THẺ CARD KHUYẾN MÃI (PHÓNG TO TOÀN DIỆN) ====================
+    // ==================== TẠO THẺ CARD KHUYẾN MÃI ====================
     private JPanel createPromotionCard(KhuyenMai km) {
         JPanel card = new JPanel() {
             @Override
@@ -297,26 +323,26 @@ public class PromotionPanel extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setLayout(new BorderLayout(10, 10));
-        card.setBorder(new EmptyBorder(16, 18, 16, 18));
-        card.setPreferredSize(new Dimension(0, 165)); // Phóng to chiều cao card
+        card.setLayout(new BorderLayout(12, 12));
+        card.setBorder(new EmptyBorder(18, 20, 18, 20));
+        card.setPreferredSize(new Dimension(0, 195));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         // Top: Mã & Tên + Badge trạng thái
-        JPanel topBox = new JPanel(new BorderLayout(10, 0));
+        JPanel topBox = new JPanel(new BorderLayout(12, 0));
         topBox.setOpaque(false);
 
         JLabel lblIdName = new JLabel("<html><b>" + km.getMaKhuyenMai() + "</b> - " + km.getTenKhuyenMai() + "</html>");
-        lblIdName.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Phóng to chữ tiêu đề card
+        lblIdName.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblIdName.setForeground(TEXT_DARK);
         topBox.add(lblIdName, BorderLayout.CENTER);
 
         boolean active = Boolean.TRUE.equals(km.getTrangThai());
         JLabel badge = new JLabel(active ? "Đang áp dụng" : "Ngừng áp dụng");
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 12)); // Phóng to chữ badge
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         badge.setHorizontalAlignment(SwingConstants.CENTER);
         badge.setOpaque(true);
-        badge.setBorder(new EmptyBorder(4, 10, 4, 10));
+        badge.setBorder(new EmptyBorder(5, 12, 5, 12));
         if (active) {
             badge.setBackground(GREEN_LIGHT);
             badge.setForeground(GREEN_ACCENT);
@@ -327,7 +353,7 @@ public class PromotionPanel extends JPanel {
         topBox.add(badge, BorderLayout.EAST);
         card.add(topBox, BorderLayout.NORTH);
 
-        // Center: Thời gian & Mức giảm (Phóng to cỡ chữ)
+        // Center: Thời gian & Mức giảm
         JPanel centerBox = new JPanel();
         centerBox.setLayout(new BoxLayout(centerBox, BoxLayout.Y_AXIS));
         centerBox.setOpaque(false);
@@ -339,12 +365,12 @@ public class PromotionPanel extends JPanel {
         lblDate.setForeground(TEXT_GRAY);
 
         JLabel lblDiscount = new JLabel("Mức giảm: " + km.getGiaTriGiam() + "% tổng dịch vụ");
-        lblDiscount.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Chữ mức giảm to đậm hơn
+        lblDiscount.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblDiscount.setForeground(BLUE_PRIMARY);
 
-        centerBox.add(Box.createVerticalStrut(6));
+        centerBox.add(Box.createVerticalStrut(8));
         centerBox.add(lblDate);
-        centerBox.add(Box.createVerticalStrut(6));
+        centerBox.add(Box.createVerticalStrut(8));
         centerBox.add(lblDiscount);
         card.add(centerBox, BorderLayout.CENTER);
 
@@ -422,9 +448,10 @@ public class PromotionPanel extends JPanel {
             return;
         }
 
+        // Lọc chính xác theo Mã hoặc Tên chương trình không phân biệt chữ hoa/thường
         List<KhuyenMai> filtered = allPromotionsList.stream()
-                .filter(km -> km.getMaKhuyenMai().toLowerCase().contains(keyword) || 
-                              km.getTenKhuyenMai().toLowerCase().contains(keyword))
+                .filter(km -> (km.getMaKhuyenMai() != null && km.getMaKhuyenMai().toLowerCase().contains(keyword)) || 
+                              (km.getTenKhuyenMai() != null && km.getTenKhuyenMai().toLowerCase().contains(keyword)))
                 .collect(Collectors.toList());
 
         renderCards(filtered);
@@ -543,6 +570,7 @@ public class PromotionPanel extends JPanel {
         txtId.setText("");
         txtName.setText("");
         txtDiscount.setText("");
+        txtSearch.setText(""); // Xóa sạch cả ô tìm kiếm nhanh khi làm mới
         dateFrom.setText(LocalDate.now().toString());
         dateTo.setText(LocalDate.now().plusMonths(1).toString());
         chkActive.setSelected(true);
@@ -569,7 +597,7 @@ public class PromotionPanel extends JPanel {
                 super.paintComponent(g);
             }
         };
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13)); // Chữ trên nút to hơn
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
         button.setForeground(Color.WHITE);
         button.setPreferredSize(new Dimension(width, height));
         button.setFocusPainted(false);
