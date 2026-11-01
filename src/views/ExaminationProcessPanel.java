@@ -512,13 +512,19 @@ private JPanel createToothForm() {
     body.add(Box.createVerticalStrut(6));
 
     cboCondition = new JComboBox<>(new String[]{
-        "Bình thường",
-        "Sâu răng",
-        "Viêm nướu",
-        "Mẻ răng",
-        "Mất răng",
-        "Đã điều trị"
-    });
+    	    "Bình thường",
+    	    "Sâu răng",
+    	    "Viêm nướu",
+    	    "Mẻ răng",
+    	    "M mất răng",
+    	    "Đã điều trị",
+    	    "Viêm tủy",
+    	    "Mòn cổ răng",
+    	    "Răng khôn mọc lệch"
+    	});
+
+    	// Thêm dòng này để cho phép người dùng tự gõ ngoài danh sách
+    	cboCondition.setEditable(true);
 
     styleCombo(cboCondition);
     cboCondition.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -677,6 +683,7 @@ private JPanel createToothForm() {
         JPanel panel = createCard();
         panel.setLayout(new BorderLayout(8, 10));
 
+        // ================= 1. BẢNG CHỈ ĐỊNH ĐIỀU TRỊ (ChiTietChiDinh) =================
         JPanel indicationPanel = new JPanel(new BorderLayout(0, 8));
         indicationPanel.setOpaque(false);
 
@@ -688,31 +695,37 @@ private JPanel createToothForm() {
         header.add(btnAdd, BorderLayout.EAST);
         indicationPanel.add(header, BorderLayout.NORTH);
 
+        // Các cột: STT, Mã Dịch Vụ (ẩn/hiện), Dịch vụ / Chỉ định, Số lượng, Đơn vị, Ghi chú, Xóa, [Object chứa maChiDinh]
         String[] indicationColumns = {"STT", "Dịch vụ / Chỉ định", "Số lượng", "Đơn vị", "Ghi chú", "Xóa"};
         indicationModel = new DefaultTableModel(indicationColumns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return column == 5; }
         };
         tblIndication = new JTable(indicationModel);
         styleTable(tblIndication);
+        
         tblIndication.getColumnModel().getColumn(5).setCellRenderer(new ActionRenderer("Xóa"));
         tblIndication.getColumnModel().getColumn(5).setCellEditor(new ActionEditor(tblIndication, row -> {
             indicationModel.removeRow(row);
             updateSTT(indicationModel);
         }, "Xóa"));
         indicationPanel.add(new JScrollPane(tblIndication), BorderLayout.CENTER);
+        
 
+        // ================= 2. BẢNG RĂNG ĐÃ KHÁM (ChiTietKhamRang) =================
         JPanel examinedPanel = new JPanel(new BorderLayout(0, 8));
         examinedPanel.setOpaque(false);
         examinedPanel.add(createTitle("Danh sách răng đã khám"), BorderLayout.NORTH);
 
-        String[] examinedColumns = {"Mã răng", "Tên răng", "Tình trạng", "Chẩn đoán", "Ghi chú", "Xóa"};
+        // Khớp với ChiTietKhamRangDAO: maChiTietKham, maRang, tinhTrang, mucDo, trieuChung, chanDoan, ghiChu
+        String[] examinedColumns = {"Mã răng", "Tên răng", "Tình trạng", "Mức độ", "Triệu chứng", "Chẩn đoán", "Ghi chú", "Xóa"};
         examinedModel = new DefaultTableModel(examinedColumns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return column == 5; }
+            @Override public boolean isCellEditable(int row, int column) { return column == 7; }
         };
         tblExamined = new JTable(examinedModel);
         styleTable(tblExamined);
-        tblExamined.getColumnModel().getColumn(5).setCellRenderer(new ActionRenderer("Xóa"));
-        tblExamined.getColumnModel().getColumn(5).setCellEditor(new ActionEditor(tblExamined, row -> examinedModel.removeRow(row), "Xóa"));
+        
+        tblExamined.getColumnModel().getColumn(7).setCellRenderer(new ActionRenderer("Xóa"));
+        tblExamined.getColumnModel().getColumn(7).setCellEditor(new ActionEditor(tblExamined, row -> examinedModel.removeRow(row), "Xóa"));
         examinedPanel.add(new JScrollPane(tblExamined), BorderLayout.CENTER);
 
         JPanel tables = new JPanel(new GridLayout(2, 1, 0, 12));
@@ -721,6 +734,7 @@ private JPanel createToothForm() {
         tables.add(examinedPanel);
         panel.add(tables, BorderLayout.CENTER);
 
+        // ================= NÚT CHỨC NĂNG DƯỚI CÙNG =================
         JPanel footer = new JPanel(new GridLayout(1, 2, 8, 0));
         footer.setOpaque(false);
         JButton btnPrint = createButton("▣ In phiếu khám", Color.WHITE);
@@ -731,13 +745,75 @@ private JPanel createToothForm() {
             catch (Exception ex) { JOptionPane.showMessageDialog(this, "Không thể in phiếu khám!"); }
         });
 
+        // Nút lưu vào Database thông qua DAO
         JButton btnSave = createButton("✓ Lưu phiếu khám", BLUE);
-        btnSave.addActionListener(e -> JOptionPane.showMessageDialog(this, "Giao diện sẵn sàng kết nối SQL Server."));
+        btnSave.addActionListener(e -> saveMedicalSessionToDatabase());
+        
         footer.add(btnPrint);
         footer.add(btnSave);
         panel.add(footer, BorderLayout.SOUTH);
 
         return panel;
+    }
+    
+    private void saveMedicalSessionToDatabase() {
+        String maBenhAn = lblPatientCode.getText().trim(); // Lấy mã bệnh án từ giao diện
+        
+        if (maBenhAn.equals("--") || maBenhAn.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn thông tin bệnh nhân/mã bệnh án!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        models.dao.ChiTietKhamRangDAO rangDAO = new models.dao.ChiTietKhamRangDAO();
+        models.dao.ChiTietChiDinhDAO chiDinhDAO = new models.dao.ChiTietChiDinhDAO();
+
+        try {
+            boolean success = true;
+
+            // 1. Lưu danh sách răng đã khám vào bảng ChiTietKhamRang
+         // 1. Lưu danh sách răng đã khám
+            for (int i = 0; i < examinedModel.getRowCount(); i++) {
+                models.entity.ChiTietKhamRang ct = new models.entity.ChiTietKhamRang();
+                ct.setMaBenhAn(maBenhAn);
+                ct.setMaRang(Integer.parseInt(examinedModel.getValueAt(i, 0).toString())); 
+                ct.setTinhTrang(examinedModel.getValueAt(i, 2).toString());            
+                ct.setMucDo(examinedModel.getValueAt(i, 3).toString());                  
+                ct.setTrieuChung(examinedModel.getValueAt(i, 4).toString());             
+                ct.setChanDoan(examinedModel.getValueAt(i, 5).toString());               
+                ct.setGhiChu(examinedModel.getValueAt(i, 6).toString());                 
+
+                rangDAO.insert(ct);
+            }
+            
+
+            // 2. Lưu danh sách chỉ định dịch vụ vào bảng ChiTietChiDinh
+            for (int i = 0; i < indicationModel.getRowCount(); i++) {
+                models.entity.ChiTietChiDinh ctd = new models.entity.ChiTietChiDinh();
+                ctd.setMaBenhAn(maBenhAn);
+                ctd.setMaDichVu(indicationModel.getValueAt(i, 1).toString()); // Cột mã dịch vụ
+                
+                // Nếu có chọn răng tương ứng với chỉ định thì gán maRang, ở đây tạm để null hoặc lấy răng đang chọn
+                if (selectedTooth != null) {
+                    ctd.setMaRang(selectedTooth.code);
+                } else {
+                    ctd.setMaRang(null);
+                }
+                
+                ctd.setSoLuong(Integer.parseInt(indicationModel.getValueAt(i, 3).toString()));
+                ctd.setDonVi(indicationModel.getValueAt(i, 4).toString());
+                ctd.setGhiChu(indicationModel.getValueAt(i, 5).toString());
+
+                chiDinhDAO.insert(ctd);
+            }
+
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Đã lưu thông tin khám bệnh và chỉ định vào Cơ sở dữ liệu thành công!");
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi lưu dữ liệu vào CSDL: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
@@ -767,54 +843,118 @@ private void onToothSelected(StandardToothChartPanel.ToothData tooth) {
 }
 
 
+private void saveExaminedTooth() {
+    if (selectedTooth == null) {
+        JOptionPane.showMessageDialog(this, "Vui lòng chọn răng trên sơ đồ FDI!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+    int code = selectedTooth.code;
+    
+    // Lấy đúng dữ liệu từ các trường trên giao diện
+    String tinhTrang = cboCondition.getSelectedItem().toString();
+    String mucDo = cboSeverity.getSelectedItem().toString();
+    String trieuChung = txtSymptom.getText().trim();
+    String chanDoan = txtDiagnosis.getText().trim();
+    String ghiChu = txtNote.getText().trim();
 
-    private void saveExaminedTooth() {
-        if (selectedTooth == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn răng trên sơ đồ FDI!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+    for (int i = 0; i < examinedModel.getRowCount(); i++) {
+        if (Integer.parseInt(examinedModel.getValueAt(i, 0).toString()) == code) {
+            examinedModel.setValueAt(selectedTooth.name, i, 1);
+            examinedModel.setValueAt(tinhTrang, i, 2);
+            examinedModel.setValueAt(mucDo, i, 3);
+            examinedModel.setValueAt(trieuChung, i, 4);
+            examinedModel.setValueAt(chanDoan, i, 5);
+            examinedModel.setValueAt(ghiChu, i, 6);
+            JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin răng!");
             return;
         }
-        int code = selectedTooth.code;
-        for (int i = 0; i < examinedModel.getRowCount(); i++) {
-            if (Integer.parseInt(examinedModel.getValueAt(i, 0).toString()) == code) {
-                examinedModel.setValueAt(selectedTooth.name, i, 1);
-                examinedModel.setValueAt(cboCondition.getSelectedItem(), i, 2);
-                examinedModel.setValueAt(txtDiagnosis.getText(), i, 3);
-                examinedModel.setValueAt(txtNote.getText(), i, 4);
-                JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin răng!");
-                return;
-            }
-        }
-        examinedModel.addRow(new Object[]{code, selectedTooth.name, cboCondition.getSelectedItem(), txtDiagnosis.getText(), txtNote.getText(), "Xóa"});
-        JOptionPane.showMessageDialog(this, "Đã thêm thông tin răng!");
+    }
+    
+    // Đảm bảo đúng 8 cột khớp với tiêu đề: Mã răng, Tên răng, Tình trạng, Mức độ, Triệu chứng, Chẩn đoán, Ghi chú, Xóa
+    examinedModel.addRow(new Object[]{
+        code, 
+        selectedTooth.name, 
+        tinhTrang, 
+        mucDo, 
+        trieuChung, 
+        chanDoan, 
+        ghiChu, 
+        "Xóa"
+    });
+    JOptionPane.showMessageDialog(this, "Đã thêm thông tin răng!");
+}
+
+
+    private static class ServiceItem {
+        private String maDV;
+        private String tenDV;
+        public ServiceItem(String maDV, String tenDV) { this.maDV = maDV; this.tenDV = tenDV; }
+        public String getMaDV() { return maDV; }
+        @Override public String toString() { return tenDV; }
     }
 
+   
     private void addIndication() {
-        JTextField txtService = new JTextField();
-        JTextField txtQuantity = new JTextField("1");
-        JTextField txtUnit = new JTextField("Lần");
-        JTextField txtDescription = new JTextField();
+        String autoMaDV = "DV" + System.currentTimeMillis() % 100000;
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 8, 10));
-        form.add(new JLabel("Dịch vụ / Chỉ định:")); form.add(txtService);
+        JTextField txtMaDV = new JTextField(autoMaDV, 15);
+        txtMaDV.setEditable(false);
+        
+        JTextField txtService = new JTextField(15);
+        JTextField txtQuantity = new JTextField("1", 15);
+        
+        // 🔄 SỬA TỪ JTextField THÀNH JComboBox CHO ĐƠN VỊ
+        JComboBox<String> cboUnit = new JComboBox<>(new String[]{"Lần", "Răng", "Chiếc", "Bộ", "Hàm", "Liều"});
+        cboUnit.setEditable(true); // Cho phép gõ tùy chỉnh nếu đơn vị không có trong danh sách
+        
+        JTextField txtDescription = new JTextField(15);
+
+        JPanel form = new JPanel(new GridLayout(5, 2, 10, 12));
+        form.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        form.add(new JLabel("Mã dịch vụ:")); form.add(txtMaDV);
+        form.add(new JLabel("Tên dịch vụ:")); form.add(txtService);
         form.add(new JLabel("Số lượng:")); form.add(txtQuantity);
-        form.add(new JLabel("Đơn vị:")); form.add(txtUnit);
+        
+        // 🔄 THAY ĐOẠN THÊM VÀO FORM:
+        form.add(new JLabel("Đơn vị:")); form.add(cboUnit); 
+        
         form.add(new JLabel("Ghi chú:")); form.add(txtDescription);
 
-        int result = JOptionPane.showConfirmDialog(this, form, "Thêm chỉ định điều trị", JOptionPane.OK_CANCEL_OPTION);
+        int result = JOptionPane.showConfirmDialog(
+            this, form, "Thêm chỉ định điều trị", 
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
+        );
+        
         if (result != JOptionPane.OK_OPTION) return;
+        
         if (txtService.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập dịch vụ!");
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên dịch vụ!");
             return;
         }
+        
         try {
             int quantity = Integer.parseInt(txtQuantity.getText().trim());
             if (quantity <= 0) throw new NumberFormatException();
-            indicationModel.addRow(new Object[]{indicationModel.getRowCount() + 1, txtService.getText().trim(), quantity, txtUnit.getText().trim(), txtDescription.getText().trim(), "Xóa"});
+            
+            ServiceItem item = new ServiceItem(txtMaDV.getText().trim(), txtService.getText().trim());
+            
+            indicationModel.addRow(new Object[]{
+                indicationModel.getRowCount() + 1,
+                item, 
+                quantity,
+                
+                // 🔄 LẤY GIÁ TRỊ TỪ JComboBox:
+                cboUnit.getSelectedItem().toString().trim(), 
+                
+                txtDescription.getText().trim(),
+                "Xóa"
+            });
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Số lượng phải là số nguyên dương!");
         }
     }
-
+    
     private void loadPatient(int row) {
         if (row < 0 || row >= receptionModel.getRowCount()) return;
         lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 2)));
