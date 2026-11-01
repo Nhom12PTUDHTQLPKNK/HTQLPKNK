@@ -8,6 +8,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.sql.SQLException;
@@ -39,88 +40,190 @@ public class RolePermissionPanel extends JPanel {
         setBackground(BG_CANVAS);
         setBorder(new EmptyBorder(25, 30, 25, 30));
 
-        // 1. HEADER CHUNG
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
-
-        JLabel lblTitle = new JLabel("Quản Lý Tài Khoản & Phân Quyền");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        lblTitle.setForeground(TEXT_DARK);
-
-        JLabel lblSub = new JLabel("Quản lý tên đăng nhập, cấp quyền hệ thống và trạng thái hoạt động của nhân sự");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
+     // 1. HEADER DẠNG CARD NGANG (GRADIENT HỒNG <-> XANH + LOGO)
+        JPanel headerCard = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Định nghĩa màu hồng pastel và xanh pastel
+                Color pinkPastel = new Color(255, 232, 243); 
+                Color bluePastel = new Color(219, 234, 254); 
+                
+                // Hiệu ứng trải màu từ trái sang phải
+                GradientPaint gradient = new GradientPaint(0, 0, pinkPastel, getWidth(), 0, bluePastel);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                
+                // Viền card
+                g2.setColor(BORDER_LIGHT);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        headerCard.setOpaque(false);
+        headerCard.setBorder(new EmptyBorder(20, 20, 20, 20));
+        headerCard.setLayout(new BorderLayout());
+        headerCard.setPreferredSize(new Dimension(0, 110));
 
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
-        titleBox.add(lblTitle);
-        titleBox.add(Box.createVerticalStrut(3));
-        titleBox.add(lblSub);
-        headerPanel.add(titleBox, BorderLayout.WEST);
+        
+        // Tải và thu nhỏ logo cho cân đối (Ví dụ: 45x45 pixel)
+        ImageIcon logoIcon = null;
+        try {
+            java.net.URL imgUrl = getClass().getResource("/img/logo5.png"); 
+            if (imgUrl != null) {
+                Image scaledImg = new ImageIcon(imgUrl).getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH);
+                logoIcon = new ImageIcon(scaledImg);
+            } else {
+                System.out.println("Không tìm thấy file ảnh tại: /img/logo5.png");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        // Nút thêm tài khoản mới góc phải Header
+        JLabel lblTitle = new JLabel("Quản Lý Tài Khoản & Phân Quyền");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 25));
+        lblTitle.setForeground(TEXT_DARK);
+
+        
+        if (logoIcon != null) {
+            lblTitle.setIcon(logoIcon);
+            lblTitle.setIconTextGap(14); // Khoảng cách giữa ảnh và chữ tiêu đề
+        }
+
+        JLabel lblSub = new JLabel("Quản lý tên đăng nhập, cấp quyền hệ thống và trạng thái hoạt động của nhân sự");
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lblSub.setForeground(MUTED);
+
+        titleBox.add(lblTitle);
+        titleBox.add(Box.createVerticalStrut(4));
+        titleBox.add(lblSub);
+        
+        // Căn giữa tiêu đề theo chiều dọc trong card
+        JPanel headerWestWrapper = new JPanel(new GridBagLayout());
+        headerWestWrapper.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.weightx = 1.0;
+        headerWestWrapper.add(titleBox, gbc);
+
+        headerCard.add(headerWestWrapper, BorderLayout.CENTER);
+
+        // Nút thêm tài khoản mới nằm ở góc phải của Card Header
         JButton btnAddAccount = createPrimaryButton("+ Thêm tài khoản mới", BLUE_PRIMARY);
         btnAddAccount.addActionListener(e -> showAccountDialog(null, null, null, null, null, null, true));
         
-        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel headerRight = new JPanel(new GridBagLayout());
         headerRight.setOpaque(false);
-        headerRight.add(btnAddAccount);
-        headerPanel.add(headerRight, BorderLayout.EAST);
+        GridBagConstraints gbcRight = new GridBagConstraints();
+        gbcRight.anchor = GridBagConstraints.EAST;
+        headerRight.add(btnAddAccount, gbcRight);
 
-        add(headerPanel, BorderLayout.NORTH);
+        headerCard.add(headerRight, BorderLayout.EAST);
+        
+        add(headerCard, BorderLayout.NORTH);
 
         // 2. CONTAINER CHÍNH
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
         mainContent.setOpaque(false);
 
-        // 3. THẺ THỐNG KÊ (3 STATS CARDS)
+     // 3. THẺ THỐNG KÊ (3 STATS CARDS VỚI 3 ẢNH RIÊNG BIỆT)
         JPanel statsRow = new JPanel(new GridLayout(1, 3, 20, 0));
         statsRow.setOpaque(false);
-        statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
         lblTotalAccounts = new JLabel("0 tài khoản");
         lblActiveAccounts = new JLabel("0 tài khoản");
         lblLockedAccounts = new JLabel("0 tài khoản");
 
-        statsRow.add(createStatCard("TỔNG TÀI KHOẢN HỆ THỐNG", lblTotalAccounts, BLUE_PRIMARY, new Color(232, 242, 255)));
-        statsRow.add(createStatCard("ĐANG HOẠT ĐỘNG", lblActiveAccounts, GREEN_ACCENT, new Color(238, 247, 238)));
-        statsRow.add(createStatCard("ĐÃ KHÓA", lblLockedAccounts, RED_ACCENT, new Color(254, 242, 242)));
+        // Card 1: Ảnh tổng tài khoản (Ví dụ: /img/total.png)
+        statsRow.add(createStatCard("TỔNG TÀI KHOẢN HỆ THỐNG", lblTotalAccounts, BLUE_PRIMARY, new Color(232, 242, 255), "/img/ok.png"));
+        
+        // Card 2: Ảnh đang hoạt động (Ví dụ: /img/active.png)
+        statsRow.add(createStatCard("ĐANG HOẠT ĐỘNG", lblActiveAccounts, GREEN_ACCENT, new Color(238, 247, 238), "/img/yes.png"));
+        
+        // Card 3: Ảnh đã khóa (Ví dụ: /img/locked.png)
+        statsRow.add(createStatCard("ĐÃ KHÓA", lblLockedAccounts, RED_ACCENT, new Color(254, 242, 242), "/img/no.png"));
 
         mainContent.add(statsRow);
-        mainContent.add(Box.createVerticalStrut(20));
-
-        // 4. THANH TOOLBAR & BẢNG DỮ LIỆU
+        mainContent.add(Box.createVerticalStrut(30));
+     // 4. THANH TOOLBAR & BẢNG DỮ LIỆU
         JPanel contentCard = createCardContainer();
         contentCard.setLayout(new BorderLayout(0, 15));
 
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setOpaque(false);
 
-        txtAccountSearch = new JTextField(20);
-        txtAccountSearch.setPreferredSize(new Dimension(280, 40));
-        txtAccountSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtAccountSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(5, 12, 5, 12)
-        ));
-        txtAccountSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên đăng nhập, họ tên...");
+        // --- KHUNG Ô TÌM KIẾM TÙY CHỈNH (CÓ ICON KÍNH LÚP & PLACEHOLDER) ---
+        JPanel searchBox = new JPanel(new BorderLayout(10, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(BORDER_LIGHT);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        searchBox.setOpaque(false);
+        searchBox.setPreferredSize(new Dimension(380, 42)); // Chiều dài ô tìm kiếm
+        searchBox.setBorder(new EmptyBorder(5, 12, 5, 12));
 
-        JButton btnSearch = createStaticButton("Tìm kiếm", BLUE_PRIMARY, 90, 40);
+        // 1. Tải và gắn icon kính lúp vào bên trái (WEST)
+        JLabel lblSearchIcon = new JLabel();
+        try {
+            // HÃY ĐẢM BẢO TÊN FILE TRÙNG KHỚP VỚI FILE TRONG THƯ MỤC IMG CỦA BẠN (VD: search_icon.png)
+            java.net.URL imgUrl = getClass().getResource("/img/search_icon.png"); 
+            if (imgUrl != null) {
+                Image scaledImg = new ImageIcon(imgUrl).getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+                lblSearchIcon.setIcon(new ImageIcon(scaledImg));
+            } else {
+                System.out.println("CẢNH BÁO: Không tìm thấy file ảnh kính lúp tại /img/search_icon.png");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        searchBox.add(lblSearchIcon, BorderLayout.WEST);
+
+        // 2. Ô nhập liệu JTextField nằm ở giữa (CENTER)
+        txtAccountSearch = new JTextField();
+        txtAccountSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtAccountSearch.setBorder(null);
+        txtAccountSearch.setOpaque(false);
+        txtAccountSearch.putClientProperty("JTextField.placeholderText", "Nhập mã NV, họ tên...");
+        searchBox.add(txtAccountSearch, BorderLayout.CENTER);
+
+        // 3. Nút bấm tìm kiếm
+        JButton btnSearch = createStaticButton("Tìm kiếm", BLUE_PRIMARY, 100, 42);
         btnSearch.addActionListener(e -> {
             String kw = txtAccountSearch.getText().trim();
-            if (kw.isEmpty() || kw.equals("Tìm theo tên đăng nhập, họ tên...")) {
+            if (kw.isEmpty() || kw.equals("Nhập mã NV, họ tên...")) {
                 accountRowSorter.setRowFilter(null);
             } else {
                 accountRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + kw));
             }
         });
 
-        JPanel searchGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        // 4. Gom nhóm ô tìm kiếm và nút vào toolbar
+        JPanel searchGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         searchGroup.setOpaque(false);
-        searchGroup.add(txtAccountSearch);
+        searchGroup.add(searchBox);
         searchGroup.add(btnSearch);
         toolbar.add(searchGroup, BorderLayout.WEST);
+
+        contentCard.add(toolbar, BorderLayout.NORTH);
+        
+
+        
 
         contentCard.add(toolbar, BorderLayout.NORTH);
 
@@ -280,7 +383,7 @@ public class RolePermissionPanel extends JPanel {
     // =========================================================================
     // UI HELPERS & COMPONENTS
     // =========================================================================
-    private JPanel createStatCard(String title, JLabel valueLbl, Color accentColor, Color bgCard) {
+    private JPanel createStatCard(String title, JLabel valueLbl, Color accentColor, Color bgCard, String imagePath) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -295,22 +398,44 @@ public class RolePermissionPanel extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(16, 20, 16, 20));
+        card.setBorder(new EmptyBorder(25, 25, 25, 25)); // Tăng padding để card cao ráo, dày dặn
+        card.setLayout(new BorderLayout(18, 0)); // Khoảng cách ngang 18px giữa ảnh và chữ
+
+        // 1. Tải ảnh từ thư mục img đặt ở bên trái (WEST)
+        JLabel lblIcon = new JLabel();
+        try {
+            java.net.URL imgUrl = getClass().getResource(imagePath);
+            if (imgUrl != null) {
+                Image scaledImg = new ImageIcon(imgUrl).getImage().getScaledInstance(55, 55, Image.SCALE_SMOOTH);
+                lblIcon.setIcon(new ImageIcon(scaledImg));
+            } else {
+                System.out.println("Không tìm thấy ảnh tại: " + imagePath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        card.add(lblIcon, BorderLayout.WEST);
+
+        // 2. Panel chứa chữ (Tiêu đề + Số lượng) ở giữa (CENTER)
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
 
         JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         titleLbl.setForeground(MUTED);
 
-        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 28)); // Chữ số to rõ, nổi bật
         valueLbl.setForeground(accentColor);
 
-        card.add(titleLbl);
-        card.add(Box.createVerticalStrut(6));
-        card.add(valueLbl);
+        textPanel.add(titleLbl);
+        textPanel.add(Box.createVerticalStrut(6));
+        textPanel.add(valueLbl);
+
+        card.add(textPanel, BorderLayout.CENTER);
         return card;
     }
-
+    
     private JPanel createCardContainer() {
         JPanel panel = new JPanel() {
             @Override
@@ -413,81 +538,149 @@ public class RolePermissionPanel extends JPanel {
     }
 
     private void styleTable(JTable table) {
-        table.setRowHeight(44);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        // ===== TÙY CHỈNH NỘI DUNG BẢNG =====
+        table.setRowHeight(55);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         table.setForeground(TEXT_DARK);
-        table.setGridColor(new Color(240, 244, 248));
+        table.setGridColor(new Color(235, 240, 248));
         table.setSelectionBackground(new Color(232, 242, 255));
         table.setSelectionForeground(TEXT_DARK);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(false);
+        table.setFillsViewportHeight(true);
 
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
-        table.getTableHeader().setBackground(new Color(245, 248, 253));
-        table.getTableHeader().setForeground(MUTED);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
-        table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
+        // ===== TIÊU ĐỀ BẢNG =====
+        JTableHeader header = table.getTableHeader();
+
+        header.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        header.setBackground(new Color(38, 56, 101));
+        header.setForeground(Color.WHITE);
+        header.setPreferredSize(new Dimension(0, 50));
+        header.setOpaque(true);
+        header.setReorderingAllowed(false);
+
+        // ===== RENDERER TIÊU ĐỀ =====
+        DefaultTableCellRenderer headerRenderer =
+                new DefaultTableCellRenderer() {
+
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value,
+                    boolean isSelected, boolean hasFocus,
+                    int row, int column) {
+
+                JLabel lbl = new JLabel(
+                        value == null ? "" : value.toString(),
+                        SwingConstants.CENTER
+                );
+
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+                lbl.setForeground(Color.WHITE);
+                lbl.setBackground(new Color(38, 56, 101));
+                lbl.setOpaque(true);
+
+                lbl.setBorder(BorderFactory.createMatteBorder(
+                        0, 0, 1, 1, new Color(75, 91, 130)
+                ));
+
+                return lbl;
+            }
+        };
+
+        header.setDefaultRenderer(headerRenderer);
     }
-
-    // =========================================================================
-    // CUSTOM RENDERER & EDITOR CHO TRẠNG THÁI VÀ NÚT THAO TÁC
-    // =========================================================================
+        
     private static class StatusBadgeRenderer extends DefaultTableCellRenderer {
+
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel lbl = new JLabel((String) value, SwingConstants.CENTER);
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            JLabel lbl = new JLabel(
+                    value == null ? "" : value.toString(),
+                    SwingConstants.CENTER
+            );
+
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
             lbl.setOpaque(true);
-            
+
             String status = value == null ? "" : value.toString();
+
             if ("Hoạt động".equals(status)) {
-                lbl.setForeground(GREEN_ACCENT);
+                lbl.setForeground(new Color(22, 130, 70));
                 lbl.setBackground(new Color(225, 245, 230));
             } else if ("Tạm khóa".equals(status)) {
-                lbl.setForeground(RED_ACCENT);
+                lbl.setForeground(new Color(217, 45, 32));
                 lbl.setBackground(new Color(253, 237, 236));
             } else {
                 lbl.setForeground(MUTED);
                 lbl.setBackground(new Color(240, 244, 248));
             }
-            
+
+            lbl.setBorder(BorderFactory.createEmptyBorder(5, 12, 5, 12));
+
             JPanel panel = new JPanel(new GridBagLayout());
-            panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            panel.setBackground(
+                    isSelected ? table.getSelectionBackground() : Color.WHITE
+            );
             panel.add(lbl);
+
             return panel;
         }
     }
 
-    private static class ActionButtonRenderer extends JPanel implements javax.swing.table.TableCellRenderer {
-        private final JButton btnEdit = new JButton("Sửa");
-        private final JButton btnLock = new JButton("Khóa");
+    private static class ActionButtonRenderer extends JPanel
+    implements javax.swing.table.TableCellRenderer {
 
-        public ActionButtonRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
-            setOpaque(true);
-            
-            styleActionButton(btnEdit, new Color(240, 244, 248), TEXT_DARK);
-            styleActionButton(btnLock, new Color(254, 243, 199), new Color(146, 64, 14));
+private final JButton btnEdit = new JButton("Sửa");
+private final JButton btnLock = new JButton("Khóa");
 
-            add(btnEdit);
-            add(btnLock);
-        }
+public ActionButtonRenderer() {
 
-        private void styleActionButton(JButton btn, Color bg, Color fg) {
-            btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btn.setBackground(bg);
-            btn.setForeground(fg);
-            btn.setFocusPainted(false);
-            btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
-            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
+    setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
+    setOpaque(true);
 
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            return this;
-        }
-    }
+    styleButton(btnEdit, new Color(240, 244, 248), TEXT_DARK);
+    styleButton(btnLock, new Color(254, 243, 199), new Color(146, 64, 14));
+
+    add(btnEdit);
+    add(btnLock);
+}
+
+private void styleButton(JButton btn, Color bg, Color fg) {
+
+    btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    btn.setPreferredSize(new Dimension(72, 36));
+    btn.setMinimumSize(new Dimension(72, 36));
+
+    btn.setBackground(bg);
+    btn.setForeground(fg);
+
+    btn.setFocusPainted(false);
+    btn.setBorderPainted(true);
+    btn.setContentAreaFilled(true);
+    btn.setOpaque(true);
+
+    btn.setMargin(new Insets(5, 12, 5, 12));
+    btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+}
+
+@Override
+public Component getTableCellRendererComponent(
+        JTable table, Object value,
+        boolean isSelected, boolean hasFocus,
+        int row, int column) {
+
+    setBackground(
+        isSelected ? table.getSelectionBackground() : Color.WHITE
+    );
+
+    return this;
+}
+}
+    
 
     private static class ActionButtonEditor extends DefaultCellEditor {
         private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));

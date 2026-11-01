@@ -148,6 +148,25 @@ public class ChiTietKhamRangDAO {
 
         return list;
     }
+    
+    public static String loadTeethFromDatabase(int code) {
+        String tenRang = null;
+        String query = "SELECT TenRang FROM RANG WHERE MaRang = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setInt(1, code);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    tenRang = rs.getString("TenRang");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tenRang;
+    }
 
     // ================= ÁNH XẠ RESULTSET =================
     private ChiTietKhamRang mapChiTietKhamRang(

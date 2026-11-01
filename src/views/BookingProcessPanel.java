@@ -433,7 +433,7 @@ public class BookingProcessPanel extends JPanel {
             btnActionPrimary.setVisible(true);
             btnActionCancel.setVisible(false);
         } else {
-            // Tab Lịch sử xử lý
+            // Tab Lịch sử xử lý: 
             btnActionPrimary.setVisible(false);
             btnActionCancel.setVisible(false);
         }
