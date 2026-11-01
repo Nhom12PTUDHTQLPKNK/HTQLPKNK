@@ -31,6 +31,7 @@ import java.util.Set;
  */
 public class AppointmentBookingPanel extends JPanel {
 
+<<<<<<< HEAD
     //COLORS 
 
     private static final Color BLUE_PRIMARY = new Color(45, 112, 220);
@@ -42,6 +43,12 @@ public class AppointmentBookingPanel extends JPanel {
     private static final Color ORANGE_LIGHT = new Color(255, 245, 225);
 
     private static final Color BG_CANVAS = new Color(244, 248, 253);
+=======
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
+    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
+    private static final Color PINK_ACCENT = new Color(174, 35, 86);
+    private static final Color BG_CANVAS = new Color(243, 248, 253);
+>>>>>>> 0fba35ebfccd35d7e3fac9dccd9dcda3b89a86dc
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(35, 52, 78);
     private static final Color TEXT_GRAY = new Color(119, 135, 157);

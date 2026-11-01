@@ -1,6 +1,7 @@
 package views;
 
 import models.dao.TaiKhoanDAO;
+import security.AccessControl;
 import report.PdfTableExport;
 
 import javax.swing.*;
@@ -12,10 +13,10 @@ import java.awt.*;
 import java.util.List;
 
 public class RolePermissionPanel extends JPanel {
-    private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
-    private static final Color GREEN_ACCENT = new Color(40, 167, 69);
-    private static final Color RED_ACCENT = new Color(220, 53, 69);
-    private static final Color PINK_ACCENT = new Color(239, 63, 131);
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
+    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
+    private static final Color RED_ACCENT = new Color(180, 35, 45);
+    private static final Color PINK_ACCENT = new Color(174, 35, 86);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);
@@ -219,6 +220,7 @@ public class RolePermissionPanel extends JPanel {
 
     private void loadRolesFromDB() {
         roleTableModel.setRowCount(0);
+        if (!AccessControl.isAdministrator()) return;
         List<Object[]> data = taiKhoanDAO.getAllAccounts();
         for (Object[] row : data) {
             String maNV = (String) row[1];
@@ -273,7 +275,9 @@ public class RolePermissionPanel extends JPanel {
             return;
         }
 
-        boolean success = taiKhoanDAO.updateAccount(maNV, null, tenVaiTro, true, maNV, false);
+        String roleCode = (String) cbMaVaiTro.getSelectedItem();
+        String roleValue = "QUAN_LY".equals(roleCode) ? "Admin" : "NHA_SI".equals(roleCode) ? "Nha sĩ" : "Y_TA".equals(roleCode) ? "Y tá" : "Lễ tân";
+        boolean success = taiKhoanDAO.updateAccountRoleByEmployeeId(maNV, roleValue);
         if (success) {
             JOptionPane.showMessageDialog(this, "Cập nhật phân quyền thành công!");
             loadRolesFromDB();
@@ -301,9 +305,9 @@ public class RolePermissionPanel extends JPanel {
         int mRow = roleTable.convertRowIndexToModel(vRow);
         String maNV = (String) roleTableModel.getValueAt(mRow, 0);
         if (JOptionPane.showConfirmDialog(this, "Xóa phân quyền nhân viên " + maNV + "?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            roleTableModel.removeRow(mRow);
-            clearRoleForm();
-            JOptionPane.showMessageDialog(this, "Xóa phân quyền thành công!");
+            boolean success = taiKhoanDAO.setAccountActiveByEmployeeId(maNV, false);
+            if (success) { loadRolesFromDB(); clearRoleForm(); JOptionPane.showMessageDialog(this, "Đã khóa tài khoản và thu hồi quyền truy cập."); }
+            else JOptionPane.showMessageDialog(this, "Không thể thu hồi quyền (kiểm tra tài khoản admin hoặc kết nối SQL Server).", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -389,14 +393,13 @@ public class RolePermissionPanel extends JPanel {
 
         txtUsername = addFieldToForm(form, "Tên đăng nhập:");
         
-        txtPassword = addFieldToForm(form, "Mật khẩu:");
-        txtPassword.setText("123456");
+        txtPassword = addFieldToForm(form, "Mật khẩu (để trống nếu giữ nguyên):");
 
         txtStaffId = addFieldToForm(form, "Mã nhân viên:");
 
         form.add(createFieldLabel("Quyền hạn:"));
         form.add(Box.createVerticalStrut(4));
-        cbRoleBox = new JComboBox<>(new String[]{"Nhân viên quản lý", "Nha sĩ", "Lễ tân", "Y tá"});
+        cbRoleBox = new JComboBox<>(new String[]{"Admin", "Nha sĩ", "Lễ tân", "Y tá"});
         cbRoleBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbRoleBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         cbRoleBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -436,7 +439,7 @@ public class RolePermissionPanel extends JPanel {
         isEditingAccount = false;
         txtUsername.setText("");
         txtUsername.setEnabled(true);
-        txtPassword.setText("123456");
+        txtPassword.setText("");
         txtStaffId.setText("");
         cbRoleBox.setSelectedIndex(0);
         cbStatusBox.setSelectedIndex(0);
@@ -449,7 +452,7 @@ public class RolePermissionPanel extends JPanel {
         int mRow = accountTable.convertRowIndexToModel(vRow);
         txtUsername.setText((String) accountTableModel.getValueAt(mRow, 0));
         txtUsername.setEnabled(false);
-        txtPassword.setText("123456");
+        txtPassword.setText("");
         txtStaffId.setText((String) accountTableModel.getValueAt(mRow, 1));
         cbRoleBox.setSelectedItem(accountTableModel.getValueAt(mRow, 2));
         cbStatusBox.setSelectedItem(accountTableModel.getValueAt(mRow, 3));
@@ -476,10 +479,11 @@ public class RolePermissionPanel extends JPanel {
         boolean active = "Hoạt động".equals(s);
         boolean success;
         if (isEditingAccount) {
-            boolean updatePass = !p.equals("123456") && !p.isEmpty();
+            boolean updatePass = !p.isEmpty();
             success = taiKhoanDAO.updateAccount(u, p, r, active, id, updatePass);
         } else {
-            success = taiKhoanDAO.insertAccount(u, p.isEmpty() ? "123456" : p, r, active, id);
+            if (p.isEmpty()) { JOptionPane.showMessageDialog(this, "Nhập mật khẩu cho tài khoản mới.", "Cảnh báo", JOptionPane.WARNING_MESSAGE); return; }
+            success = taiKhoanDAO.insertAccount(u, p, r, active, id);
         }
 
         if (success) {

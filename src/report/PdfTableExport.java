@@ -23,6 +23,11 @@ public final class PdfTableExport {
     private PdfTableExport() { }
 
     public static void install(JTable table, String title) {
+        install(table, title, true);
+    }
+
+    /** Installs context-menu and keyboard export actions; inline toolbar buttons are optional. */
+    public static void install(JTable table, String title, boolean attachInlineButtons) {
         if (table == null || Boolean.TRUE.equals(table.getClientProperty(INSTALLED_PROPERTY))) {
             return;
         }
@@ -62,12 +67,20 @@ public final class PdfTableExport {
             }
         });
 
-        table.addHierarchyListener(event -> {
-            if ((event.getChangeFlags() & java.awt.event.HierarchyEvent.PARENT_CHANGED) != 0) {
-                SwingUtilities.invokeLater(() -> attachButton(table, title));
-            }
-        });
-        SwingUtilities.invokeLater(() -> attachButton(table, title));
+        if (attachInlineButtons) {
+            table.addHierarchyListener(event -> {
+                if ((event.getChangeFlags() & java.awt.event.HierarchyEvent.PARENT_CHANGED) != 0) {
+                    SwingUtilities.invokeLater(() -> attachButton(table, title));
+                }
+            });
+            SwingUtilities.invokeLater(() -> attachButton(table, title));
+        }
+    }
+
+    public static void bindButtons(JTable table, String title, JButton printButton, JButton pdfButton) {
+        if (table == null) return;
+        if (printButton != null) printButton.addActionListener(event -> print(table, title));
+        if (pdfButton != null) pdfButton.addActionListener(event -> export(table, title));
     }
 
     private static void attachButton(JTable table, String title) {
@@ -110,7 +123,9 @@ public final class PdfTableExport {
             JViewport columnHeader = scroll.getColumnHeader();
             Component header = columnHeader == null ? null : columnHeader.getView();
             JPanel headerWithButtons = new JPanel(new BorderLayout());
-            headerWithButtons.add(header, BorderLayout.CENTER);
+            if (header != null) {
+                headerWithButtons.add(header, BorderLayout.CENTER);
+            }
             headerWithButtons.add(buttons, BorderLayout.EAST);
             scroll.setColumnHeaderView(headerWithButtons);
             scroll.putClientProperty(BUTTONS_ATTACHED_PROPERTY, Boolean.TRUE);
@@ -131,6 +146,10 @@ public final class PdfTableExport {
                     "Không thể in bảng: " + e.getMessage(),
                     "Lỗi in", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public static void printTable(JTable table, String title) {
+        if (table != null) print(table, title);
     }
 
     private static void export(JTable table, String title) {
@@ -171,6 +190,10 @@ public final class PdfTableExport {
                     "Không thể xuất PDF: " + e.getMessage(),
                     "Lỗi xuất PDF", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public static void exportTable(JTable table, String title) {
+        if (table != null) export(table, title);
     }
 
     private static String[] visibleColumnNames(JTable table) {

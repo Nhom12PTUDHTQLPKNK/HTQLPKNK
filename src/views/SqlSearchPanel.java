@@ -17,7 +17,7 @@ import java.util.List;
 
 /** Shared SQL-backed lookup UI styled after the customer and appointment lookups. */
 public class SqlSearchPanel extends JPanel {
-    private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);
@@ -68,7 +68,7 @@ public class SqlSearchPanel extends JPanel {
                 BorderFactory.createLineBorder(BORDER_LIGHT, 1),
                 new EmptyBorder(4, 10, 4, 10)));
         btnSearch = createButton("Tra Cứu", BLUE_PRIMARY);
-        JButton btnReload = createButton("Tải lại", new Color(108, 117, 125));
+        JButton btnReload = createButton("Tải lại", new Color(74, 85, 96));
         btnSearch.addActionListener(e -> reload(txtSearch.getText().trim()));
         btnReload.addActionListener(e -> {
             txtSearch.setText("");

@@ -71,7 +71,7 @@ public abstract class SqlDateReportPanel extends JPanel {
         JButton print = new JButton("In");
         JButton excel = new JButton("Excel");
         JButton pdf = new JButton("PDF");
-        styleButton(print, new Color(108, 117, 125));
+        styleButton(print, new Color(74, 85, 96));
         styleButton(excel, new Color(40, 167, 69));
         styleButton(pdf, new Color(220, 53, 69));
         filters.add(runButton);

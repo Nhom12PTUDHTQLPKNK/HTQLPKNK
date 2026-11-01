@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 public class AppointmentSearchPanel extends JPanel {
 
-    private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);

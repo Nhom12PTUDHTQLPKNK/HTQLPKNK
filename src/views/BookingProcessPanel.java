@@ -26,13 +26,13 @@ public class BookingProcessPanel extends JPanel {
 
     // ==================== COLORS ====================
 
-    private static final Color BLUE_PRIMARY = new Color(45, 112, 220);
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
     private static final Color BLUE_LIGHT = new Color(232, 241, 255);
-    private static final Color GREEN_ACCENT = new Color(35, 160, 115);
+    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
     private static final Color GREEN_LIGHT = new Color(229, 247, 239);
-    private static final Color RED_ACCENT = new Color(220, 75, 85);
+    private static final Color RED_ACCENT = new Color(180, 35, 45);
     private static final Color RED_LIGHT = new Color(255, 235, 237);
-    private static final Color ORANGE_ACCENT = new Color(235, 153, 55);
+    private static final Color ORANGE_ACCENT = new Color(148, 75, 8);
     private static final Color ORANGE_LIGHT = new Color(255, 245, 225);
 
     private static final Color BG_CANVAS = new Color(244, 248, 253);
@@ -164,7 +164,7 @@ public class BookingProcessPanel extends JPanel {
 
         JButton btnRefresh = createButton(
                 "Tải lại",
-                new Color(105, 125, 150)
+                new Color(74, 88, 105)
         );
 
         btnRefresh.setPreferredSize(new Dimension(85, 38));
@@ -416,6 +416,16 @@ public class BookingProcessPanel extends JPanel {
 
         titlePanel.add(heading, BorderLayout.WEST);
 
+        JPanel exportButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        exportButtons.setOpaque(false);
+        JButton printButton = createButton("In", BLUE_PRIMARY);
+        JButton pdfButton = createButton("In PDF", GREEN_ACCENT);
+        printButton.addActionListener(e -> PdfTableExport.printTable(getActiveTable(), getActiveTableTitle()));
+        pdfButton.addActionListener(e -> PdfTableExport.exportTable(getActiveTable(), getActiveTableTitle()));
+        exportButtons.add(printButton);
+        exportButtons.add(pdfButton);
+        titlePanel.add(exportButtons, BorderLayout.EAST);
+
         String[] columns = {
                 "Mã Lịch Hẹn",
                 "Tên Khách Hàng",
@@ -435,9 +445,9 @@ public class BookingProcessPanel extends JPanel {
         tableConfirmed = new JTable(tableModelConfirmed);
         tableHistory = new JTable(tableModelHistory);
 
-        PdfTableExport.install(tablePending, "Lịch hẹn chờ xử lý");
-        PdfTableExport.install(tableConfirmed, "Lịch hẹn đã xác nhận");
-        PdfTableExport.install(tableHistory, "Lịch hẹn đã xử lý");
+        PdfTableExport.install(tablePending, "Lịch hẹn chờ xử lý", false);
+        PdfTableExport.install(tableConfirmed, "Lịch hẹn đã xác nhận", false);
+        PdfTableExport.install(tableHistory, "Lịch hẹn đã xử lý", false);
 
         styleTable(tablePending);
         styleTable(tableConfirmed);
@@ -1027,6 +1037,14 @@ public class BookingProcessPanel extends JPanel {
 
             default:
                 return tableHistory;
+        }
+    }
+
+    private String getActiveTableTitle() {
+        switch (tabbedPane.getSelectedIndex()) {
+            case 0: return "Lịch hẹn chờ xử lý";
+            case 1: return "Lịch hẹn đã xác nhận";
+            default: return "Lịch hẹn đã xử lý";
         }
     }
 

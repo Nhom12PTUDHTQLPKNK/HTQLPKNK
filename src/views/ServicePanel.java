@@ -13,10 +13,10 @@ import java.sql.SQLException;
 import java.util.List;
 
 public class ServicePanel extends JPanel {
-    private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
-    private static final Color GREEN_ACCENT = new Color(40, 167, 69);
-    private static final Color RED_ACCENT = new Color(220, 53, 69);
-    private static final Color PINK_ACCENT = new Color(239, 63, 131);
+    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
+    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
+    private static final Color RED_ACCENT = new Color(180, 35, 45);
+    private static final Color PINK_ACCENT = new Color(174, 35, 86);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);

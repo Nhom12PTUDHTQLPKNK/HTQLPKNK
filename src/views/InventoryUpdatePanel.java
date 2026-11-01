@@ -31,11 +31,11 @@ public class InventoryUpdatePanel extends JPanel {
 
     private static final String[] COLS = {
         "Mã GD", "Thời gian lập", "Loại", "Mã hàng", "Tên hàng", "Lô",
-        "Hạn sử dụng", "Số lượng", "ĐVT", "Lý do / Ghi chú", "Trạng thái", "Người lập"
+        "Hạn sử dụng", "Số lượng", "ĐVT", "Lý do / Ghi chú", "Trạng thái"
     };
     private static final Class<?>[] TYPES = {
         String.class, String.class, String.class, String.class, String.class,
-        String.class, String.class, Integer.class, String.class, String.class, String.class, String.class
+        String.class, String.class, Integer.class, String.class, String.class, String.class
     };
     private static final int COL_STATUS = 10;
     private static final String ALL = "Tất cả";
@@ -73,7 +73,7 @@ public class InventoryUpdatePanel extends JPanel {
     private final Runnable refreshListener = () -> UiKit.onEdt(this::reloadAll);
 
     public InventoryUpdatePanel() {
-        this(System.getProperty("user.name", "Hệ thống"));
+        this(AuditLog.currentUser());
     }
 
     public InventoryUpdatePanel(String currentUser) {
@@ -117,7 +117,7 @@ public class InventoryUpdatePanel extends JPanel {
 
         table.setRowSorter(sorter);
         UiKit.styleTable(table);
-        UiKit.setColumnWidths(table, 75, 140, 85, 70, 170, 80, 95, 75, 70, 190, 100, 90);
+        UiKit.setColumnWidths(table, 75, 140, 85, 70, 170, 80, 95, 75, 70, 190, 100);
         table.getColumnModel().getColumn(COL_STATUS).setCellRenderer(statusRenderer());
         PdfTableExport.install(table, "Giao dịch kho");
 
@@ -402,7 +402,7 @@ public class InventoryUpdatePanel extends JPanel {
                 t.getId(), t.getCreatedAt().format(UiKit.DATE_TIME_FMT), t.getType().getLabel(),
                 t.getItemCode(), it == null ? "" : it.getName(), t.getLotNo(), UiKit.fmt(exp),
                 t.getDelta(), it == null ? "" : it.getUnit(), t.getReason(),
-                t.getStatus().getLabel(), t.getCreatedBy()
+                t.getStatus().getLabel()
             });
         }
         if (keep != null) selectTxn(keep);

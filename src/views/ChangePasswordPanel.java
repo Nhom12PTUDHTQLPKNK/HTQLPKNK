@@ -14,7 +14,7 @@ import java.net.URL;
 public class ChangePasswordPanel extends JPanel {
     private Image bgDangNhapImage;
 
-    private static final Color PINK_ACCENT = new Color(239, 63, 131);
+    private static final Color PINK_ACCENT = new Color(174, 35, 86);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
@@ -530,7 +530,7 @@ public class ChangePasswordPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, pinkColor, getWidth(), getHeight(), new Color(255, 120, 160));
+                GradientPaint gp = new GradientPaint(0, 0, pinkColor, getWidth(), getHeight(), new Color(130, 22, 65));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.dispose();

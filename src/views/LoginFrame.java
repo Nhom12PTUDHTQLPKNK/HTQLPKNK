@@ -16,8 +16,8 @@ import javax.imageio.ImageIO;
 public class LoginFrame extends JFrame {
 
     private static final Color NAVY = new Color(15, 34, 80);
-    private static final Color BLUE = new Color(0, 126, 255);
-    private static final Color PINK = new Color(239, 63, 131);
+    private static final Color BLUE = new Color(7, 65, 150);
+    private static final Color PINK = new Color(174, 35, 86);
     private static final Color GRAY = new Color(105, 128, 157);
     private static final Color PLACEHOLDER = new Color(150, 150, 150);
     private static final Color BORDER = new Color(210, 222, 236);
@@ -35,7 +35,7 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
         setTitle("Đăng nhập - SmileDental");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(1648, 920);
+        setSize(1600, 900);
         setMinimumSize(new Dimension(1100, 650));
         setLocationRelativeTo(null);
         setFocusableWindowState(true);
@@ -306,6 +306,7 @@ public class LoginFrame extends JFrame {
 
         // nút đăng nhập
         JButton btnLogin = new JButton("   ĐĂNG NHẬP");
+        btnLogin.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 17));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setBackground(BLUE);
@@ -322,7 +323,7 @@ public class LoginFrame extends JFrame {
         btnLogin.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                btnLogin.setBackground(new Color(0, 105, 225));
+                btnLogin.setBackground(new Color(4, 45, 105));
             }
 
             @Override

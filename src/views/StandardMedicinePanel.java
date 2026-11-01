@@ -18,7 +18,7 @@ import java.sql.SQLException;
 public class StandardMedicinePanel extends JPanel {
 
     // Color Palette
-    private static final Color BLUE = new Color(0, 126, 255);
+    private static final Color BLUE = new Color(11, 95, 204);
     private static final Color BLUE_DARK = new Color(0, 91, 190);
     private static final Color NAVY = new Color(15, 29, 69);
     private static final Color BG = new Color(243, 248, 253);
@@ -26,10 +26,10 @@ public class StandardMedicinePanel extends JPanel {
     private static final Color TEXT = new Color(35, 55, 95);
     private static final Color MUTED = new Color(100, 116, 145);
     private static final Color LIGHT_BLUE = new Color(232, 243, 255);
-    private static final Color GREEN = new Color(0, 166, 82);
+    private static final Color GREEN = new Color(24, 117, 58);
     private static final Color GREEN_BG = new Color(222, 250, 235);
-    private static final Color RED = new Color(225, 55, 85);
-    private static final Color PINK = new Color(238, 65, 130);
+    private static final Color RED = new Color(180, 35, 45);
+    private static final Color PINK = new Color(174, 35, 86);
     private static final Color PINK_BG = new Color(255, 239, 245);
 
     private final List<MedicineData> medicines = new ArrayList<MedicineData>();
