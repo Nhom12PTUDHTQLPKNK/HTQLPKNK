@@ -46,6 +46,9 @@ IF OBJECT_ID('KhachHang', 'U') IS NOT NULL DROP TABLE KhachHang;
 IF OBJECT_ID('AuditLog', 'U') IS NOT NULL DROP TABLE AuditLog;
 GO
 
+
+GO
+
 -- ----------------------------------------------------------------------------
 -- PHẦN 2: TẠO CÁC BẢNG ĐỘC LẬP (BẢNG CHA)
 -- ----------------------------------------------------------------------------

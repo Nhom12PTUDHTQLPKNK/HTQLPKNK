@@ -151,8 +151,7 @@ public class ExaminationProcessPanel extends JPanel {
         JPanel status = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         status.setOpaque(false);
         JButton btnChoKham = createButton("Chờ khám", PINK);
-        JButton btnDangKham = createButton("Đang khám", BLUE);
-        JButton btnDaKham = createButton("Đã khám", MUTED);
+        JButton btnDangKham = createButton("Đang khám", BLUE);JButton btnDaKham = createButton("Đã khám", MUTED);
         status.add(btnChoKham);
         status.add(btnDangKham);
         status.add(btnDaKham);
@@ -161,25 +160,36 @@ public class ExaminationProcessPanel extends JPanel {
         btnDangKham.addActionListener(e -> loadReceptionDataByStatus("Đang khám"));
         btnDaKham.addActionListener(e -> loadReceptionDataByStatus("Hoàn thành"));
 
-        String[] columns = {"STT", "Mã LH", "Ngày hẹn", "Giờ", "Họ và tên", "SĐT", "Dịch vụ dự kiến", "Bác sĩ phụ trách", "Trạng thái", "Thao tác"};
+     // Khai báo lại thứ tự cột chuẩn xác theo yêu cầu
+        String[] columns = {
+            "STT", "Mã LH", "Họ và tên", "Tuổi", "Giới tính", 
+            "SĐT", "Ngày hẹn", "Giờ khám", "Dịch vụ dự kiến", 
+            "Bác sĩ phụ trách", "Trạng thái", "Thao tác"
+        };
+
         receptionModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return column == 9; }
+            @Override public boolean isCellEditable(int row, int column) { 
+                return column == 11; // Cột thao tác ở cuối cùng (index 11)
+            }
         };
 
         tblReception = new JTable(receptionModel);
         styleTable(tblReception);
         tblReception.setRowHeight(43);
         tblReception.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
-        tblReception.getColumnModel().getColumn(9).setCellRenderer(new ActionRenderer("Khám bệnh"));
-        tblReception.getColumnModel().getColumn(9).setCellEditor(new ActionEditor(tblReception, row -> {
+
+        // Gán Renderer và Editor cho cột Thao tác (index 11)
+        tblReception.getColumnModel().getColumn(11).setCellRenderer(new ActionRenderer("Khám bệnh"));
+        tblReception.getColumnModel().getColumn(11).setCellEditor(new ActionEditor(tblReception, row -> {
             processTransferToExamination(row);
         }, "Khám bệnh"));
 
-        int[] widths = {40, 75, 85, 55, 140, 90, 130, 110, 95, 85};
+        // Điều chỉnh độ rộng các cột tương ứng (tổng 12 cột)
+        int[] widths = {40, 75, 140, 50, 75, 90, 85, 55, 130, 110, 95, 85};
         for (int i = 0; i < widths.length; i++) {
             tblReception.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
+        
 
         JScrollPane scroll = new JScrollPane(tblReception);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER));
@@ -214,9 +224,7 @@ public class ExaminationProcessPanel extends JPanel {
     private void processTransferToExamination(int row) {
         if (row < 0 || row >= receptionModel.getRowCount()) return;
         
-        String maLichHen = String.valueOf(receptionModel.getValueAt(row, 1));
-        
-        boolean updated = lichHenDAO.updateStatus(maLichHen, "Đang khám");
+        String maLichHen = String.valueOf(receptionModel.getValueAt(row, 1));boolean updated = lichHenDAO.updateStatus(maLichHen, "Đang khám");
         if (updated) {
             loadPatient(row);
             showExamination();
@@ -230,7 +238,7 @@ public class ExaminationProcessPanel extends JPanel {
     }
 
     private void loadReceptionDataByStatus(String statusFilter) {
-        if (receptionModel == null) return; // Tránh lỗi null khi khởi tạo
+        if (receptionModel == null) return;
         receptionModel.setRowCount(0);
         try {
             List<Object[]> allAppointments = lichHenDAO.getAllAppointments();
@@ -239,20 +247,27 @@ public class ExaminationProcessPanel extends JPanel {
                 String status = String.valueOf(row[7]);
                 if (status.equalsIgnoreCase(statusFilter)) {
                     String maLichHen = String.valueOf(row[0]);
-                    String tenKH = String.valueOf(row[1]);
-                    String sdt = String.valueOf(row[2]);
-                    String dichVu = String.valueOf(row[3]);
-                    String bacSi = String.valueOf(row[4]);
-                    String ngayHen = String.valueOf(row[5]);
-                    String gioKham = String.valueOf(row[6]);
+                    String tenKH     = String.valueOf(row[1]);
+                    String sdt       = String.valueOf(row[2]);
+                    String dichVu    = String.valueOf(row[3]);
+                    String bacSi     = String.valueOf(row[4]);
+                    String ngayHen   = String.valueOf(row[5]);
+                    String gioKham   = String.valueOf(row[6]);
+                    
+                    // Nếu DAO của bạn có trả về Tuổi và Giới tính ở vị trí khác, hãy điều chỉnh index mảng row cho phù hợp.
+                    // Tạm thời để giá trị mặc định hoặc lấy từ dữ liệu nếu DAO hỗ trợ:
+                    String tuoi      = row.length > 8 && row[8] != null ? String.valueOf(row[8]) : "--";
+                    String gioiTinh  = row.length > 9 && row[9] != null ? String.valueOf(row[9]) : "--";
 
                     receptionModel.addRow(new Object[]{
                         stt++,
                         maLichHen,
+                        tenKH,
+                        tuoi,
+                        gioiTinh,
+                        sdt,
                         ngayHen,
                         gioKham,
-                        tenKH,
-                        sdt,
                         dichVu,
                         bacSi.isEmpty() ? "Chưa phân công" : bacSi,
                         status,
@@ -265,6 +280,7 @@ public class ExaminationProcessPanel extends JPanel {
             e.printStackTrace();
         }
     }
+    
 
     private void performReceptionSearch(String keyword, String dateFilter) {
         if (receptionModel == null) return;
@@ -285,37 +301,44 @@ public class ExaminationProcessPanel extends JPanel {
                         tenKH.toLowerCase().contains(query) || 
                         sdt.contains(query);
                 
-                boolean matchDate = dateFilter.isEmpty() || ngayHen.contains(dateFilter);
-
-                if (matchKeyword && matchDate && (status.equalsIgnoreCase("Đã xác nhận") || status.equalsIgnoreCase("Đang khám"))) {
+                boolean matchDate = dateFilter.isEmpty() || ngayHen.contains(dateFilter);if (matchKeyword && matchDate && (status.equalsIgnoreCase("Đã xác nhận") || status.equalsIgnoreCase("Đang khám"))) {
                     receptionModel.addRow(new Object[]{
-                        stt++,
-                        maLichHen,
-                        ngayHen,
-                        String.valueOf(row[6]),
-                        tenKH,
-                        sdt,
-                        String.valueOf(row[3]),
-                        String.valueOf(row[4]),
-                        status,
-                        "Khám bệnh"
-                    });
+                            stt++,
+                            maLichHen,
+                            ngayHen,
+                            String.valueOf(row[6]),
+                            tenKH,
+                            sdt,
+                            String.valueOf(row[3]),
+                            String.valueOf(row[4]),
+                            status,
+                            "Khám bệnh"
+                        });
+                    }
                 }
+                updateReceptionTotalCount();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            updateReceptionTotalCount();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-    }
 
-    private void updateReceptionTotalCount() {
-        if (lblTotalPatients != null && receptionModel != null) {
-            lblTotalPatients.setText("Tổng số bệnh nhân: " + receptionModel.getRowCount());
+        private void updateReceptionTotalCount() {
+            if (lblTotalPatients != null && receptionModel != null) {
+                lblTotalPatients.setText("Tổng số bệnh nhân: " + receptionModel.getRowCount());
+            }
         }
-    }
-
-    // ==================== TRANG KHÁM VÀ CHỈ ĐỊNH ====================
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    //tag2 
     private JPanel createExaminationPage() {
+
         JPanel main = new JPanel(new BorderLayout(10, 12));
         main.setBackground(BG);
         main.setBorder(new EmptyBorder(12, 15, 15, 15));
@@ -330,15 +353,18 @@ public class ExaminationProcessPanel extends JPanel {
         g.weighty = 1;
         g.insets = new Insets(0, 0, 0, 8);
 
+        // CARD 1: Sơ đồ răng - 30%
         g.gridx = 0;
         g.weightx = 0.30;
         toothSource = new StandardToothChartPanel();
         content.add(toothSource.createClinicalChartCard(this::onToothSelected), g);
 
+        // CARD 2: Thông tin răng - 30%
         g.gridx = 1;
         g.weightx = 0.30;
         content.add(createToothForm(), g);
 
+        // CARD 3: Chỉ định điều trị - 40%
         g.gridx = 2;
         g.weightx = 0.40;
         g.insets = new Insets(0, 0, 0, 0);
@@ -350,10 +376,12 @@ public class ExaminationProcessPanel extends JPanel {
     }
 
     private JPanel createPatientHeader() {
+
         JPanel panel = createCard();
         panel.setLayout(new BorderLayout(15, 0));
         panel.setBorder(new EmptyBorder(12, 30, 12, 30));
 
+        // Khởi tạo thông tin bệnh nhân
         lblPatientCode = createValue("--");
         lblPatientName = createValue("--");
         lblAge = createValue("--");
@@ -362,10 +390,13 @@ public class ExaminationProcessPanel extends JPanel {
         lblDate = createValue("--");
         lblTime = createValue("--");
 
-        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 35, 0));
+        // Khu vực thông tin bên trái
+        JPanel infoPanel = new JPanel(new FlowLayout(
+                FlowLayout.LEFT, 45, 0
+        ));
         infoPanel.setOpaque(false);
 
-        infoPanel.add(infoItem("Mã lịch hẹn", lblPatientCode));
+        infoPanel.add(infoItem("Mã bệnh nhân", lblPatientCode));
         infoPanel.add(infoItem("Họ tên", lblPatientName));
         infoPanel.add(infoItem("Tuổi", lblAge));
         infoPanel.add(infoItem("Giới tính", lblGender));
@@ -373,20 +404,27 @@ public class ExaminationProcessPanel extends JPanel {
         infoPanel.add(infoItem("Ngày khám", lblDate));
         infoPanel.add(infoItem("Giờ khám", lblTime));
 
+        // Nút xem hồ sơ bệnh nhân
         JButton btnDetail = new JButton("ⓘ Chi tiết");
         btnDetail.setFont(new Font("Arial", Font.BOLD, 13));
         btnDetail.setForeground(NAVY);
         btnDetail.setBackground(Color.WHITE);
         btnDetail.setFocusPainted(false);
         btnDetail.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnDetail.setBorder(BorderFactory.createLineBorder(new Color(224, 233, 243)));
+        btnDetail.setBorder(
+                BorderFactory.createLineBorder(new Color(224, 233, 243))
+        );
         btnDetail.setPreferredSize(new Dimension(110, 34));
 
         btnDetail.addActionListener(e -> {
+
             JFrame frame = new JFrame("Hồ sơ bệnh nhân");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setSize(900, 650);
             frame.setLocationRelativeTo(this);
+
+            // Sau này thêm giao diện và dữ liệu hồ sơ bệnh nhân tại đây
+
             frame.setVisible(true);
         });
 
@@ -395,16 +433,21 @@ public class ExaminationProcessPanel extends JPanel {
 
         return panel;
     }
+    
+    
 
     private JPanel infoItem(String title, JLabel value) {
-        JPanel item = new JPanel(new GridLayout(2, 10, 0, 5));
+
+        JPanel item = new JPanel(new GridLayout(2, 10, 0, 15));
         item.setOpaque(false);
 
+        // Tiêu đề xanh navy đậm
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 12));
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 15));
         lblTitle.setForeground(new Color(15, 29, 69));
 
-        value.setFont(new Font("Arial", Font.PLAIN, 13));
+        // Dữ liệu
+        value.setFont(new Font("Arial", Font.PLAIN, 14));
         value.setForeground(new Color(15, 29, 69));
 
         item.add(lblTitle);
@@ -419,262 +462,371 @@ public class ExaminationProcessPanel extends JPanel {
         label.setForeground(NAVY);
         return label;
     }
+    
+    
+    
+    
+    
 
-    private JPanel createToothForm() {
-        JPanel panel = createCard();
-        panel.setLayout(new BorderLayout(8, 10));
-        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        JLabel title = createTitle("Thông tin răng");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 25));
-        panel.add(title, BorderLayout.NORTH);
+private JPanel createToothForm() {
 
-        JPanel body = new JPanel();
-        body.setOpaque(false);
-        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+    JPanel panel = createCard();
+    panel.setLayout(new BorderLayout(8, 10));
+    panel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        JPanel topInfoPanel = new JPanel(new BorderLayout(12, 0));
-        topInfoPanel.setOpaque(false);
-        topInfoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        topInfoPanel.setPreferredSize(new Dimension(400, 85));
-        topInfoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
+    // ================= TIÊU ĐỀ =================
+    JLabel title = createTitle("Thông tin răng");
+    title.setFont(new Font("Segoe UI", Font.BOLD, 25));
 
-        JLabel lblToothImage;
-        java.net.URL toothUrl = getClass().getResource("/img/iconrang.png");
+    panel.add(title, BorderLayout.NORTH);
 
-        if (toothUrl != null) {
-            ImageIcon icon = new ImageIcon(toothUrl);
-            Image scaled = icon.getImage().getScaledInstance(90, 90, Image.SCALE_SMOOTH);
-            lblToothImage = new JLabel(new ImageIcon(scaled));
-        } else {
-            lblToothImage = new JLabel("🦷");
-            lblToothImage.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
-        }
+    // ================= KHU VỰC NỘI DUNG =================
+    JPanel body = new JPanel();
+    body.setOpaque(false);
+    body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
 
-        lblToothImage.setOpaque(true);
-        lblToothImage.setBackground(new Color(232, 242, 255));
-        lblToothImage.setPreferredSize(new Dimension(80, 80));
-        lblToothImage.setHorizontalAlignment(SwingConstants.CENTER);
+    // ================= THÔNG TIN RĂNG ĐƯỢC CHỌN =================
+    JPanel topInfoPanel = new JPanel(new BorderLayout(12, 0));
+    topInfoPanel.setOpaque(false);
+    topInfoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    topInfoPanel.setPreferredSize(new Dimension(400, 85));
+    topInfoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
 
-        JPanel namePanel = new JPanel();
-        namePanel.setOpaque(false);
-        namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
+    // Hình răng
+    JLabel lblToothImage;
 
-        JPanel codeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        codeRow.setOpaque(false);
-        codeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+    java.net.URL toothUrl = getClass().getResource("/img/iconrang.png");
 
-        JLabel lblCodeTitle = new JLabel("Mã răng:");
-        lblCodeTitle.setFont(new Font("Segoe UI", Font.PLAIN, 17));
-        lblCodeTitle.setForeground(MUTED);
+    if (toothUrl != null) {
+        ImageIcon icon = new ImageIcon(toothUrl);
+        Image scaled = icon.getImage().getScaledInstance(
+                90, 90, Image.SCALE_SMOOTH
+        );
+        lblToothImage = new JLabel(new ImageIcon(scaled));
+    } else {
+        lblToothImage = new JLabel("🦷");
+        lblToothImage.setFont(
+                new Font("Segoe UI Emoji", Font.PLAIN, 48)
+        );
+    }
 
-        lblToothHeaderCode = new JLabel("--");
-        lblToothHeaderCode.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblToothHeaderCode.setForeground(BLUE);
+    lblToothImage.setOpaque(true);
+    lblToothImage.setBackground(new Color(232, 242, 255));
+    lblToothImage.setPreferredSize(new Dimension(80, 80));
+    lblToothImage.setHorizontalAlignment(SwingConstants.CENTER);
 
-        codeRow.add(lblCodeTitle);
-        codeRow.add(lblToothHeaderCode);
+    // Thông tin phía bên phải hình răng
+    JPanel namePanel = new JPanel();
+    namePanel.setOpaque(false);
+    namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
 
-        lblToothHeaderName = new JLabel("Chưa chọn răng");
-        lblToothHeaderName.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        lblToothHeaderName.setForeground(NAVY);
-        lblToothHeaderName.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JPanel codeRow = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 4, 0)
+    );
+    codeRow.setOpaque(false);
+    codeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel badgePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        badgePanel.setBackground(new Color(228, 241, 255));
-        badgePanel.setBorder(new EmptyBorder(5, 10, 5, 10));
-        badgePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel lblCodeTitle = new JLabel("Mã răng:");
+    lblCodeTitle.setFont(new Font("Segoe UI", Font.PLAIN, 17));
+    lblCodeTitle.setForeground(MUTED);
 
-        lblToothHeaderType = new JLabel("--");
-        lblToothHeaderType.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblToothHeaderType.setForeground(BLUE);
-        badgePanel.add(lblToothHeaderType);
+    lblToothHeaderCode = new JLabel("--");
+    lblToothHeaderCode.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    lblToothHeaderCode.setForeground(BLUE);
 
-        namePanel.add(codeRow);
-        namePanel.add(Box.createVerticalStrut(5));
-        namePanel.add(lblToothHeaderName);
-        namePanel.add(Box.createVerticalStrut(6));
-        namePanel.add(badgePanel);
+    codeRow.add(lblCodeTitle);
+    codeRow.add(lblToothHeaderCode);
 
-        topInfoPanel.add(lblToothImage, BorderLayout.WEST);
-        topInfoPanel.add(namePanel, BorderLayout.CENTER);
+    lblToothHeaderName = new JLabel("Chưa chọn răng");
+    lblToothHeaderName.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+    lblToothHeaderName.setForeground(NAVY);
+    lblToothHeaderName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        body.add(topInfoPanel);
-        body.add(Box.createVerticalStrut(12));
+    JPanel badgePanel = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 0, 0)
+    );
+    badgePanel.setBackground(new Color(228, 241, 255));
+    badgePanel.setBorder(new EmptyBorder(5, 10, 5, 10));
+    badgePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel attrGrid = new JPanel(new GridLayout(5, 2, 0, 0));
-        attrGrid.setBackground(Color.WHITE);
-        attrGrid.setBorder(BorderFactory.createLineBorder(BORDER));
-        attrGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+    lblToothHeaderType = new JLabel("--");
+    lblToothHeaderType.setFont(
+            new Font("Segoe UI", Font.BOLD, 16)
+    );
+    lblToothHeaderType.setForeground(BLUE);
 
-        lblToothCode = createValue("--");
-        lblToothName = createValue("--");
-        lblJaw = createValue("--");
-        lblPosition = createValue("--");
-        lblType = createValue("--");
+    badgePanel.add(lblToothHeaderType);
 
-        String[] attrNames = {"Mã răng", "Tên răng", "Hàm", "Vị trí", "Phân loại"};
-        JLabel[] attrValues = {lblToothCode, lblToothName, lblJaw, lblPosition, lblType};
+    namePanel.add(codeRow);
+    namePanel.add(Box.createVerticalStrut(5));
+    namePanel.add(lblToothHeaderName);
+    namePanel.add(Box.createVerticalStrut(6));
+    namePanel.add(badgePanel);
 
-        for (int i = 0; i < attrNames.length; i++) {
-            JPanel leftCell = new JPanel(new BorderLayout());
-            leftCell.setBackground(Color.WHITE);
-            leftCell.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER), new EmptyBorder(7, 10, 7, 10)));
-            JLabel lblName = new JLabel(attrNames[i]);
-            lblName.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            lblName.setForeground(MUTED);
-            leftCell.add(lblName, BorderLayout.CENTER);
+    topInfoPanel.add(lblToothImage, BorderLayout.WEST);
+    topInfoPanel.add(namePanel, BorderLayout.CENTER);
 
-            JPanel rightCell = new JPanel(new BorderLayout());
-            rightCell.setBackground(Color.WHITE);
-            rightCell.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER), new EmptyBorder(7, 10, 7, 10)));
-            attrValues[i].setFont(new Font("Segoe UI", Font.BOLD, 16));
-            attrValues[i].setForeground(NAVY);
-            rightCell.add(attrValues[i], BorderLayout.CENTER);
+    body.add(topInfoPanel);
+    body.add(Box.createVerticalStrut(12));
 
-            attrGrid.add(leftCell);
-            attrGrid.add(rightCell);
-        }
+    // ================= BẢNG THÔNG TIN CHI TIẾT =================
+    JPanel attrGrid = new JPanel(new GridLayout(5, 2, 0, 0));
+    attrGrid.setBackground(Color.WHITE);
+    attrGrid.setBorder(
+            BorderFactory.createLineBorder(BORDER)
+    );
+    attrGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        attrGrid.setPreferredSize(new Dimension(450, 200));
-        attrGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+    lblToothCode = createValue("--");
+    lblToothName = createValue("--");
+    lblJaw = createValue("--");
+    lblPosition = createValue("--");
+    lblType = createValue("--");
 
-        body.add(attrGrid);
-        body.add(Box.createVerticalStrut(12));
+    String[] attrNames = {
+        "Mã răng",
+        "Tên răng",
+        "Hàm",
+        "Vị trí",
+        "Phân loại"
+    };
 
-        JSeparator separator = new JSeparator();
-        separator.setForeground(BORDER);
-        separator.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel[] attrValues = {
+        lblToothCode,
+        lblToothName,
+        lblJaw,
+        lblPosition,
+        lblType
+    };
 
-        body.add(separator);
-        body.add(Box.createVerticalStrut(15));
+    for (int i = 0; i < attrNames.length; i++) {
 
-        body.add(createFieldLabel("Tình trạng răng"));
-        body.add(Box.createVerticalStrut(6));
+        JPanel leftCell = new JPanel(new BorderLayout());
+        leftCell.setBackground(Color.WHITE);
+        leftCell.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(7, 10, 7, 10)
+        ));
 
-        cboCondition = new JComboBox<>(new String[]{
-            "Bình thường", "Sâu răng", "Viêm nướu", "Mẻ răng", "Mất răng", "Đã điều trị", "Viêm tủy", "Mòn cổ răng", "Răng khôn mọc lệch"
-        });
-        cboCondition.setEditable(true);
-        styleCombo(cboCondition);
-        cboCondition.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cboCondition.setPreferredSize(new Dimension(300, 34));
-        cboCondition.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        cboCondition.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lblName = new JLabel(attrNames[i]);
+        lblName.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lblName.setForeground(MUTED);
 
-        JPanel conditionBox = new JPanel(new BorderLayout());
-        conditionBox.setOpaque(false);
-        conditionBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        conditionBox.add(cboCondition, BorderLayout.CENTER);
-        conditionBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        conditionBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        leftCell.add(lblName, BorderLayout.CENTER);
 
-        body.add(conditionBox);
-        body.add(Box.createVerticalStrut(12));
+        JPanel rightCell = new JPanel(new BorderLayout());
+        rightCell.setBackground(Color.WHITE);
+        rightCell.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(7, 10, 7, 10)
+        ));
 
-        body.add(createFieldLabel("Mức độ"));
-        body.add(Box.createVerticalStrut(6));
+        attrValues[i].setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+        attrValues[i].setForeground(NAVY);
+        
+        rightCell.add(attrValues[i], BorderLayout.CENTER);
 
-        cboSeverity = new JComboBox<>(new String[]{"Nhẹ", "Trung bình", "Nặng"});
-        styleCombo(cboSeverity);
-        cboSeverity.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cboSeverity.setPreferredSize(new Dimension(300, 34));
-        cboSeverity.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        attrGrid.add(leftCell);
+        attrGrid.add(rightCell);
+    }
 
-        JPanel severityBox = new JPanel(new BorderLayout());
-        severityBox.setOpaque(false);
-        severityBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        severityBox.add(cboSeverity, BorderLayout.CENTER);
-        severityBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        severityBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+    attrGrid.setPreferredSize(new Dimension(450, 200));
+    attrGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
 
-        body.add(severityBox);
-        body.add(Box.createVerticalStrut(12));
+    body.add(attrGrid);
+    body.add(Box.createVerticalStrut(12));
 
-        body.add(createFieldLabel("Triệu chứng"));
-        body.add(Box.createVerticalStrut(6));
+   
 
-        txtSymptom = createTextArea(3);
-        txtSymptom.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtSymptom.setMargin(new Insets(7, 9, 7, 9));
+ // ================= TÌNH TRẠNG RĂNG =================
 
-        JScrollPane symptomScroll = createScroll(txtSymptom);
-        symptomScroll.setPreferredSize(new Dimension(300, 65));
-        symptomScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    JSeparator separator = new JSeparator();
+    separator.setForeground(BORDER);
+    separator.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel symptomBox = new JPanel(new BorderLayout());
-        symptomBox.setOpaque(false);
-        symptomBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        symptomBox.add(symptomScroll, BorderLayout.CENTER);
-        symptomBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
-        symptomBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+    body.add(separator);
+    body.add(Box.createVerticalStrut(15));
 
-        body.add(symptomBox);
-        body.add(Box.createVerticalStrut(12));
+    // Tình trạng răng
+    body.add(createFieldLabel("Tình trạng răng"));
+    body.add(Box.createVerticalStrut(6));
 
-        body.add(createFieldLabel("Chẩn đoán"));
-        body.add(Box.createVerticalStrut(6));
+    cboCondition = new JComboBox<>(new String[]{
+    	    "Bình thường",
+    	    "Sâu răng",
+    	    "Viêm nướu",
+    	    "Mẻ răng",
+    	    "M mất răng",
+    	    "Đã điều trị",
+    	    "Viêm tủy",
+    	    "Mòn cổ răng",
+    	    "Răng khôn mọc lệch"
+    	});
 
-        txtDiagnosis = createTextArea(3);
-        txtDiagnosis.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtDiagnosis.setMargin(new Insets(7, 9, 7, 9));
+    	// Thêm dòng này để cho phép người dùng tự gõ ngoài danh sách
+    	cboCondition.setEditable(true);
 
-        JScrollPane diagnosisScroll = createScroll(txtDiagnosis);
-        diagnosisScroll.setPreferredSize(new Dimension(300, 65));
-        diagnosisScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    styleCombo(cboCondition);
+    cboCondition.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    cboCondition.setPreferredSize(new Dimension(300, 34));
+    cboCondition.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+    cboCondition.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel diagnosisBox = new JPanel(new BorderLayout());
-        diagnosisBox.setOpaque(false);
-        diagnosisBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        diagnosisBox.add(diagnosisScroll, BorderLayout.CENTER);
-        diagnosisBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
-        diagnosisBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JPanel conditionBox = new JPanel(new BorderLayout());
+    conditionBox.setOpaque(false);
+    conditionBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+    conditionBox.add(cboCondition, BorderLayout.CENTER);
+    conditionBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+    conditionBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        body.add(diagnosisBox);
-        body.add(Box.createVerticalStrut(12));
+    body.add(conditionBox);
+    body.add(Box.createVerticalStrut(12));
 
-        body.add(createFieldLabel("Ghi chú"));
-        body.add(Box.createVerticalStrut(6));
+    // Mức độ
+    body.add(createFieldLabel("Mức độ"));
+    body.add(Box.createVerticalStrut(6));
 
-        txtNote = createTextArea(3);
-        txtNote.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtNote.setMargin(new Insets(7, 9, 7, 9));
+    cboSeverity = new JComboBox<>(new String[]{
+        "Nhẹ",
+        "Trung bình",
+        "Nặng"
+    });
 
-        JScrollPane noteScroll = createScroll(txtNote);
-        noteScroll.setPreferredSize(new Dimension(300, 65));
-        noteScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    styleCombo(cboSeverity);
+    cboSeverity.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    cboSeverity.setPreferredSize(new Dimension(300, 34));
+    cboSeverity.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
 
-        JPanel noteBox = new JPanel(new BorderLayout());
-        noteBox.setOpaque(false);
-        noteBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        noteBox.add(noteScroll, BorderLayout.CENTER);
-        noteBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
-        noteBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JPanel severityBox = new JPanel(new BorderLayout());
+    severityBox.setOpaque(false);
+    severityBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+    severityBox.add(cboSeverity, BorderLayout.CENTER);
+    severityBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+    severityBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        body.add(noteBox);
-        body.add(Box.createVerticalStrut(15));
+    body.add(severityBox);
+    body.add(Box.createVerticalStrut(12));
 
-        JScrollPane bodyScroll = new JScrollPane(body);
-        bodyScroll.setBorder(null);
-        bodyScroll.setOpaque(false);
-        bodyScroll.getViewport().setOpaque(false);
-        bodyScroll.getVerticalScrollBar().setUnitIncrement(15);
-        bodyScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    // Triệu chứng
+    body.add(createFieldLabel("Triệu chứng"));
+    body.add(Box.createVerticalStrut(6));
 
-        JButton btnSave = createButton("▣  Lưu thông tin răng", BLUE);
-        btnSave.setPreferredSize(new Dimension(200, 42));
-        btnSave.addActionListener(e -> saveExaminedTooth());
+    txtSymptom = createTextArea(3);
+    txtSymptom.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txtSymptom.setMargin(new Insets(7, 9, 7, 9));
 
-        panel.add(bodyScroll, BorderLayout.CENTER);
-        panel.add(btnSave, BorderLayout.SOUTH);
+    JScrollPane symptomScroll = createScroll(txtSymptom);
+    symptomScroll.setPreferredSize(new Dimension(300, 65));
+    symptomScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
 
-        return panel;
+    JPanel symptomBox = new JPanel(new BorderLayout());
+    symptomBox.setOpaque(false);
+    symptomBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+    symptomBox.add(symptomScroll, BorderLayout.CENTER);
+    symptomBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    symptomBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    body.add(symptomBox);
+    body.add(Box.createVerticalStrut(12));
+
+    // Chẩn đoán
+    body.add(createFieldLabel("Chẩn đoán"));
+    body.add(Box.createVerticalStrut(6));
+
+    txtDiagnosis = createTextArea(3);
+    txtDiagnosis.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txtDiagnosis.setMargin(new Insets(7, 9, 7, 9));
+
+    JScrollPane diagnosisScroll = createScroll(txtDiagnosis);
+    diagnosisScroll.setPreferredSize(new Dimension(300, 65));
+    diagnosisScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+
+    JPanel diagnosisBox = new JPanel(new BorderLayout());
+    diagnosisBox.setOpaque(false);
+    diagnosisBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+    diagnosisBox.add(diagnosisScroll, BorderLayout.CENTER);
+    diagnosisBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    diagnosisBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    body.add(diagnosisBox);
+    body.add(Box.createVerticalStrut(12));
+
+    // Ghi chú
+    body.add(createFieldLabel("Ghi chú"));
+    body.add(Box.createVerticalStrut(6));
+
+    txtNote = createTextArea(3);
+    txtNote.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txtNote.setMargin(new Insets(7, 9, 7, 9));
+
+    JScrollPane noteScroll = createScroll(txtNote);
+    noteScroll.setPreferredSize(new Dimension(300, 65));
+    noteScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+
+    JPanel noteBox = new JPanel(new BorderLayout());
+    noteBox.setOpaque(false);
+    noteBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+    noteBox.add(noteScroll, BorderLayout.CENTER);
+    noteBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+    noteBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    body.add(noteBox);
+    body.add(Box.createVerticalStrut(15));
+    
+    
+    
+
+ // ================= SCROLL NỘI DUNG =================
+
+ JScrollPane bodyScroll = new JScrollPane(body);
+ bodyScroll.setBorder(null);
+ bodyScroll.setOpaque(false);
+ bodyScroll.getViewport().setOpaque(false);
+ bodyScroll.getVerticalScrollBar().setUnitIncrement(15);
+ bodyScroll.setHorizontalScrollBarPolicy(
+         JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+ );
+
+ // ================= NÚT LƯU =================
+
+ JButton btnSave = createButton(
+         "▣  Lưu thông tin răng", BLUE
+ );
+
+ btnSave.setPreferredSize(new Dimension(200, 42));
+
+ btnSave.addActionListener(e -> saveExaminedTooth());
+
+ panel.add(bodyScroll, BorderLayout.CENTER);
+ panel.add(btnSave, BorderLayout.SOUTH);
+
+ return panel;
+}
+
+
+    
+    
+
+    private JPanel createDetailRow(String title, JLabel value) {
+        JPanel row = new JPanel(new BorderLayout(5, 3));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(5, 0, 5, 0));
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        label.setForeground(MUTED);
+        row.add(label, BorderLayout.NORTH);
+        row.add(value, BorderLayout.CENTER);
+        return row;
     }
 
     private JPanel createRightPanel() {
         JPanel panel = createCard();
         panel.setLayout(new BorderLayout(8, 10));
 
+        // ================= 1. BẢNG CHỈ ĐỊNH ĐIỀU TRỊ (ChiTietChiDinh) =================
         JPanel indicationPanel = new JPanel(new BorderLayout(0, 8));
         indicationPanel.setOpaque(false);
 
@@ -686,6 +838,7 @@ public class ExaminationProcessPanel extends JPanel {
         header.add(btnAdd, BorderLayout.EAST);
         indicationPanel.add(header, BorderLayout.NORTH);
 
+        // Các cột: STT, Mã Dịch Vụ (ẩn/hiện), Dịch vụ / Chỉ định, Số lượng, Đơn vị, Ghi chú, Xóa, [Object chứa maChiDinh]
         String[] indicationColumns = {"STT", "Dịch vụ / Chỉ định", "Số lượng", "Đơn vị", "Ghi chú", "Xóa"};
         indicationModel = new DefaultTableModel(indicationColumns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return column == 5; }
@@ -699,11 +852,14 @@ public class ExaminationProcessPanel extends JPanel {
             updateSTT(indicationModel);
         }, "Xóa"));
         indicationPanel.add(new JScrollPane(tblIndication), BorderLayout.CENTER);
+        
 
+        // ================= 2. BẢNG RĂNG ĐÃ KHÁM (ChiTietKhamRang) =================
         JPanel examinedPanel = new JPanel(new BorderLayout(0, 8));
         examinedPanel.setOpaque(false);
         examinedPanel.add(createTitle("Danh sách răng đã khám"), BorderLayout.NORTH);
 
+        // Khớp với ChiTietKhamRangDAO: maChiTietKham, maRang, tinhTrang, mucDo, trieuChung, chanDoan, ghiChu
         String[] examinedColumns = {"Mã răng", "Tên răng", "Tình trạng", "Mức độ", "Triệu chứng", "Chẩn đoán", "Ghi chú", "Xóa"};
         examinedModel = new DefaultTableModel(examinedColumns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return column == 7; }
@@ -721,6 +877,7 @@ public class ExaminationProcessPanel extends JPanel {
         tables.add(examinedPanel);
         panel.add(tables, BorderLayout.CENTER);
 
+        // ================= NÚT CHỨC NĂNG DƯỚI CÙNG =================
         JPanel footer = new JPanel(new GridLayout(1, 2, 8, 0));
         footer.setOpaque(false);
         JButton btnPrint = createButton("▣ In phiếu khám", Color.WHITE);
@@ -731,6 +888,7 @@ public class ExaminationProcessPanel extends JPanel {
             catch (Exception ex) { JOptionPane.showMessageDialog(this, "Không thể in phiếu khám!"); }
         });
 
+        // Nút lưu vào Database thông qua DAO
         JButton btnSave = createButton("✓ Lưu phiếu khám", BLUE);
         btnSave.addActionListener(e -> saveMedicalSessionToDatabase());
         
@@ -740,12 +898,12 @@ public class ExaminationProcessPanel extends JPanel {
 
         return panel;
     }
-
+    
     private void saveMedicalSessionToDatabase() {
-        String maLichHen = lblPatientCode.getText().trim(); 
+        String maBenhAn = lblPatientCode.getText().trim(); // Lấy mã bệnh án từ giao diện
         
-        if (maLichHen.equals("--") || maLichHen.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Chưa chọn thông tin bệnh nhân!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        if (maBenhAn.equals("--") || maBenhAn.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn thông tin bệnh nhân/mã bệnh án!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -753,38 +911,47 @@ public class ExaminationProcessPanel extends JPanel {
         models.dao.ChiTietChiDinhDAO chiDinhDAO = new models.dao.ChiTietChiDinhDAO();
 
         try {
+            boolean success = true;
+
+            // 1. Lưu danh sách răng đã khám vào bảng ChiTietKhamRang
+         // 1. Lưu danh sách răng đã khám
             for (int i = 0; i < examinedModel.getRowCount(); i++) {
                 models.entity.ChiTietKhamRang ct = new models.entity.ChiTietKhamRang();
-                ct.setMaBenhAn(maLichHen);
+                ct.setMaBenhAn(maBenhAn);
                 ct.setMaRang(Integer.parseInt(examinedModel.getValueAt(i, 0).toString())); 
                 ct.setTinhTrang(examinedModel.getValueAt(i, 2).toString());            
                 ct.setMucDo(examinedModel.getValueAt(i, 3).toString());                  
                 ct.setTrieuChung(examinedModel.getValueAt(i, 4).toString());             
                 ct.setChanDoan(examinedModel.getValueAt(i, 5).toString());               
                 ct.setGhiChu(examinedModel.getValueAt(i, 6).toString());                 
+
                 rangDAO.insert(ct);
             }
+            
 
+            // 2. Lưu danh sách chỉ định dịch vụ vào bảng ChiTietChiDinh
             for (int i = 0; i < indicationModel.getRowCount(); i++) {
                 models.entity.ChiTietChiDinh ctd = new models.entity.ChiTietChiDinh();
-                ctd.setMaBenhAn(maLichHen);
-                Object val = indicationModel.getValueAt(i, 1);
-                ctd.setMaDichVu(val instanceof ServiceItem ? ((ServiceItem)val).getMaDV() : val.toString()); 
+                ctd.setMaBenhAn(maBenhAn);
+                ctd.setMaDichVu(indicationModel.getValueAt(i, 1).toString()); // Cột mã dịch vụ
                 
+                // Nếu có chọn răng tương ứng với chỉ định thì gán maRang, ở đây tạm để null hoặc lấy răng đang chọn
                 if (selectedTooth != null) {
                     ctd.setMaRang(selectedTooth.code);
                 } else {
                     ctd.setMaRang(null);
                 }
                 
-                ctd.setSoLuong(Integer.parseInt(indicationModel.getValueAt(i, 2).toString()));
-                ctd.setDonVi(indicationModel.getValueAt(i, 3).toString());
-                ctd.setGhiChu(indicationModel.getValueAt(i, 4).toString());
+                ctd.setSoLuong(Integer.parseInt(indicationModel.getValueAt(i, 3).toString()));
+                ctd.setDonVi(indicationModel.getValueAt(i, 4).toString());
+                ctd.setGhiChu(indicationModel.getValueAt(i, 5).toString());
+
                 chiDinhDAO.insert(ctd);
             }
 
-            lichHenDAO.updateStatus(maLichHen, "Hoàn thành");
-            JOptionPane.showMessageDialog(this, "Đã lưu thông tin khám bệnh thành công!");
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Đã lưu thông tin khám bệnh và chỉ định vào Cơ sở dữ liệu thành công!");
+            }
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -792,54 +959,74 @@ public class ExaminationProcessPanel extends JPanel {
         }
     }
 
-    private void onToothSelected(StandardToothChartPanel.ToothData tooth) {
-        selectedTooth = tooth;
-        lblToothCode.setText(String.valueOf(tooth.code));
-        lblToothName.setText(tooth.name);
-        lblJaw.setText(tooth.jaw);
-        lblPosition.setText(tooth.position);
-        lblType.setText(tooth.type);
 
-        lblToothHeaderCode.setText(String.valueOf(tooth.code));
-        lblToothHeaderName.setText(tooth.name);
-        lblToothHeaderType.setText(tooth.type);
+private void onToothSelected(StandardToothChartPanel.ToothData tooth) {
 
-        cboCondition.setSelectedIndex(0);
-        cboSeverity.setSelectedIndex(0);
-        txtSymptom.setText("");
-        txtDiagnosis.setText("");
-        txtNote.setText("");
+    selectedTooth = tooth;
+
+    // Cập nhật bảng chi tiết
+    lblToothCode.setText(String.valueOf(tooth.code));
+    lblToothName.setText(tooth.name);
+    lblJaw.setText(tooth.jaw);
+    lblPosition.setText(tooth.position);
+    lblType.setText(tooth.type);
+
+    // Cập nhật phần thông tin phía trên
+    lblToothHeaderCode.setText(String.valueOf(tooth.code));
+    lblToothHeaderName.setText(tooth.name);
+    lblToothHeaderType.setText(tooth.type);
+
+    // Đưa các trường khám về mặc định
+    cboCondition.setSelectedIndex(0);
+    cboSeverity.setSelectedIndex(0);
+
+    txtSymptom.setText("");
+    txtDiagnosis.setText("");
+    txtNote.setText("");
+}
+
+
+private void saveExaminedTooth() {
+    if (selectedTooth == null) {
+        JOptionPane.showMessageDialog(this, "Vui lòng chọn răng trên sơ đồ FDI!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        return;
     }
+    int code = selectedTooth.code;
+    
+    // Lấy đúng dữ liệu từ các trường trên giao diện
+    String tinhTrang = cboCondition.getSelectedItem().toString();
+    String mucDo = cboSeverity.getSelectedItem().toString();
+    String trieuChung = txtSymptom.getText().trim();
+    String chanDoan = txtDiagnosis.getText().trim();
+    String ghiChu = txtNote.getText().trim();
 
-    private void saveExaminedTooth() {
-        if (selectedTooth == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn răng trên sơ đồ FDI!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+    for (int i = 0; i < examinedModel.getRowCount(); i++) {
+        if (Integer.parseInt(examinedModel.getValueAt(i, 0).toString()) == code) {
+            examinedModel.setValueAt(selectedTooth.name, i, 1);
+            examinedModel.setValueAt(tinhTrang, i, 2);
+            examinedModel.setValueAt(mucDo, i, 3);
+            examinedModel.setValueAt(trieuChung, i, 4);
+            examinedModel.setValueAt(chanDoan, i, 5);
+            examinedModel.setValueAt(ghiChu, i, 6);
+            JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin răng!");
             return;
         }
-        int code = selectedTooth.code;
-        
-        String tinhTrang = cboCondition.getSelectedItem().toString();
-        String mucDo = cboSeverity.getSelectedItem().toString();
-        String trieuChung = txtSymptom.getText().trim();
-        String chanDoan = txtDiagnosis.getText().trim();
-        String ghiChu = txtNote.getText().trim();
-
-        for (int i = 0; i < examinedModel.getRowCount(); i++) {
-            if (Integer.parseInt(examinedModel.getValueAt(i, 0).toString()) == code) {
-                examinedModel.setValueAt(selectedTooth.name, i, 1);
-                examinedModel.setValueAt(tinhTrang, i, 2);
-                examinedModel.setValueAt(mucDo, i, 3);
-                examinedModel.setValueAt(trieuChung, i, 4);
-                examinedModel.setValueAt(chanDoan, i, 5);
-                examinedModel.setValueAt(ghiChu, i, 6);
-                JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin răng!");
-                return;
-            }
-        }
-        
-        examinedModel.addRow(new Object[]{code, selectedTooth.name, tinhTrang, mucDo, trieuChung, chanDoan, ghiChu, "Xóa"});
-        JOptionPane.showMessageDialog(this, "Đã thêm thông tin răng!");
     }
+    
+    // Đảm bảo đúng 8 cột khớp với tiêu đề: Mã răng, Tên răng, Tình trạng, Mức độ, Triệu chứng, Chẩn đoán, Ghi chú, Xóa
+    examinedModel.addRow(new Object[]{
+        code, 
+        selectedTooth.name, 
+        tinhTrang, 
+        mucDo, 
+        trieuChung, 
+        chanDoan, 
+        ghiChu, 
+        "Xóa"
+    });
+    JOptionPane.showMessageDialog(this, "Đã thêm thông tin răng!");
+}
+
 
     private static class ServiceItem {
         private String maDV;
@@ -849,72 +1036,322 @@ public class ExaminationProcessPanel extends JPanel {
         @Override public String toString() { return tenDV; }
     }
 
-    private void addIndication() {
-        String autoMaDV = "DV" + System.currentTimeMillis() % 100000;
+   
 
-        JTextField txtMaDV = new JTextField(autoMaDV, 15);
-        txtMaDV.setEditable(false);
-        
-        JTextField txtService = new JTextField(15);
-        JTextField txtQuantity = new JTextField("1", 15);
-        JComboBox<String> cboUnit = new JComboBox<>(new String[]{"Lần", "Răng", "Chiếc", "Bộ", "Hàm", "Liều"});
-        cboUnit.setEditable(true);
-        JTextField txtDescription = new JTextField(15);
+private void addIndication() {
 
-        JPanel form = new JPanel(new GridLayout(5, 2, 10, 12));
-        form.setBorder(new EmptyBorder(10, 10, 10, 10));
-        
-        form.add(new JLabel("Mã dịch vụ:")); form.add(txtMaDV);
-        form.add(new JLabel("Tên dịch vụ:")); form.add(txtService);
-        form.add(new JLabel("Số lượng:")); form.add(txtQuantity);
-        form.add(new JLabel("Đơn vị:")); form.add(cboUnit); 
-        form.add(new JLabel("Ghi chú:")); form.add(txtDescription);
+    String autoMaDV = "DV" + (System.currentTimeMillis() % 100000);
 
-        int result = JOptionPane.showConfirmDialog(
-            this, form, "Thêm chỉ định điều trị", 
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-        );
-        
-        if (result != JOptionPane.OK_OPTION) return;
-        
-        if (txtService.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên dịch vụ!");
+    Color NAVY = new Color(15, 29, 69);
+    Color PINK_BG = new Color(255, 240, 245);
+    Color LIGHT_BLUE = new Color(231, 241, 255);
+    Color BORDER = new Color(190, 205, 230);
+
+    JDialog dialog = new JDialog(
+            SwingUtilities.getWindowAncestor(this),
+            "Thêm chỉ định điều trị",
+            Dialog.ModalityType.APPLICATION_MODAL
+    );
+
+    dialog.setUndecorated(true);
+    dialog.setSize(680, 510);
+    dialog.setLocationRelativeTo(this);
+    dialog.setLayout(new BorderLayout());
+
+    JPanel root = new JPanel(new BorderLayout());
+    root.setBackground(PINK_BG);
+    root.setBorder(BorderFactory.createLineBorder(NAVY, 1));
+
+    // ================= HEADER =================
+    JPanel header = new JPanel(new BorderLayout(15, 0));
+    header.setBackground(NAVY);
+    header.setBorder(new EmptyBorder(12, 20, 12, 12));
+    header.setPreferredSize(new Dimension(680, 75));
+
+    // Icon lấy từ thư mục img
+    JLabel lblIcon = new JLabel();
+    lblIcon.setPreferredSize(new Dimension(48, 48));
+
+    java.net.URL iconURL = getClass().getResource("/img/logo4.png");
+
+    if (iconURL != null) {
+        ImageIcon original = new ImageIcon(iconURL);
+        Image scaled = original.getImage().getScaledInstance(
+                50, 50, Image.SCALE_SMOOTH);
+        lblIcon.setIcon(new ImageIcon(scaled));
+    } else {
+        lblIcon.setText("✚");
+        lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        lblIcon.setForeground(Color.WHITE);
+    }
+
+    JLabel lblTitle = new JLabel("Thêm chỉ định điều trị");
+    lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 25));
+    lblTitle.setForeground(Color.WHITE);
+
+    JPanel titleArea = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+    titleArea.setOpaque(false);
+    titleArea.add(lblIcon);
+    titleArea.add(lblTitle);
+
+    ImageIcon iconClose = new ImageIcon(
+    	    new ImageIcon(getClass().getResource("/img/close.png"))
+    	        .getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH)
+    	);
+
+    	JButton btnClose = new JButton(iconClose);
+    	btnClose.setPreferredSize(new Dimension(42, 42));
+    	btnClose.setBorderPainted(false);
+    	btnClose.setContentAreaFilled(false);
+    	btnClose.setFocusPainted(false);
+    	btnClose.addActionListener(e -> dialog.dispose());
+    	
+    	
+    styleIndicationButton(btnClose, NAVY, Color.WHITE);
+    btnClose.setFont(new Font("Segoe UI", Font.BOLD, 28));
+    btnClose.setPreferredSize(new Dimension(42, 42));
+    btnClose.setBorderPainted(false);
+    btnClose.addActionListener(e -> dialog.dispose());
+
+    header.add(titleArea, BorderLayout.WEST);
+    header.add(btnClose, BorderLayout.EAST);
+
+    // ================= FORM =================
+    JPanel form = new JPanel(new GridBagLayout());
+    form.setBackground(PINK_BG);
+    form.setBorder(new EmptyBorder(25, 25, 25, 25));
+
+    JTextField txtMaDV = createIndicationField();
+    txtMaDV.setText(autoMaDV);
+    txtMaDV.setEditable(false);
+    txtMaDV.setBackground(LIGHT_BLUE);
+    txtMaDV.setForeground(new Color(25, 75, 145));
+
+    JTextField txtService = createIndicationField();
+
+    JTextField txtQuantity = createIndicationField();
+    txtQuantity.setText("1");
+
+    JTextField txtUnit = createIndicationField();
+    txtUnit.setText("Lần");
+
+    JTextArea txtDescription = new JTextArea(3, 20);
+    txtDescription.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+    txtDescription.setForeground(NAVY);
+    txtDescription.setBackground(Color.WHITE);
+    txtDescription.setLineWrap(true);
+    txtDescription.setWrapStyleWord(true);
+    txtDescription.setBorder(new EmptyBorder(9, 12, 9, 12));
+
+    JScrollPane noteScroll = new JScrollPane(txtDescription);
+    noteScroll.setBorder(BorderFactory.createLineBorder(BORDER));
+    noteScroll.setPreferredSize(new Dimension(390, 75));
+
+    addIndicationRow(form, 0, "▥", "Mã chỉ định :", txtMaDV);
+    addIndicationRow(form, 1, "♧", "Tên dịch vụ :", txtService);
+    addIndicationRow(form, 2, "▱", "Số lượng :", txtQuantity);
+    addIndicationRow(form, 3, "≡", "Đơn vị :", txtUnit);
+    addIndicationRow(form, 4, "✎", "Ghi chú :", noteScroll);
+
+    // ================= FOOTER =================
+    JPanel footer = new JPanel(new FlowLayout(
+            FlowLayout.CENTER, 22, 18));
+    footer.setBackground(PINK_BG);
+    footer.setBorder(new MatteBorder(1, 0, 0, 0,
+            new Color(230, 205, 218)));
+
+    JButton btnOK = new JButton("✓   OK");
+    btnOK.setPreferredSize(new Dimension(160, 48));
+    styleIndicationButton(btnOK, NAVY, Color.WHITE);
+
+    JButton btnCancel = new JButton("×   Cancel");
+    btnCancel.setPreferredSize(new Dimension(160, 48));
+    styleIndicationButton(btnCancel, Color.WHITE, NAVY);
+    btnCancel.setBorder(BorderFactory.createLineBorder(NAVY, 1));
+
+    footer.add(btnOK);
+    footer.add(btnCancel);
+
+    // ================= SỰ KIỆN =================
+    btnCancel.addActionListener(e -> dialog.dispose());
+
+    btnOK.addActionListener(e -> {
+
+        String maDV = txtMaDV.getText().trim();
+        String tenDV = txtService.getText().trim();
+        String soLuong = txtQuantity.getText().trim();
+        String donVi = txtUnit.getText().trim();
+        String ghiChu = txtDescription.getText().trim();
+
+        if (tenDV.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog,
+                    "Vui lòng nhập tên dịch vụ!");
+            txtService.requestFocus();
             return;
         }
-        
+
+        if (donVi.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog,
+                    "Vui lòng nhập đơn vị!");
+            txtUnit.requestFocus();
+            return;
+        }
+
         try {
-            int quantity = Integer.parseInt(txtQuantity.getText().trim());
-            if (quantity <= 0) throw new NumberFormatException();
-            
-            ServiceItem item = new ServiceItem(txtMaDV.getText().trim(), txtService.getText().trim());
-            
+            int quantity = Integer.parseInt(soLuong);
+
+            if (quantity <= 0) {
+                throw new NumberFormatException();
+            }
+
+            ServiceItem item = new ServiceItem(maDV, tenDV);
+
             indicationModel.addRow(new Object[]{
                 indicationModel.getRowCount() + 1,
-                item, 
+                item,
                 quantity,
-                cboUnit.getSelectedItem().toString().trim(), 
-                txtDescription.getText().trim(),
+                donVi,
+                ghiChu,
                 "Xóa"
             });
+
+            dialog.dispose();
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Số lượng phải là số nguyên dương!");
+            JOptionPane.showMessageDialog(dialog,
+                    "Số lượng phải là số nguyên dương!");
+            txtQuantity.requestFocus();
         }
+    });
+
+    root.add(header, BorderLayout.NORTH);
+    root.add(form, BorderLayout.CENTER);
+    root.add(footer, BorderLayout.SOUTH);
+
+    dialog.add(root);
+    dialog.setVisible(true);
+}
+
+
+private JTextField createIndicationField() {
+
+    JTextField field = new JTextField(18);
+
+    field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+    field.setForeground(new Color(15, 29, 69));
+    field.setBackground(Color.WHITE);
+
+    field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                    new Color(190, 205, 230), 1),
+            new EmptyBorder(9, 12, 9, 12)
+    ));
+
+    field.setPreferredSize(new Dimension(390, 43));
+
+    return field;
+}
+
+
+
+private void addIndicationRow(
+        JPanel form,
+        int row,
+        String icon,
+        String title,
+        JComponent component) {
+
+    GridBagConstraints gbc = new GridBagConstraints();
+
+    gbc.gridy = row;
+    gbc.insets = new Insets(10, 5, 10, 12);
+    gbc.anchor = GridBagConstraints.CENTER;
+
+    // ICON
+    JLabel lblIcon = new JLabel(icon);
+    lblIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 28));
+    lblIcon.setForeground(new Color(15, 29, 69));
+    lblIcon.setPreferredSize(new Dimension(42, 42));
+    lblIcon.setHorizontalAlignment(SwingConstants.CENTER);
+
+    gbc.gridx = 0;
+    gbc.weightx = 0;
+    gbc.fill = GridBagConstraints.NONE;
+    form.add(lblIcon, gbc);
+
+    // LABEL
+    JLabel lblTitle = new JLabel(title);
+    lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    lblTitle.setForeground(new Color(15, 29, 69));
+    lblTitle.setPreferredSize(new Dimension(145, 35));
+
+    gbc.gridx = 1;
+    form.add(lblTitle, gbc);
+
+    // INPUT
+    gbc.gridx = 2;
+    gbc.weightx = 1;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.insets = new Insets(10, 5, 10, 5);
+
+    form.add(component, gbc);
+}
+
+
+private void styleIndicationButton(
+        JButton button,
+        Color background,
+        Color foreground) {
+
+    button.setUI(new BasicButtonUI());
+
+    button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    button.setBackground(background);
+    button.setForeground(foreground);
+
+    button.setOpaque(true);
+    button.setContentAreaFilled(true);
+    button.setBorderPainted(true);
+    button.setFocusPainted(false);
+
+    button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                    background.equals(Color.WHITE)
+                            ? new Color(15, 29, 69)
+                            : background, 1),
+            new EmptyBorder(8, 15, 8, 15)
+    ));
+
+    button.setCursor(Cursor.getPredefinedCursor(
+            Cursor.HAND_CURSOR));
+}
+
+
+private void loadPatient(int row) {
+    if (row < 0 || row >= receptionModel.getRowCount()) return;
+
+    lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 1))); // Mã LH
+    lblPatientName.setText(String.valueOf(receptionModel.getValueAt(row, 2))); // Họ tên
+    lblAge.setText(String.valueOf(receptionModel.getValueAt(row, 3)));         // Tuổi (Đã có dấu ngoặc đúng)
+    lblGender.setText(String.valueOf(receptionModel.getValueAt(row, 4)));      // Giới tính (Đã có dấu ngoặc đúng)
+    lblPhone.setText(String.valueOf(receptionModel.getValueAt(row, 5)));       // Số điện thoại (Đã có dấu ngoặc đúng)
+    lblDate.setText(String.valueOf(receptionModel.getValueAt(row, 6)));        // Ngày hẹn
+
+    // Giờ khám
+    if (lblTime != null) {
+        lblTime.setText(String.valueOf(receptionModel.getValueAt(row, 7)));   
     }
+
+    // Reset lại bảng chi tiết răng và chỉ định khi chuyển sang bệnh nhân mới
+    examinedModel.setRowCount(0);
+    indicationModel.setRowCount(0);
+    selectedTooth = null;
     
-    private void loadPatient(int row) {
-        if (row < 0 || row >= receptionModel.getRowCount()) return;
-        lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 1))); // Mã lịch hẹn
-        lblDate.setText(String.valueOf(receptionModel.getValueAt(row, 2)));       // Ngày hẹn
-        lblTime.setText(String.valueOf(receptionModel.getValueAt(row, 3)));       // Giờ hẹn
-        lblPatientName.setText(String.valueOf(receptionModel.getValueAt(row, 4)));// Họ tên
-        lblPhone.setText(String.valueOf(receptionModel.getValueAt(row, 5)));      // SĐT
-        lblAge.setText("--");
-        lblGender.setText("--");
-        
-        examinedModel.setRowCount(0);
-        indicationModel.setRowCount(0);
-        selectedTooth = null;
-    }
+    // Reset thông tin răng trên form
+    if (lblToothHeaderCode != null) lblToothHeaderCode.setText("--");
+    if (lblToothHeaderName != null) lblToothHeaderName.setText("Chưa chọn răng");
+    if (lblToothHeaderType != null) lblToothHeaderType.setText("--");
+}
 
     private void updateSTT(DefaultTableModel model) {
         for (int i = 0; i < model.getRowCount(); i++) model.setValueAt(i + 1, i, 0);
@@ -974,25 +1411,40 @@ public class ExaminationProcessPanel extends JPanel {
 
     private JButton createButton(String text, Color color) {
         JButton button = new JButton(text);
-        boolean isLight = color.equals(Color.WHITE) || color.equals(BG) || color.equals(new Color(238, 245, 253));
+
+        boolean isLight = color.equals(Color.WHITE)
+                || color.equals(BG)
+                || color.equals(new Color(238, 245, 253));
+
         Color textColor = isLight ? NAVY : Color.WHITE;
 
+        // Sử dụng giao diện nút cơ bản để tránh FlatLaf ghi đè màu
         button.setUI(new BasicButtonUI());
+
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(color);
         button.setForeground(textColor);
+
         button.setOpaque(true);
         button.setContentAreaFilled(true);
         button.setBorderPainted(true);
         button.setFocusPainted(false);
         button.setEnabled(true);
+
         button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(isLight ? BORDER : color),
+                BorderFactory.createLineBorder(
+                        isLight ? BORDER : color
+                ),
                 new EmptyBorder(8, 12, 8, 12)
         ));
+
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         return button;
     }
+    
+    
+    
 
     private void styleTable(JTable table) {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
@@ -1009,25 +1461,34 @@ public class ExaminationProcessPanel extends JPanel {
         header.setPreferredSize(new Dimension(0, 36));
     }
 
-    private class ActionRenderer extends JButton implements javax.swing.table.TableCellRenderer {
-        ActionRenderer(String text) {
-            setUI(new BasicButtonUI());
-            setText(text);
-            setFont(new Font("Segoe UI", Font.BOLD, 11));
-            setForeground(PINK);
-            setBackground(new Color(255, 239, 245));
-            setFocusPainted(false);
-            setOpaque(true);
-            setContentAreaFilled(true);
-            setBorderPainted(false);
-            setBorder(new EmptyBorder(4, 8, 4, 8));
-        }
+    private class ActionRenderer extends JButton
+    implements javax.swing.table.TableCellRenderer {
 
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focus, int row, int column) {
-            return this;
-        }
-    }
+ActionRenderer(String text) {
+    setUI(new BasicButtonUI());
+
+    setText(text);
+    setFont(new Font("Segoe UI", Font.BOLD, 11));
+    setForeground(PINK);
+    setBackground(new Color(255, 239, 245));
+
+    setFocusPainted(false);
+    setOpaque(true);
+    setContentAreaFilled(true);
+    setBorderPainted(false);
+
+    setBorder(new EmptyBorder(4, 8, 4, 8));
+}
+
+@Override
+public Component getTableCellRendererComponent(
+        JTable table, Object value,
+        boolean selected, boolean focus,
+        int row, int column) {
+
+    return this;
+}
+}
 
     private class ActionEditor extends DefaultCellEditor {
         private final JButton button;
@@ -1035,21 +1496,37 @@ public class ExaminationProcessPanel extends JPanel {
         private final java.util.function.IntConsumer action;
         private int selectedRow;
 
+        ActionEditor(JTable table, java.util.function.IntConsumer action) {
+            this(table, action, "Khám");
+        }
+
         ActionEditor(JTable table, java.util.function.IntConsumer action, String text) {
             super(new JCheckBox());
             this.table = table;
             this.action = action;
             button = new JButton(text);
+
             button.setUI(new BasicButtonUI());
+
+            button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            button.setForeground(PINK);
+            button.setBackground(new Color(255, 239, 245));
+
+            button.setFocusPainted(false);
+            button.setOpaque(true);
+            button.setContentAreaFilled(true);
+            button.setBorderPainted(false);
+
+            button.setBorder(new EmptyBorder(4, 8, 4, 8));
+            
+            
             button.setFont(new Font("Segoe UI", Font.BOLD, 11));
             button.setForeground(PINK);
             button.setBackground(new Color(255, 239, 245));
             button.setFocusPainted(false);
             button.setOpaque(true);
             button.setContentAreaFilled(true);
-            button.setBorderPainted(false);
-            button.setBorder(new EmptyBorder(4, 8, 4, 8));
-            button.putClientProperty("JButton.buttonType", "roundRect");
+            button.putClientProperty("JButton.buttonType", "roundRect"); // Tương thích FlatLaf
             button.addActionListener(e -> {
                 int row = selectedRow;
                 fireEditingStopped();
@@ -1064,4 +1541,4 @@ public class ExaminationProcessPanel extends JPanel {
 
         @Override public Object getCellEditorValue() { return button.getText(); }
     }
-}
+} 
