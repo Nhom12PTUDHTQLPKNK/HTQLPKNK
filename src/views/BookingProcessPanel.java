@@ -1,8 +1,7 @@
 
 package views;
 
-
-
+import Audit.AuditLog;
 import models.dao.LichHenDAO;
 import report.PdfTableExport;
 import sql.DBConnection;
@@ -22,7 +21,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
-import Audit.AuditLog;
 
 public class BookingProcessPanel extends JPanel {
 
@@ -65,7 +63,7 @@ public class BookingProcessPanel extends JPanel {
     private JTextField txtAppId;
     private JTextField txtCustomerName;
     private JTextField txtPhone;
-    private datepicker.DatePickerField txtAppDate;
+    private JTextField txtAppDate;
     private JTextField txtAppTime;
 
     private JComboBox<String> cbService;
@@ -552,7 +550,7 @@ public class BookingProcessPanel extends JPanel {
         cbService = addComboBox(formFields, "Dịch vụ khám");
         cbDoctor = addComboBox(formFields, "Nha sĩ phụ trách");
 
-        txtAppDate = addDateField(formFields, "Ngày hẹn (dd/MM/yyyy)");
+        txtAppDate = addField(formFields, "Ngày hẹn (dd/MM/yyyy)");
         txtAppTime = addField(formFields, "Giờ hẹn");
 
         JScrollPane formScroll = new JScrollPane(formFields);
@@ -610,16 +608,6 @@ public class BookingProcessPanel extends JPanel {
         return field;
     }
 
-    private datepicker.DatePickerField addDateField(JPanel panel, String labelText) {
-        panel.add(createFieldLabel(labelText));
-        panel.add(Box.createVerticalStrut(5));
-        datepicker.DatePickerField field = new datepicker.DatePickerField();
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(field);
-        panel.add(Box.createVerticalStrut(13));
-        return field;
-    }
     private JComboBox<String> addComboBox(
             JPanel panel,
             String labelText
@@ -764,36 +752,25 @@ public class BookingProcessPanel extends JPanel {
 
     // ==================== FILL FORM ====================
 
+    private void fillFormFromTable(
+            DefaultTableModel model,
+            int row
+    ) {
 
-private void fillFormFromTable(
-        DefaultTableModel model,
-        int row
-) {
+        txtAppId.setText(String.valueOf(model.getValueAt(row, 0)));
+        txtAppId.setEnabled(false);
 
-    txtAppId.setText(getCellText(model, row, 0));
-    txtAppId.setEnabled(false);
+        txtCustomerName.setText(String.valueOf(model.getValueAt(row, 1)));
+        txtPhone.setText(String.valueOf(model.getValueAt(row, 2)));
 
-    txtCustomerName.setText(getCellText(model, row, 1));
-    txtPhone.setText(getCellText(model, row, 2));
+        cbService.setSelectedItem(model.getValueAt(row, 3).toString());
+        cbDoctor.setSelectedItem(model.getValueAt(row, 4).toString());
 
-    cbService.setSelectedItem(getCellText(model, row, 3));
-    cbDoctor.setSelectedItem(getCellText(model, row, 4));
+        txtAppDate.setText(String.valueOf(model.getValueAt(row, 5)));
+        txtAppTime.setText(String.valueOf(model.getValueAt(row, 6)));
 
-    txtAppDate.setText(getCellText(model, row, 5));
-    txtAppTime.setText(getCellText(model, row, 6));
-
-    isEditing = true;
-}
-
-private String getCellText(
-        DefaultTableModel model,
-        int row,
-        int column
-) {
-    Object value = model.getValueAt(row, column);
-    return value == null ? "" : value.toString();
-}
-
+        isEditing = true;
+    }
 
     // ==================== SAVE APPOINTMENT ====================
 
@@ -1359,6 +1336,5 @@ private String getCellText(
         loadServices();
         loadDoctors();
         loadAppointments();
-
     }
 }

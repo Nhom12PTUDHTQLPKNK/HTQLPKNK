@@ -31,7 +31,8 @@ public class MenuFrame extends JFrame {
     private JPanel mainContentPanel;
     private DashboardPanel dashboardPanel;
     private ActivityLogPanel activityLogPanel;
-    private AppointmentBookingPanel bookingPanel;
+    private AppointmentBookingPanel appointmentBookingPanel;
+    private BookingProcessPanel bookingPanel;
 
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -281,11 +282,12 @@ public class MenuFrame extends JFrame {
 
       // cập nhật
         mainContentPanel.add(new InventoryUpdatePanel(), CARD_INVENTORY_UPDATE);
-        mainContentPanel.add(new AppointmentUpdatePanel(), CARD_APPOINTMENT_UPDATE);
+        bookingPanel = new BookingProcessPanel();
+        mainContentPanel.add(bookingPanel, CARD_APPOINTMENT_UPDATE);
         mainContentPanel.add(new PersonnelAccountUpdatePanel(), CARD_PERSONNEL_UPDATE);
 
       // xử lý
-        bookingPanel = new AppointmentBookingPanel();
+        bookingPanel = new BookingProcessPanel();
         mainContentPanel.add(bookingPanel, CARD_BOOKING);
         mainContentPanel.add(new SalesProcessPanel(), CARD_SALES_INVOICE);
         mainContentPanel.add(new WorkProcessPanel(), CARD_WORK_SHIFT);
@@ -314,7 +316,90 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new ElectronicPrescriptionPanel(), CARD_PRESCRIPTION);
         mainContentPanel.add(new ReexaminationPanel(), CARD_REEXAMINATION);
 
+     // Menu chính
+        cardLayout = new CardLayout();
+        mainContentPanel = new JPanel(cardLayout);
+        mainContentPanel.setBackground(BG_CANVAS);
+
+        // ================= HỆ THỐNG =================
+        dashboardPanel = new DashboardPanel();
+        mainContentPanel.add(dashboardPanel, CARD_DASHBOARD);
+
+        mainContentPanel.add(new ChangePasswordPanel(displayName), CARD_CHANGE_PASS);
+        mainContentPanel.add(new HelpPanel(), CARD_HELP);
+
+        activityLogPanel = new ActivityLogPanel();
+        mainContentPanel.add(activityLogPanel, CARD_LOGS);
+
+        mainContentPanel.add(new RolePermissionPanel(), CARD_ROLE_PERMISSION);
+
+
+        // ================= DANH MỤC =================
+        mainContentPanel.add(new ServicePanel(), CARD_SERVICES);
+        mainContentPanel.add(new PromotionPanel(), CARD_PROMOTIONS);
+        mainContentPanel.add(new CustomerPanel(), CARD_CUSTOMERS);
+        mainContentPanel.add(new EmployeePanel(), CARD_EMPLOYEES);
+        mainContentPanel.add(new MedicalRecordPanel(), CARD_MEDICAL_RECORDS);
+
+
+        // ================= CẬP NHẬT =================
+        mainContentPanel.add(
+                new InventoryUpdatePanel(),
+                CARD_INVENTORY_UPDATE
+        );
+
+        // Tiếp nhận lịch hẹn
+        bookingPanel = new BookingProcessPanel();
+        mainContentPanel.add(bookingPanel, CARD_APPOINTMENT_UPDATE);
+
+        mainContentPanel.add(
+                new PersonnelAccountUpdatePanel(),
+                CARD_PERSONNEL_UPDATE
+        );
+
+
+        // ================= XỬ LÝ =================
+
+        // Đặt lịch hẹn
+        appointmentBookingPanel = new AppointmentBookingPanel();
+        mainContentPanel.add(appointmentBookingPanel, CARD_BOOKING);
+
+        mainContentPanel.add(new SalesProcessPanel(), CARD_SALES_INVOICE);
+        mainContentPanel.add(new WorkProcessPanel(), CARD_WORK_SHIFT);
+        mainContentPanel.add(new PromotionProcessPanel(), CARD_PROMO_PROCESS);
+
+
+        // ================= TÌM KIẾM =================
+        mainContentPanel.add(new CustomerSearchPanel(), CARD_SEARCH_CUSTOMER);
+        mainContentPanel.add(new AppointmentSearchPanel(), CARD_SEARCH_APPOINTMENT);
+        mainContentPanel.add(new PromotionSearchPanel(), CARD_SEARCH_PROMO);
+        mainContentPanel.add(new WorkScheduleSearchPanel(), CARD_SEARCH_SHIFT);
+        mainContentPanel.add(new InventorySearchPanel(), CARD_SEARCH_INVENTORY);
+        mainContentPanel.add(new InvoiceReceiptSearchPanel(), CARD_SEARCH_INVOICE);
+
+
+        // ================= BÁO BIỂU =================
+        mainContentPanel.add(new RevenueDebtReportPanel(), CARD_REPORT_REVENUE);
+        mainContentPanel.add(new ServiceDentistReportPanel(), CARD_REPORT_SERVICE);
+        mainContentPanel.add(new InventoryMovementReportPanel(), CARD_REPORT_WAREHOUSE);
+        mainContentPanel.add(new ReportExportPanel(), CARD_REPORT_EXPORT);
+
+
+        // ================= CÁC CARD KHÁC =================
+        mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
+        mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
+        mainContentPanel.add(new ExaminationProcessPanel(), CARD_EXAMINATION);
+
+        addBlankCard(CARD_TREATMENT_PLAN);
+        addBlankCard(CARD_PRESCRIPTION);
+        addBlankCard(CARD_REEXAMINATION);
+
         add(mainContentPanel, BorderLayout.CENTER);
+
+        showView(CARD_DASHBOARD);
+
+        this.setFocusable(true);
+        this.requestFocusInWindow();
         showView(CARD_DASHBOARD);
 
         this.setFocusable(true);
@@ -328,18 +413,26 @@ public class MenuFrame extends JFrame {
     }
 
     public void showView(String cardName) {
-        if (cardLayout != null && mainContentPanel != null) {
-            cardLayout.show(mainContentPanel, cardName);
-            if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
-            	activityLogPanel.reloadSource();
-            }
-            if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
-                dashboardPanel.refreshDashboardData();
-            }
-            // Tải lại dịch vụ / nha sĩ / lịch hẹn mới nhất từ SQL mỗi lần mở
-            if (CARD_BOOKING.equals(cardName) && bookingPanel != null) {
-                bookingPanel.refreshData();
-            }
+
+        if (cardLayout == null || mainContentPanel == null) {
+            return;
+        }
+
+        cardLayout.show(mainContentPanel, cardName);
+
+        // Tải lại nhật ký hoạt động
+        if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
+            activityLogPanel.reloadSource();
+        }
+
+        // Tải lại dashboard
+        if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
+            dashboardPanel.refreshDashboardData();
+        }
+
+        // Tải lại dữ liệu tiếp nhận lịch hẹn
+        if (CARD_APPOINTMENT_UPDATE.equals(cardName) && bookingPanel != null) {
+            bookingPanel.refreshData();
         }
     }
 
