@@ -1,4 +1,3 @@
-
 package models.dao;
 
 import java.sql.Connection;
@@ -6,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -472,7 +472,82 @@ public class LichHenDAO {
             return true;
         }
     }
- // ==================== CẬP NHẬT TRẠNG THÁI LỊCH HẸN ====================
+
+    // ==================== PHƯƠNG THỨC BỔ SUNG MỚI ====================
+
+    // Lấy danh sách lịch hẹn đầy đủ thông tin Tuổi & Giới tính cho màn hình Khám bệnh
+    public List<Object[]> getAllAppointmentsWithPatientInfo() {
+        List<Object[]> list = new ArrayList<>();
+        String sql =
+                "SELECT lh.maLichHen, kh.tenKH, kh.sdt, kh.ngaySinh, kh.gioiTinh, " +
+                "lh.ghiChu, nv.tenNhanVien, lh.ngayHen, lh.gioKham, lh.trangThai " +
+                "FROM LichHen lh " +
+                "LEFT JOIN KhachHang kh ON lh.maKhachHang = kh.maKhachHang " +
+                "LEFT JOIN NhanVien nv ON lh.maNhanVien = nv.maNhanVien " +
+                "ORDER BY lh.ngayHen DESC, lh.gioKham ASC";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String ghiChu = rs.getString("ghiChu");
+                String service = "";
+                if (ghiChu != null) {
+                    ghiChu = ghiChu.trim();
+                    if (ghiChu.startsWith("Dịch vụ: ")) {
+                        service = ghiChu.substring("Dịch vụ: ".length());
+                    } else {
+                        service = ghiChu;
+                    }
+                }
+
+                String date = "";
+                java.sql.Date sqlDate = rs.getDate("ngayHen");
+                if (sqlDate != null) {
+                    date = new SimpleDateFormat("dd/MM/yyyy").format(sqlDate);
+                }
+
+                String customerName = rs.getString("tenKH");
+                String phone = rs.getString("sdt");
+                
+                String tuoi = "--";
+                java.sql.Date ngaySinhSql = rs.getDate("ngaySinh");
+                if (ngaySinhSql != null) {
+                    LocalDate birthDate = ngaySinhSql.toLocalDate();
+                    int age = java.time.Period.between(birthDate, LocalDate.now()).getYears();
+                    tuoi = String.valueOf(age);
+                }
+
+                String gioiTinh = rs.getString("gioiTinh");
+                if (gioiTinh == null || gioiTinh.trim().isEmpty()) {
+                    gioiTinh = "--";
+                }
+
+                String doctor = rs.getString("tenNhanVien");
+                String time = rs.getString("gioKham");
+                String status = rs.getString("trangThai");
+
+                list.add(new Object[]{
+                        rs.getString("maLichHen"),
+                        customerName == null ? "" : customerName,
+                        phone == null ? "" : phone,
+                        tuoi,
+                        gioiTinh,
+                        service,
+                        doctor == null ? "" : doctor,
+                        date,
+                        time == null ? "" : time,
+                        status == null ? "" : status
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // Cập nhật trạng thái lịch hẹn (chuyển sang 'Đang khám', 'Hoàn thành', v.v.)
     public boolean updateStatus(String maLichHen, String trangThaiMoi) {
         String sql = "UPDATE LichHen SET trangThai = ? WHERE maLichHen = ?";
         try (Connection conn = DBConnection.getConnection();
