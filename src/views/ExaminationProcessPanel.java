@@ -894,67 +894,297 @@ private void saveExaminedTooth() {
     }
 
    
-    private void addIndication() {
-        String autoMaDV = "DV" + System.currentTimeMillis() % 100000;
 
-        JTextField txtMaDV = new JTextField(autoMaDV, 15);
-        txtMaDV.setEditable(false);
-        
-        JTextField txtService = new JTextField(15);
-        JTextField txtQuantity = new JTextField("1", 15);
-        
-        // 🔄 SỬA TỪ JTextField THÀNH JComboBox CHO ĐƠN VỊ
-        JComboBox<String> cboUnit = new JComboBox<>(new String[]{"Lần", "Răng", "Chiếc", "Bộ", "Hàm", "Liều"});
-        cboUnit.setEditable(true); // Cho phép gõ tùy chỉnh nếu đơn vị không có trong danh sách
-        
-        JTextField txtDescription = new JTextField(15);
+private void addIndication() {
 
-        JPanel form = new JPanel(new GridLayout(5, 2, 10, 12));
-        form.setBorder(new EmptyBorder(10, 10, 10, 10));
-        
-        form.add(new JLabel("Mã dịch vụ:")); form.add(txtMaDV);
-        form.add(new JLabel("Tên dịch vụ:")); form.add(txtService);
-        form.add(new JLabel("Số lượng:")); form.add(txtQuantity);
-        
-        // 🔄 THAY ĐOẠN THÊM VÀO FORM:
-        form.add(new JLabel("Đơn vị:")); form.add(cboUnit); 
-        
-        form.add(new JLabel("Ghi chú:")); form.add(txtDescription);
+    String autoMaDV = "DV" + (System.currentTimeMillis() % 100000);
 
-        int result = JOptionPane.showConfirmDialog(
-            this, form, "Thêm chỉ định điều trị", 
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-        );
-        
-        if (result != JOptionPane.OK_OPTION) return;
-        
-        if (txtService.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên dịch vụ!");
+    Color NAVY = new Color(15, 29, 69);
+    Color PINK_BG = new Color(255, 240, 245);
+    Color LIGHT_BLUE = new Color(231, 241, 255);
+    Color BORDER = new Color(190, 205, 230);
+
+    JDialog dialog = new JDialog(
+            SwingUtilities.getWindowAncestor(this),
+            "Thêm chỉ định điều trị",
+            Dialog.ModalityType.APPLICATION_MODAL
+    );
+
+    dialog.setUndecorated(true);
+    dialog.setSize(680, 510);
+    dialog.setLocationRelativeTo(this);
+    dialog.setLayout(new BorderLayout());
+
+    JPanel root = new JPanel(new BorderLayout());
+    root.setBackground(PINK_BG);
+    root.setBorder(BorderFactory.createLineBorder(NAVY, 1));
+
+    // ================= HEADER =================
+    JPanel header = new JPanel(new BorderLayout(15, 0));
+    header.setBackground(NAVY);
+    header.setBorder(new EmptyBorder(12, 20, 12, 12));
+    header.setPreferredSize(new Dimension(680, 75));
+
+    // Icon lấy từ thư mục img
+    JLabel lblIcon = new JLabel();
+    lblIcon.setPreferredSize(new Dimension(48, 48));
+
+    java.net.URL iconURL = getClass().getResource("/img/logo4.png");
+
+    if (iconURL != null) {
+        ImageIcon original = new ImageIcon(iconURL);
+        Image scaled = original.getImage().getScaledInstance(
+                50, 50, Image.SCALE_SMOOTH);
+        lblIcon.setIcon(new ImageIcon(scaled));
+    } else {
+        lblIcon.setText("✚");
+        lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        lblIcon.setForeground(Color.WHITE);
+    }
+
+    JLabel lblTitle = new JLabel("Thêm chỉ định điều trị");
+    lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 25));
+    lblTitle.setForeground(Color.WHITE);
+
+    JPanel titleArea = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+    titleArea.setOpaque(false);
+    titleArea.add(lblIcon);
+    titleArea.add(lblTitle);
+
+    ImageIcon iconClose = new ImageIcon(
+    	    new ImageIcon(getClass().getResource("/img/close.png"))
+    	        .getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH)
+    	);
+
+    	JButton btnClose = new JButton(iconClose);
+    	btnClose.setPreferredSize(new Dimension(42, 42));
+    	btnClose.setBorderPainted(false);
+    	btnClose.setContentAreaFilled(false);
+    	btnClose.setFocusPainted(false);
+    	btnClose.addActionListener(e -> dialog.dispose());
+    	
+    	
+    styleIndicationButton(btnClose, NAVY, Color.WHITE);
+    btnClose.setFont(new Font("Segoe UI", Font.BOLD, 28));
+    btnClose.setPreferredSize(new Dimension(42, 42));
+    btnClose.setBorderPainted(false);
+    btnClose.addActionListener(e -> dialog.dispose());
+
+    header.add(titleArea, BorderLayout.WEST);
+    header.add(btnClose, BorderLayout.EAST);
+
+    // ================= FORM =================
+    JPanel form = new JPanel(new GridBagLayout());
+    form.setBackground(PINK_BG);
+    form.setBorder(new EmptyBorder(25, 25, 25, 25));
+
+    JTextField txtMaDV = createIndicationField();
+    txtMaDV.setText(autoMaDV);
+    txtMaDV.setEditable(false);
+    txtMaDV.setBackground(LIGHT_BLUE);
+    txtMaDV.setForeground(new Color(25, 75, 145));
+
+    JTextField txtService = createIndicationField();
+
+    JTextField txtQuantity = createIndicationField();
+    txtQuantity.setText("1");
+
+    JTextField txtUnit = createIndicationField();
+    txtUnit.setText("Lần");
+
+    JTextArea txtDescription = new JTextArea(3, 20);
+    txtDescription.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+    txtDescription.setForeground(NAVY);
+    txtDescription.setBackground(Color.WHITE);
+    txtDescription.setLineWrap(true);
+    txtDescription.setWrapStyleWord(true);
+    txtDescription.setBorder(new EmptyBorder(9, 12, 9, 12));
+
+    JScrollPane noteScroll = new JScrollPane(txtDescription);
+    noteScroll.setBorder(BorderFactory.createLineBorder(BORDER));
+    noteScroll.setPreferredSize(new Dimension(390, 75));
+
+    addIndicationRow(form, 0, "▥", "Mã chỉ định :", txtMaDV);
+    addIndicationRow(form, 1, "♧", "Tên dịch vụ :", txtService);
+    addIndicationRow(form, 2, "▱", "Số lượng :", txtQuantity);
+    addIndicationRow(form, 3, "≡", "Đơn vị :", txtUnit);
+    addIndicationRow(form, 4, "✎", "Ghi chú :", noteScroll);
+
+    // ================= FOOTER =================
+    JPanel footer = new JPanel(new FlowLayout(
+            FlowLayout.CENTER, 22, 18));
+    footer.setBackground(PINK_BG);
+    footer.setBorder(new MatteBorder(1, 0, 0, 0,
+            new Color(230, 205, 218)));
+
+    JButton btnOK = new JButton("✓   OK");
+    btnOK.setPreferredSize(new Dimension(160, 48));
+    styleIndicationButton(btnOK, NAVY, Color.WHITE);
+
+    JButton btnCancel = new JButton("×   Cancel");
+    btnCancel.setPreferredSize(new Dimension(160, 48));
+    styleIndicationButton(btnCancel, Color.WHITE, NAVY);
+    btnCancel.setBorder(BorderFactory.createLineBorder(NAVY, 1));
+
+    footer.add(btnOK);
+    footer.add(btnCancel);
+
+    // ================= SỰ KIỆN =================
+    btnCancel.addActionListener(e -> dialog.dispose());
+
+    btnOK.addActionListener(e -> {
+
+        String maDV = txtMaDV.getText().trim();
+        String tenDV = txtService.getText().trim();
+        String soLuong = txtQuantity.getText().trim();
+        String donVi = txtUnit.getText().trim();
+        String ghiChu = txtDescription.getText().trim();
+
+        if (tenDV.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog,
+                    "Vui lòng nhập tên dịch vụ!");
+            txtService.requestFocus();
             return;
         }
-        
+
+        if (donVi.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog,
+                    "Vui lòng nhập đơn vị!");
+            txtUnit.requestFocus();
+            return;
+        }
+
         try {
-            int quantity = Integer.parseInt(txtQuantity.getText().trim());
-            if (quantity <= 0) throw new NumberFormatException();
-            
-            ServiceItem item = new ServiceItem(txtMaDV.getText().trim(), txtService.getText().trim());
-            
+            int quantity = Integer.parseInt(soLuong);
+
+            if (quantity <= 0) {
+                throw new NumberFormatException();
+            }
+
+            ServiceItem item = new ServiceItem(maDV, tenDV);
+
             indicationModel.addRow(new Object[]{
                 indicationModel.getRowCount() + 1,
-                item, 
+                item,
                 quantity,
-                
-                // 🔄 LẤY GIÁ TRỊ TỪ JComboBox:
-                cboUnit.getSelectedItem().toString().trim(), 
-                
-                txtDescription.getText().trim(),
+                donVi,
+                ghiChu,
                 "Xóa"
             });
+
+            dialog.dispose();
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Số lượng phải là số nguyên dương!");
+            JOptionPane.showMessageDialog(dialog,
+                    "Số lượng phải là số nguyên dương!");
+            txtQuantity.requestFocus();
         }
-    }
-    
+    });
+
+    root.add(header, BorderLayout.NORTH);
+    root.add(form, BorderLayout.CENTER);
+    root.add(footer, BorderLayout.SOUTH);
+
+    dialog.add(root);
+    dialog.setVisible(true);
+}
+
+
+private JTextField createIndicationField() {
+
+    JTextField field = new JTextField(18);
+
+    field.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+    field.setForeground(new Color(15, 29, 69));
+    field.setBackground(Color.WHITE);
+
+    field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                    new Color(190, 205, 230), 1),
+            new EmptyBorder(9, 12, 9, 12)
+    ));
+
+    field.setPreferredSize(new Dimension(390, 43));
+
+    return field;
+}
+
+
+
+private void addIndicationRow(
+        JPanel form,
+        int row,
+        String icon,
+        String title,
+        JComponent component) {
+
+    GridBagConstraints gbc = new GridBagConstraints();
+
+    gbc.gridy = row;
+    gbc.insets = new Insets(10, 5, 10, 12);
+    gbc.anchor = GridBagConstraints.CENTER;
+
+    // ICON
+    JLabel lblIcon = new JLabel(icon);
+    lblIcon.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 28));
+    lblIcon.setForeground(new Color(15, 29, 69));
+    lblIcon.setPreferredSize(new Dimension(42, 42));
+    lblIcon.setHorizontalAlignment(SwingConstants.CENTER);
+
+    gbc.gridx = 0;
+    gbc.weightx = 0;
+    gbc.fill = GridBagConstraints.NONE;
+    form.add(lblIcon, gbc);
+
+    // LABEL
+    JLabel lblTitle = new JLabel(title);
+    lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    lblTitle.setForeground(new Color(15, 29, 69));
+    lblTitle.setPreferredSize(new Dimension(145, 35));
+
+    gbc.gridx = 1;
+    form.add(lblTitle, gbc);
+
+    // INPUT
+    gbc.gridx = 2;
+    gbc.weightx = 1;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.insets = new Insets(10, 5, 10, 5);
+
+    form.add(component, gbc);
+}
+
+
+private void styleIndicationButton(
+        JButton button,
+        Color background,
+        Color foreground) {
+
+    button.setUI(new BasicButtonUI());
+
+    button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    button.setBackground(background);
+    button.setForeground(foreground);
+
+    button.setOpaque(true);
+    button.setContentAreaFilled(true);
+    button.setBorderPainted(true);
+    button.setFocusPainted(false);
+
+    button.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                    background.equals(Color.WHITE)
+                            ? new Color(15, 29, 69)
+                            : background, 1),
+            new EmptyBorder(8, 15, 8, 15)
+    ));
+
+    button.setCursor(Cursor.getPredefinedCursor(
+            Cursor.HAND_CURSOR));
+}
+
+
+
     private void loadPatient(int row) {
         if (row < 0 || row >= receptionModel.getRowCount()) return;
         lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 2)));
