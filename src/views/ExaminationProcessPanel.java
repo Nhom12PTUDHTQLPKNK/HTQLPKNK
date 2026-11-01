@@ -160,25 +160,36 @@ public class ExaminationProcessPanel extends JPanel {
         btnDangKham.addActionListener(e -> loadReceptionDataByStatus("Đang khám"));
         btnDaKham.addActionListener(e -> loadReceptionDataByStatus("Hoàn thành"));
 
-        String[] columns = {"STT", "Mã LH", "Ngày hẹn", "Giờ", "Họ và tên", "SĐT", "Dịch vụ dự kiến", "Bác sĩ phụ trách", "Trạng thái", "Thao tác"};
+     // Khai báo lại thứ tự cột chuẩn xác theo yêu cầu
+        String[] columns = {
+            "STT", "Mã LH", "Họ và tên", "Tuổi", "Giới tính", 
+            "SĐT", "Ngày hẹn", "Giờ khám", "Dịch vụ dự kiến", 
+            "Bác sĩ phụ trách", "Trạng thái", "Thao tác"
+        };
+
         receptionModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return column == 9; }
+            @Override public boolean isCellEditable(int row, int column) { 
+                return column == 11; // Cột thao tác ở cuối cùng (index 11)
+            }
         };
 
         tblReception = new JTable(receptionModel);
         styleTable(tblReception);
         tblReception.setRowHeight(43);
         tblReception.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
-        tblReception.getColumnModel().getColumn(9).setCellRenderer(new ActionRenderer("Khám bệnh"));
-        tblReception.getColumnModel().getColumn(9).setCellEditor(new ActionEditor(tblReception, row -> {
+
+        // Gán Renderer và Editor cho cột Thao tác (index 11)
+        tblReception.getColumnModel().getColumn(11).setCellRenderer(new ActionRenderer("Khám bệnh"));
+        tblReception.getColumnModel().getColumn(11).setCellEditor(new ActionEditor(tblReception, row -> {
             processTransferToExamination(row);
         }, "Khám bệnh"));
 
-        int[] widths = {40, 75, 85, 55, 140, 90, 130, 110, 95, 85};
+        // Điều chỉnh độ rộng các cột tương ứng (tổng 12 cột)
+        int[] widths = {40, 75, 140, 50, 75, 90, 85, 55, 130, 110, 95, 85};
         for (int i = 0; i < widths.length; i++) {
             tblReception.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
+        
 
         JScrollPane scroll = new JScrollPane(tblReception);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER));
@@ -227,7 +238,7 @@ public class ExaminationProcessPanel extends JPanel {
     }
 
     private void loadReceptionDataByStatus(String statusFilter) {
-        if (receptionModel == null) return; // Tránh lỗi null khi khởi tạo
+        if (receptionModel == null) return;
         receptionModel.setRowCount(0);
         try {
             List<Object[]> allAppointments = lichHenDAO.getAllAppointments();
@@ -236,20 +247,27 @@ public class ExaminationProcessPanel extends JPanel {
                 String status = String.valueOf(row[7]);
                 if (status.equalsIgnoreCase(statusFilter)) {
                     String maLichHen = String.valueOf(row[0]);
-                    String tenKH = String.valueOf(row[1]);
-                    String sdt = String.valueOf(row[2]);
-                    String dichVu = String.valueOf(row[3]);
-                    String bacSi = String.valueOf(row[4]);
-                    String ngayHen = String.valueOf(row[5]);
-                    String gioKham = String.valueOf(row[6]);
+                    String tenKH     = String.valueOf(row[1]);
+                    String sdt       = String.valueOf(row[2]);
+                    String dichVu    = String.valueOf(row[3]);
+                    String bacSi     = String.valueOf(row[4]);
+                    String ngayHen   = String.valueOf(row[5]);
+                    String gioKham   = String.valueOf(row[6]);
+                    
+                    // Nếu DAO của bạn có trả về Tuổi và Giới tính ở vị trí khác, hãy điều chỉnh index mảng row cho phù hợp.
+                    // Tạm thời để giá trị mặc định hoặc lấy từ dữ liệu nếu DAO hỗ trợ:
+                    String tuoi      = row.length > 8 && row[8] != null ? String.valueOf(row[8]) : "--";
+                    String gioiTinh  = row.length > 9 && row[9] != null ? String.valueOf(row[9]) : "--";
 
                     receptionModel.addRow(new Object[]{
                         stt++,
                         maLichHen,
+                        tenKH,
+                        tuoi,
+                        gioiTinh,
+                        sdt,
                         ngayHen,
                         gioKham,
-                        tenKH,
-                        sdt,
                         dichVu,
                         bacSi.isEmpty() ? "Chưa phân công" : bacSi,
                         status,
@@ -262,6 +280,7 @@ public class ExaminationProcessPanel extends JPanel {
             e.printStackTrace();
         }
     }
+    
 
     private void performReceptionSearch(String keyword, String dateFilter) {
         if (receptionModel == null) return;
@@ -1308,19 +1327,31 @@ private void styleIndicationButton(
 }
 
 
+private void loadPatient(int row) {
+    if (row < 0 || row >= receptionModel.getRowCount()) return;
 
-    private void loadPatient(int row) {
-        if (row < 0 || row >= receptionModel.getRowCount()) return;
-        lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 2)));
-        lblPatientName.setText(String.valueOf(receptionModel.getValueAt(row, 3)));
-        lblAge.setText(String.valueOf(receptionModel.getValueAt(row, 4)));
-        lblGender.setText(String.valueOf(receptionModel.getValueAt(row, 5)));
-        lblPhone.setText("--");
-        lblDate.setText(String.valueOf(receptionModel.getValueAt(row, 1)));
-        examinedModel.setRowCount(0);
-        indicationModel.setRowCount(0);
-        selectedTooth = null;
+    lblPatientCode.setText(String.valueOf(receptionModel.getValueAt(row, 1))); // Mã LH
+    lblPatientName.setText(String.valueOf(receptionModel.getValueAt(row, 2))); // Họ tên
+    lblAge.setText(String.valueOf(receptionModel.getValueAt(row, 3)));         // Tuổi (Đã có dấu ngoặc đúng)
+    lblGender.setText(String.valueOf(receptionModel.getValueAt(row, 4)));      // Giới tính (Đã có dấu ngoặc đúng)
+    lblPhone.setText(String.valueOf(receptionModel.getValueAt(row, 5)));       // Số điện thoại (Đã có dấu ngoặc đúng)
+    lblDate.setText(String.valueOf(receptionModel.getValueAt(row, 6)));        // Ngày hẹn
+
+    // Giờ khám
+    if (lblTime != null) {
+        lblTime.setText(String.valueOf(receptionModel.getValueAt(row, 7)));   
     }
+
+    // Reset lại bảng chi tiết răng và chỉ định khi chuyển sang bệnh nhân mới
+    examinedModel.setRowCount(0);
+    indicationModel.setRowCount(0);
+    selectedTooth = null;
+    
+    // Reset thông tin răng trên form
+    if (lblToothHeaderCode != null) lblToothHeaderCode.setText("--");
+    if (lblToothHeaderName != null) lblToothHeaderName.setText("Chưa chọn răng");
+    if (lblToothHeaderType != null) lblToothHeaderType.setText("--");
+}
 
     private void updateSTT(DefaultTableModel model) {
         for (int i = 0; i < model.getRowCount(); i++) model.setValueAt(i + 1, i, 0);
