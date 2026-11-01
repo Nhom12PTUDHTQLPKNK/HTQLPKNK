@@ -158,6 +158,11 @@ public class InventoryUpdatePanel extends JPanel {
         cbLot.setEditable(true);
         cbItem.setPrototypeDisplayValue(null);
 
+        // Cùng bề rộng hiển thị với ô ngày hẹn trong form đặt lịch.
+        txtExpiry.setPreferredSize(new Dimension(300, 34));
+        txtExpiry.setMaximumSize(new Dimension(300, 34));
+        txtExpiry.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         addRow(p, UiKit.fieldLabel("Loại giao dịch:"), cbType);
         addRow(p, UiKit.fieldLabel("Mặt hàng (thuốc / vật tư / thiết bị):"), cbItem);
         addRow(p, lblLot, cbLot);

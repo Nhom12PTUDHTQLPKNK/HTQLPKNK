@@ -294,15 +294,15 @@ public class MenuFrame extends JFrame {
      // tìm kiếm
         mainContentPanel.add(new CustomerSearchPanel(), CARD_SEARCH_CUSTOMER);
         mainContentPanel.add(new AppointmentSearchPanel(), CARD_SEARCH_APPOINTMENT);
-        addBlankCard(CARD_SEARCH_PROMO);
-        addBlankCard(CARD_SEARCH_SHIFT);
-        addBlankCard(CARD_SEARCH_INVENTORY);
-        addBlankCard(CARD_SEARCH_INVOICE);
+        mainContentPanel.add(new PromotionSearchPanel(), CARD_SEARCH_PROMO);
+        mainContentPanel.add(new WorkScheduleSearchPanel(), CARD_SEARCH_SHIFT);
+        mainContentPanel.add(new InventorySearchPanel(), CARD_SEARCH_INVENTORY);
+        mainContentPanel.add(new InvoiceReceiptSearchPanel(), CARD_SEARCH_INVOICE);
        // báo biểu
-        addBlankCard(CARD_REPORT_REVENUE);
-        addBlankCard(CARD_REPORT_SERVICE);
-        addBlankCard(CARD_REPORT_WAREHOUSE);
-        addBlankCard(CARD_REPORT_EXPORT);
+        mainContentPanel.add(new RevenueDebtReportPanel(), CARD_REPORT_REVENUE);
+        mainContentPanel.add(new ServiceDentistReportPanel(), CARD_REPORT_SERVICE);
+        mainContentPanel.add(new InventoryMovementReportPanel(), CARD_REPORT_WAREHOUSE);
+        mainContentPanel.add(new ReportExportPanel(), CARD_REPORT_EXPORT);
 
 
       // CARD TRẮNG ĐÂY NÈ SỬA CÁC CLASS DÁN VÔ ĐÂY
