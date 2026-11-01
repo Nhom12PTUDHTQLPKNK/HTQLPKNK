@@ -1,6 +1,6 @@
 package views;
 
-import models.dao.TaiKhoanDAO;
+import models.dao.PersonnelAccountDAO;
 import security.AccessControl;
 import report.PdfTableExport;
 
@@ -10,52 +10,44 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
 import java.util.List;
 
 public class RolePermissionPanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
-    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
-    private static final Color RED_ACCENT = new Color(180, 35, 45);
-    private static final Color PINK_ACCENT = new Color(174, 35, 86);
+    private static final Color GREEN_ACCENT = new Color(34, 150, 83);
+    private static final Color RED_ACCENT = new Color(217, 45, 32);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color TEXT_DARK = new Color(15, 29, 69);
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
     private static final Color MUTED = new Color(91, 112, 145);
 
-    private final TaiKhoanDAO taiKhoanDAO = new TaiKhoanDAO();
+    private final PersonnelAccountDAO personnelAccountDAO = new PersonnelAccountDAO();
 
-    // Tab 1: Phân quyền
-    private DefaultTableModel roleTableModel;
-    private JTable roleTable;
-    private JTextField txtRoleSearch, txtMaNVRole;
-    private JComboBox<String> cbMaVaiTro, cbQuyenHanRole;
-    private JTextField txtTenVaiTroRole;
-    private TableRowSorter<DefaultTableModel> roleRowSorter;
-    private boolean isEditingRole = false;
+    // Thẻ thống kê
+    private JLabel lblTotalAccounts, lblActiveAccounts, lblLockedAccounts;
 
-    // Tab 2: Tài khoản
+    // Bảng Tài Khoản & Phân Quyền
     private DefaultTableModel accountTableModel;
     private JTable accountTable;
-    private JTextField txtAccountSearch, txtUsername, txtPassword, txtStaffId;
-    private JComboBox<String> cbRoleBox, cbStatusBox;
+    private JTextField txtAccountSearch;
     private TableRowSorter<DefaultTableModel> accountRowSorter;
-    private boolean isEditingAccount = false;
 
     public RolePermissionPanel() {
-        setLayout(new BorderLayout(0, 15));
+        setLayout(new BorderLayout(0, 20));
         setBackground(BG_CANVAS);
-        setBorder(new EmptyBorder(20, 30, 20, 30));
+        setBorder(new EmptyBorder(25, 30, 25, 30));
 
-        // HEADER CHUNG
+        // 1. HEADER CHUNG
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Quản Lý Phân Quyền & Tài Khoản Hệ Thống");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        JLabel lblTitle = new JLabel("Quản Lý Tài Khoản & Phân Quyền");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(TEXT_DARK);
 
-        JLabel lblSub = new JLabel("Quản lý danh mục phân quyền vai trò và cấp phát, khóa tài khoản nhân viên");
+        JLabel lblSub = new JLabel("Quản lý tên đăng nhập, cấp quyền hệ thống và trạng thái hoạt động của nhân sự");
         lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSub.setForeground(MUTED);
 
@@ -63,472 +55,263 @@ public class RolePermissionPanel extends JPanel {
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
         titleBox.add(lblTitle);
-        titleBox.add(Box.createVerticalStrut(2));
+        titleBox.add(Box.createVerticalStrut(3));
         titleBox.add(lblSub);
         headerPanel.add(titleBox, BorderLayout.WEST);
+
+        // Nút thêm tài khoản mới góc phải Header
+        JButton btnAddAccount = createPrimaryButton("+ Thêm tài khoản mới", BLUE_PRIMARY);
+        btnAddAccount.addActionListener(e -> showAccountDialog(null, null, null, null, null, null, true));
+        
+        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        headerRight.setOpaque(false);
+        headerRight.add(btnAddAccount);
+        headerPanel.add(headerRight, BorderLayout.EAST);
+
         add(headerPanel, BorderLayout.NORTH);
 
-        // TABBED PANE CHỨA 2 GIAO DIỆN
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        tabbedPane.setBackground(BG_CANVAS);
+        // 2. CONTAINER CHÍNH
+        JPanel mainContent = new JPanel();
+        mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
+        mainContent.setOpaque(false);
 
-        tabbedPane.addTab("1. Quản Lý Phân Quyền", createRolePanel());
-        tabbedPane.addTab("2. Quản Lý Tài Khoản", createAccountPanel());
+        // 3. THẺ THỐNG KÊ (3 STATS CARDS)
+        JPanel statsRow = new JPanel(new GridLayout(1, 3, 20, 0));
+        statsRow.setOpaque(false);
+        statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        add(tabbedPane, BorderLayout.CENTER);
-    }
+        lblTotalAccounts = new JLabel("0 tài khoản");
+        lblActiveAccounts = new JLabel("0 tài khoản");
+        lblLockedAccounts = new JLabel("0 tài khoản");
 
-    // =========================================================================
-    // TAB 1: QUẢN LÝ PHÂN QUYỀN
-    // =========================================================================
-    private JPanel createRolePanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(15, 0, 0, 0));
+        statsRow.add(createStatCard("TỔNG TÀI KHOẢN HỆ THỐNG", lblTotalAccounts, BLUE_PRIMARY, new Color(232, 242, 255)));
+        statsRow.add(createStatCard("ĐANG HOẠT ĐỘNG", lblActiveAccounts, GREEN_ACCENT, new Color(238, 247, 238)));
+        statsRow.add(createStatCard("ĐÃ KHÓA", lblLockedAccounts, RED_ACCENT, new Color(254, 242, 242)));
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        mainContent.add(statsRow);
+        mainContent.add(Box.createVerticalStrut(20));
+
+        // 4. THANH TOOLBAR & BẢNG DỮ LIỆU
+        JPanel contentCard = createCardContainer();
+        contentCard.setLayout(new BorderLayout(0, 15));
+
+        JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setOpaque(false);
 
-        txtRoleSearch = new JTextField(14);
-        txtRoleSearch.setPreferredSize(new Dimension(160, 36));
-        txtRoleSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtRoleSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(4, 10, 4, 10)
-        ));
-
-        JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 75);
-        btnSearch.addActionListener(e -> {
-            String kw = txtRoleSearch.getText().trim();
-            if (kw.isEmpty()) roleRowSorter.setRowFilter(null);
-            else roleRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + kw));
-        });
-
-        toolbar.add(txtRoleSearch);
-        toolbar.add(btnSearch);
-        panel.add(toolbar, BorderLayout.NORTH);
-
-        JPanel center = new JPanel(new BorderLayout(15, 0));
-        center.setOpaque(false);
-
-        String[] cols = {"Mã NV", "Mã Vai Trò", "Tên Vai Trò", "Quyền Hạn"};
-        roleTableModel = new DefaultTableModel(null, cols) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        roleTable = new JTable(roleTableModel);
-        PdfTableExport.install(roleTable, "Danh sách phân quyền");
-        roleRowSorter = new TableRowSorter<>(roleTableModel);
-        roleTable.setRowSorter(roleRowSorter);
-        styleTable(roleTable);
-
-        roleTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) loadRoleToForm();
-        });
-
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        roleTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
-        roleTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
-
-        JScrollPane scroll = new JScrollPane(roleTable);
-        scroll.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1));
-        scroll.getViewport().setBackground(CARD_BG);
-        center.add(scroll, BorderLayout.CENTER);
-
-        center.add(createRoleFormPanel(), BorderLayout.EAST);
-        panel.add(center, BorderLayout.CENTER);
-
-        loadRolesFromDB();
-        return panel;
-    }
-
-    private JPanel createRoleFormPanel() {
-        JPanel form = createCardContainer(340);
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-
-        JLabel lbl = new JLabel("Chi Tiết & Nhập Liệu Phân Quyền");
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(lbl);
-        form.add(Box.createVerticalStrut(12));
-
-        txtMaNVRole = addFieldToForm(form, "Mã Nhân Viên (maNV):");
-
-        form.add(createFieldLabel("Mã Vai Trò:"));
-        form.add(Box.createVerticalStrut(4));
-        cbMaVaiTro = new JComboBox<>(new String[]{"QUAN_LY", "NHA_SI", "LE_TAN", "Y_TA"});
-        cbMaVaiTro.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbMaVaiTro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cbMaVaiTro.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cbMaVaiTro.setBackground(Color.WHITE);
-        cbMaVaiTro.addActionListener(e -> updateRoleNameDisplay());
-        form.add(cbMaVaiTro);
-        form.add(Box.createVerticalStrut(10));
-
-        txtTenVaiTroRole = addFieldToForm(form, "Tên Vai Trò:");
-        txtTenVaiTroRole.setEditable(false);
-        txtTenVaiTroRole.setText("Nhân viên quản lý");
-
-        form.add(createFieldLabel("Quyền Hạn:"));
-        form.add(Box.createVerticalStrut(4));
-        cbQuyenHanRole = new JComboBox<>(new String[]{
-            "Quản lý toàn bộ hệ thống, nhân viên và cấu hình",
-            "Khám bệnh, lập kế hoạch điều trị và kê đơn thuốc",
-            "Tiếp đón khách hàng, đặt lịch hẹn và thanh toán hóa đơn",
-            "Hỗ trợ thủ thuật nha khoa và quản lý kho vật tư tiêu hao"
-        });
-        cbQuyenHanRole.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cbQuyenHanRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cbQuyenHanRole.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cbQuyenHanRole.setBackground(Color.WHITE);
-        form.add(cbQuyenHanRole);
-        form.add(Box.createVerticalStrut(15));
-
-        JPanel btnGrid = createButton2x2Grid(
-            e -> saveRole(),
-            e -> deleteRole(),
-            e -> updateRole(),
-            e -> clearRoleForm()
-        );
-        form.add(btnGrid);
-        return form;
-    }
-
-    private void updateRoleNameDisplay() {
-        String selected = (String) cbMaVaiTro.getSelectedItem();
-        if (selected == null) return;
-        switch (selected) {
-            case "QUAN_LY":
-                txtTenVaiTroRole.setText("Nhân viên quản lý");
-                cbQuyenHanRole.setSelectedIndex(0);
-                break;
-            case "NHA_SI":
-                txtTenVaiTroRole.setText("Nha sĩ");
-                cbQuyenHanRole.setSelectedIndex(1);
-                break;
-            case "LE_TAN":
-                txtTenVaiTroRole.setText("Lễ tân");
-                cbQuyenHanRole.setSelectedIndex(2);
-                break;
-            case "Y_TA":
-                txtTenVaiTroRole.setText("Y tá");
-                cbQuyenHanRole.setSelectedIndex(3);
-                break;
-        }
-    }
-
-    private void loadRolesFromDB() {
-        roleTableModel.setRowCount(0);
-        if (!AccessControl.isAdministrator()) return;
-        List<Object[]> data = taiKhoanDAO.getAllAccounts();
-        for (Object[] row : data) {
-            String maNV = (String) row[1];
-            String quyen = (String) row[2];
-            String maVaiTro = "QUAN_LY";
-            String tenVaiTro = "Nhân viên quản lý";
-            String quyenHan = "Quản lý toàn bộ hệ thống, nhân viên và cấu hình";
-
-            if (quyen != null) {
-                if (quyen.contains("Nha sĩ") || quyen.equalsIgnoreCase("NHA_SI") || quyen.contains("Bác sĩ")) {
-                    maVaiTro = "NHA_SI"; tenVaiTro = "Nha sĩ"; quyenHan = "Khám bệnh, lập kế hoạch điều trị và kê đơn thuốc";
-                } else if (quyen.contains("Lễ tân") || quyen.equalsIgnoreCase("LE_TAN")) {
-                    maVaiTro = "LE_TAN"; tenVaiTro = "Lễ tân"; quyenHan = "Tiếp đón khách hàng, đặt lịch hẹn và thanh toán hóa đơn";
-                } else if (quyen.contains("Y tá") || quyen.equalsIgnoreCase("Y_TA") || quyen.contains("Điều dưỡng")) {
-                    maVaiTro = "Y_TA"; tenVaiTro = "Y tá"; quyenHan = "Hỗ trợ thủ thuật nha khoa và quản lý kho vật tư tiêu hao";
-                }
-            }
-            if (maNV != null && !maNV.isEmpty()) {
-                roleTableModel.addRow(new Object[]{maNV, maVaiTro, tenVaiTro, quyenHan});
-            }
-        }
-    }
-
-    private void clearRoleForm() {
-        isEditingRole = false;
-        txtMaNVRole.setText("");
-        txtMaNVRole.setEnabled(true);
-        cbMaVaiTro.setSelectedIndex(0);
-        txtTenVaiTroRole.setText("Nhân viên quản lý");
-        cbQuyenHanRole.setSelectedIndex(0);
-        roleTable.clearSelection();
-    }
-
-    private void loadRoleToForm() {
-        int vRow = roleTable.getSelectedRow();
-        if (vRow == -1) return;
-        int mRow = roleTable.convertRowIndexToModel(vRow);
-        txtMaNVRole.setText((String) roleTableModel.getValueAt(mRow, 0));
-        txtMaNVRole.setEnabled(false);
-        cbMaVaiTro.setSelectedItem(roleTableModel.getValueAt(mRow, 1));
-        txtTenVaiTroRole.setText((String) roleTableModel.getValueAt(mRow, 2));
-        cbQuyenHanRole.setSelectedItem(roleTableModel.getValueAt(mRow, 3));
-        isEditingRole = true;
-    }
-
-    private void saveRole() {
-        String maNV = txtMaNVRole.getText().trim().toUpperCase();
-        String tenVaiTro = txtTenVaiTroRole.getText().trim();
-
-        if (maNV.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã nhân viên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String roleCode = (String) cbMaVaiTro.getSelectedItem();
-        String roleValue = "QUAN_LY".equals(roleCode) ? "Admin" : "NHA_SI".equals(roleCode) ? "Nha sĩ" : "Y_TA".equals(roleCode) ? "Y tá" : "Lễ tân";
-        boolean success = taiKhoanDAO.updateAccountRoleByEmployeeId(maNV, roleValue);
-        if (success) {
-            JOptionPane.showMessageDialog(this, "Cập nhật phân quyền thành công!");
-            loadRolesFromDB();
-            clearRoleForm();
-        } else {
-            JOptionPane.showMessageDialog(this, "Không tìm thấy tài khoản tương ứng với Mã NV để phân quyền!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void updateRole() {
-        int vRow = roleTable.getSelectedRow();
-        if (vRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần sửa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        saveRole();
-    }
-
-    private void deleteRole() {
-        int vRow = roleTable.getSelectedRow();
-        if (vRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int mRow = roleTable.convertRowIndexToModel(vRow);
-        String maNV = (String) roleTableModel.getValueAt(mRow, 0);
-        if (JOptionPane.showConfirmDialog(this, "Xóa phân quyền nhân viên " + maNV + "?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            boolean success = taiKhoanDAO.setAccountActiveByEmployeeId(maNV, false);
-            if (success) { loadRolesFromDB(); clearRoleForm(); JOptionPane.showMessageDialog(this, "Đã khóa tài khoản và thu hồi quyền truy cập."); }
-            else JOptionPane.showMessageDialog(this, "Không thể thu hồi quyền (kiểm tra tài khoản admin hoặc kết nối SQL Server).", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    // =========================================================================
-    // TAB 2: QUẢN LÝ TÀI KHOẢN
-    // =========================================================================
-    private JPanel createAccountPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(15, 0, 0, 0));
-
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        toolbar.setOpaque(false);
-
-        txtAccountSearch = new JTextField(14);
-        txtAccountSearch.setPreferredSize(new Dimension(160, 36));
+        txtAccountSearch = new JTextField(20);
+        txtAccountSearch.setPreferredSize(new Dimension(280, 40));
         txtAccountSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtAccountSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(4, 10, 4, 10)
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(5, 12, 5, 12)
         ));
+        txtAccountSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên đăng nhập, họ tên...");
 
-        JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 75);
+        JButton btnSearch = createStaticButton("Tìm kiếm", BLUE_PRIMARY, 90, 40);
         btnSearch.addActionListener(e -> {
             String kw = txtAccountSearch.getText().trim();
-            if (kw.isEmpty()) accountRowSorter.setRowFilter(null);
-            else accountRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + kw));
+            if (kw.isEmpty() || kw.equals("Tìm theo tên đăng nhập, họ tên...")) {
+                accountRowSorter.setRowFilter(null);
+            } else {
+                accountRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + kw));
+            }
         });
 
-        toolbar.add(txtAccountSearch);
-        toolbar.add(btnSearch);
-        panel.add(toolbar, BorderLayout.NORTH);
+        JPanel searchGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        searchGroup.setOpaque(false);
+        searchGroup.add(txtAccountSearch);
+        searchGroup.add(btnSearch);
+        toolbar.add(searchGroup, BorderLayout.WEST);
 
-        JPanel center = new JPanel(new BorderLayout(15, 0));
-        center.setOpaque(false);
+        contentCard.add(toolbar, BorderLayout.NORTH);
 
-        String[] cols = {"Tên Đăng Nhập", "Mã Nhân Viên", "Quyền Hạn", "Trạng Thái"};
+        // Bảng dữ liệu chuẩn theo giao diện mẫu
+        String[] cols = {"Mã NV", "Tên Đăng Nhập", "Họ Tên Nhân Sự", "Vai Trò / Phân Quyền", "Trạng Thái", "Thao Tác"};
         accountTableModel = new DefaultTableModel(null, cols) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override public boolean isCellEditable(int r, int c) { return c == 5; }
         };
         accountTable = new JTable(accountTableModel);
-        PdfTableExport.install(accountTable, "Danh sách tài khoản");
+        PdfTableExport.install(accountTable, "Danh sách tài khoản hệ thống");
         accountRowSorter = new TableRowSorter<>(accountTableModel);
         accountTable.setRowSorter(accountRowSorter);
         styleTable(accountTable);
 
-        accountTable.getColumnModel().getColumn(0).setPreferredWidth(140);
-        accountTable.getColumnModel().getColumn(1).setPreferredWidth(100);
-        accountTable.getColumnModel().getColumn(2).setPreferredWidth(130);
-        accountTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        accountTable.getColumnModel().getColumn(0).setPreferredWidth(90);
+        accountTable.getColumnModel().getColumn(1).setPreferredWidth(140);
+        accountTable.getColumnModel().getColumn(2).setPreferredWidth(180);
+        accountTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        accountTable.getColumnModel().getColumn(4).setPreferredWidth(120);
+        accountTable.getColumnModel().getColumn(5).setPreferredWidth(150);
 
-        accountTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) loadAccountToForm();
-        });
+        accountTable.getColumnModel().getColumn(4).setCellRenderer(new StatusBadgeRenderer());
+        accountTable.getColumnModel().getColumn(5).setCellRenderer(new ActionButtonRenderer());
+        accountTable.getColumnModel().getColumn(5).setCellEditor(new ActionButtonEditor(new JCheckBox(), this));
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        accountTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
-        accountTable.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
+        accountTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
         accountTable.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
 
         JScrollPane scroll = new JScrollPane(accountTable);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1));
         scroll.getViewport().setBackground(CARD_BG);
-        center.add(scroll, BorderLayout.CENTER);
+        contentCard.add(scroll, BorderLayout.CENTER);
 
-        center.add(createAccountFormPanel(), BorderLayout.EAST);
-        panel.add(center, BorderLayout.CENTER);
+        mainContent.add(contentCard);
+        add(mainContent, BorderLayout.CENTER);
 
         loadAccountsFromDB();
-        return panel;
     }
 
-    private JPanel createAccountFormPanel() {
-        JPanel form = createCardContainer(340);
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-
-        JLabel lbl = new JLabel("Thông Tin Tài Khoản");
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(lbl);
-        form.add(Box.createVerticalStrut(12));
-
-        txtUsername = addFieldToForm(form, "Tên đăng nhập:");
-        
-        txtPassword = addFieldToForm(form, "Mật khẩu (để trống nếu giữ nguyên):");
-
-        txtStaffId = addFieldToForm(form, "Mã nhân viên:");
-
-        form.add(createFieldLabel("Quyền hạn:"));
-        form.add(Box.createVerticalStrut(4));
-        cbRoleBox = new JComboBox<>(new String[]{"Admin", "Nha sĩ", "Lễ tân", "Y tá"});
-        cbRoleBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbRoleBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cbRoleBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cbRoleBox.setBackground(Color.WHITE);
-        form.add(cbRoleBox);
-        form.add(Box.createVerticalStrut(10));
-
-        form.add(createFieldLabel("Trạng thái tài khoản:"));
-        form.add(Box.createVerticalStrut(4));
-        cbStatusBox = new JComboBox<>(new String[]{"Hoạt động", "Tạm khóa"});
-        cbStatusBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbStatusBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        cbStatusBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cbStatusBox.setBackground(Color.WHITE);
-        form.add(cbStatusBox);
-        form.add(Box.createVerticalStrut(15));
-
-        JPanel btnGrid = createButton2x2Grid(
-            e -> saveAccount(),
-            e -> deleteAccount(),
-            e -> updateAccountAction(),
-            e -> clearAccountForm()
-        );
-        form.add(btnGrid);
-        return form;
-    }
-
-    private void loadAccountsFromDB() {
+    public void loadAccountsFromDB() {
         accountTableModel.setRowCount(0);
-        List<Object[]> data = taiKhoanDAO.getAllAccounts();
-        for (Object[] row : data) {
-            accountTableModel.addRow(row);
-        }
-    }
+        try {
+            List<Object[]> data = personnelAccountDAO.getAll();
+            int total = data.size();
+            int activeCount = 0;
+            int lockedCount = 0;
 
-    private void clearAccountForm() {
-        isEditingAccount = false;
-        txtUsername.setText("");
-        txtUsername.setEnabled(true);
-        txtPassword.setText("");
-        txtStaffId.setText("");
-        cbRoleBox.setSelectedIndex(0);
-        cbStatusBox.setSelectedIndex(0);
-        accountTable.clearSelection();
-    }
+            for (Object[] row : data) {
+                String maNV = (String) row[0];
+                String tenNV = (String) row[1];
+                String tenDN = (String) row[2];
+                String vaiTro = (String) row[3];
+                String trangThai = (String) row[6];
 
-    private void loadAccountToForm() {
-        int vRow = accountTable.getSelectedRow();
-        if (vRow == -1) return;
-        int mRow = accountTable.convertRowIndexToModel(vRow);
-        txtUsername.setText((String) accountTableModel.getValueAt(mRow, 0));
-        txtUsername.setEnabled(false);
-        txtPassword.setText("");
-        txtStaffId.setText((String) accountTableModel.getValueAt(mRow, 1));
-        cbRoleBox.setSelectedItem(accountTableModel.getValueAt(mRow, 2));
-        cbStatusBox.setSelectedItem(accountTableModel.getValueAt(mRow, 3));
-        isEditingAccount = true;
-    }
+                if ("Hoạt động".equals(trangThai)) activeCount++;
+                else if ("Tạm khóa".equals(trangThai)) lockedCount++;
 
-    private void saveAccount() {
-        String u = txtUsername.getText().trim();
-        String p = txtPassword.getText().trim();
-        String id = txtStaffId.getText().trim().toUpperCase();
-        String r = (String) cbRoleBox.getSelectedItem();
-        String s = (String) cbStatusBox.getSelectedItem();
+                if (tenDN == null) tenDN = "(Chưa cấp)";
 
-        if (u.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Tên đăng nhập!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã nhân viên (VD: NV001)!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        boolean active = "Hoạt động".equals(s);
-        boolean success;
-        if (isEditingAccount) {
-            boolean updatePass = !p.isEmpty();
-            success = taiKhoanDAO.updateAccount(u, p, r, active, id, updatePass);
-        } else {
-            if (p.isEmpty()) { JOptionPane.showMessageDialog(this, "Nhập mật khẩu cho tài khoản mới.", "Cảnh báo", JOptionPane.WARNING_MESSAGE); return; }
-            success = taiKhoanDAO.insertAccount(u, p, r, active, id);
-        }
-
-        if (success) {
-            JOptionPane.showMessageDialog(this, isEditingAccount ? "Cập nhật tài khoản thành công!" : "Tạo tài khoản thành công!");
-            clearAccountForm();
-            loadAccountsFromDB();
-            loadRolesFromDB();
-        } else {
-            JOptionPane.showMessageDialog(this, "Lỗi CSDL: Kiểm tra trùng tên đăng nhập hoặc Mã nhân viên (" + id + ") chưa tồn tại trong bảng NhanVien!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void updateAccountAction() {
-        int vRow = accountTable.getSelectedRow();
-        if (vRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn tài khoản cần sửa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        isEditingAccount = true;
-        saveAccount();
-    }
-
-    private void deleteAccount() {
-        int vRow = accountTable.getSelectedRow();
-        if (vRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn tài khoản cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int mRow = accountTable.convertRowIndexToModel(vRow);
-        String u = (String) accountTableModel.getValueAt(mRow, 0);
-        if (JOptionPane.showConfirmDialog(this, "Xóa tài khoản " + u + "?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            boolean success = taiKhoanDAO.deleteAccount(u);
-            if (success) {
-                accountTableModel.removeRow(mRow);
-                clearAccountForm();
-                loadRolesFromDB();
-                JOptionPane.showMessageDialog(this, "Xóa tài khoản thành công!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Không thể xóa tài khoản này!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                Object[] tableRow = {maNV, tenDN, tenNV != null ? tenNV : "", vaiTro, trangThai, "ThaoTac"};
+                accountTableModel.addRow(tableRow);
             }
+
+            lblTotalAccounts.setText(total + " tài khoản");
+            lblActiveAccounts.setText(activeCount + " tài khoản");
+            lblLockedAccounts.setText(lockedCount + " tài khoản");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể tải danh sách tài khoản: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // UI Helpers
-    private JPanel createCardContainer(int width) {
+    // =========================================================================
+    // DIALOG THÊM / SỬA TÀI KHOẢN
+    // =========================================================================
+    private void showAccountDialog(String staffId, String staffName, String username, String role, String status, String salaryStr, boolean isNew) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
+                isNew ? "Thêm Nhân Sự & Tài Khoản Mới" : "Chỉnh Sửa Thông Tin Nhân Sự & Tài Khoản", true);
+        dialog.setSize(460, 500);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(25, 25, 25, 25));
+        panel.setBackground(Color.WHITE);
+
+        JTextField txtId = addFieldToDialog(panel, "Mã nhân viên (VD: NV001):");
+        JTextField txtName = addFieldToDialog(panel, "Họ tên nhân sự:");
+        JTextField txtUser = addFieldToDialog(panel, "Tên đăng nhập:");
+        JPasswordField txtPass = addFieldPasswordToDialog(panel, isNew ? "Mật khẩu:" : "Mật khẩu mới (để trống nếu không đổi):");
+
+        panel.add(createFieldLabel("Vai trò / Phân quyền:"));
+        panel.add(Box.createVerticalStrut(4));
+        JComboBox<String> cbRole = new JComboBox<>(new String[]{"Admin", "Nha sĩ", "Lễ tân", "Y tá"});
+        cbRole.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        cbRole.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cbRole.setBackground(Color.WHITE);
+        panel.add(cbRole);
+        panel.add(Box.createVerticalStrut(12));
+
+        panel.add(createFieldLabel("Trạng thái tài khoản:"));
+        panel.add(Box.createVerticalStrut(4));
+        JComboBox<String> cbStatus = new JComboBox<>(new String[]{"Hoạt động", "Tạm khóa"});
+        cbStatus.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        cbStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cbStatus.setBackground(Color.WHITE);
+        panel.add(cbStatus);
+        panel.add(Box.createVerticalStrut(20));
+
+        if (!isNew) {
+            if (staffId != null) { txtId.setText(staffId); txtId.setEnabled(false); }
+            if (staffName != null) txtName.setText(staffName);
+            if (username != null && !username.equals("(Chưa cấp)")) txtUser.setText(username);
+            if (role != null) cbRole.setSelectedItem(role);
+            if (status != null) cbStatus.setSelectedItem(status);
+        }
+
+        JButton btnSave = createStaticButton("Lưu thông tin", BLUE_PRIMARY, Integer.MAX_VALUE, 40);
+        btnSave.addActionListener(e -> {
+            String id = txtId.getText().trim();
+            String name = txtName.getText().trim();
+            String u = txtUser.getText().trim();
+            String p = new String(txtPass.getPassword()).trim();
+            String r = (String) cbRole.getSelectedItem();
+            boolean active = "Hoạt động".equals(cbStatus.getSelectedItem());
+
+            if (id.isEmpty() || name.isEmpty() || u.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng nhập đầy đủ Mã nhân viên, Họ tên và Tên đăng nhập!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                boolean success = personnelAccountDAO.save(
+                        id, name, u, p, r, null, 0.0, active, !isNew, username != null && !username.equals("(Chưa cấp)") ? username : u
+                );
+                if (success) {
+                    JOptionPane.showMessageDialog(dialog, "Lưu thông tin xuống CSDL thành công!");
+                    dialog.dispose();
+                    loadAccountsFromDB();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu vào CSDL!\nLỗi SQL: " + ex.getMessage(), "Lỗi Cơ Sở Dữ Liệu", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        panel.add(btnSave);
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.setVisible(true);
+    }
+
+    // =========================================================================
+    // UI HELPERS & COMPONENTS
+    // =========================================================================
+    private JPanel createStatCard(String title, JLabel valueLbl, Color accentColor, Color bgCard) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bgCard);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(BORDER_LIGHT);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        titleLbl.setForeground(MUTED);
+
+        valueLbl.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        valueLbl.setForeground(accentColor);
+
+        card.add(titleLbl);
+        card.add(Box.createVerticalStrut(6));
+        card.add(valueLbl);
+        return card;
+    }
+
+    private JPanel createCardContainer() {
         JPanel panel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -543,7 +326,6 @@ public class RolePermissionPanel extends JPanel {
             }
         };
         panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(width, 0));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
         return panel;
     }
@@ -556,48 +338,59 @@ public class RolePermissionPanel extends JPanel {
         return lbl;
     }
 
-    private JTextField addFieldToForm(JPanel form, String labelText) {
+    private JTextField addFieldToDialog(JPanel form, String labelText) {
         form.add(createFieldLabel(labelText));
         form.add(Box.createVerticalStrut(4));
         JTextField txt = new JTextField();
         txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txt.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        txt.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         txt.setAlignmentX(Component.LEFT_ALIGNMENT);
         txt.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(4, 8, 4, 8)
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(4, 10, 4, 10)
         ));
         form.add(txt);
-        form.add(Box.createVerticalStrut(10));
+        form.add(Box.createVerticalStrut(12));
         return txt;
     }
 
-    private JPanel createButton2x2Grid(java.awt.event.ActionListener saveAction, 
-                                       java.awt.event.ActionListener deleteAction, 
-                                       java.awt.event.ActionListener editAction, 
-                                       java.awt.event.ActionListener clearAction) {
-        JPanel grid = new JPanel(new GridLayout(2, 2, 10, 10));
-        grid.setOpaque(false);
-        grid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 86));
-        grid.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JButton btnSave = createStaticButton("Lưu", BLUE_PRIMARY, Integer.MAX_VALUE);
-        JButton btnDelete = createStaticButton("Xóa", RED_ACCENT, Integer.MAX_VALUE);
-        JButton btnEdit = createStaticButton("Sửa", GREEN_ACCENT, Integer.MAX_VALUE);
-        JButton btnClear = createStaticButton("Làm mới", PINK_ACCENT, Integer.MAX_VALUE);
-
-        btnSave.addActionListener(saveAction);
-        btnDelete.addActionListener(deleteAction);
-        btnEdit.addActionListener(editAction);
-        btnClear.addActionListener(clearAction);
-
-        grid.add(btnSave);
-        grid.add(btnDelete);
-        grid.add(btnEdit);
-        grid.add(btnClear);
-        return grid;
+    private JPasswordField addFieldPasswordToDialog(JPanel form, String labelText) {
+        form.add(createFieldLabel(labelText));
+        form.add(Box.createVerticalStrut(4));
+        JPasswordField txt = new JPasswordField();
+        txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txt.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        txt.setAlignmentX(Component.LEFT_ALIGNMENT);
+        txt.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1), new EmptyBorder(4, 10, 4, 10)
+        ));
+        form.add(txt);
+        form.add(Box.createVerticalStrut(12));
+        return txt;
     }
 
-    private JButton createStaticButton(String text, Color bg, int width) {
+    private JButton createPrimaryButton(String text, Color bg) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setForeground(Color.WHITE);
+        btn.setPreferredSize(new Dimension(170, 40));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+
+    private JButton createStaticButton(String text, Color bg, int width, int height) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -611,26 +404,173 @@ public class RolePermissionPanel extends JPanel {
         };
         btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setForeground(Color.WHITE);
-        if (width != Integer.MAX_VALUE) btn.setPreferredSize(new Dimension(width, 36));
+        if (width != Integer.MAX_VALUE) btn.setPreferredSize(new Dimension(width, height));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(false);
-        btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
     private void styleTable(JTable table) {
-        table.setRowHeight(38);
+        table.setRowHeight(44);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         table.setForeground(TEXT_DARK);
         table.setGridColor(new Color(240, 244, 248));
-        table.setSelectionBackground(new Color(225, 240, 255));
+        table.setSelectionBackground(new Color(232, 242, 255));
         table.setSelectionForeground(TEXT_DARK);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
 
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         table.getTableHeader().setBackground(new Color(245, 248, 253));
-        table.getTableHeader().setForeground(TEXT_DARK);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 36));
+        table.getTableHeader().setForeground(MUTED);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
+        table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
+    }
+
+    // =========================================================================
+    // CUSTOM RENDERER & EDITOR CHO TRẠNG THÁI VÀ NÚT THAO TÁC
+    // =========================================================================
+    private static class StatusBadgeRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel lbl = new JLabel((String) value, SwingConstants.CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setOpaque(true);
+            
+            String status = value == null ? "" : value.toString();
+            if ("Hoạt động".equals(status)) {
+                lbl.setForeground(GREEN_ACCENT);
+                lbl.setBackground(new Color(225, 245, 230));
+            } else if ("Tạm khóa".equals(status)) {
+                lbl.setForeground(RED_ACCENT);
+                lbl.setBackground(new Color(253, 237, 236));
+            } else {
+                lbl.setForeground(MUTED);
+                lbl.setBackground(new Color(240, 244, 248));
+            }
+            
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            panel.add(lbl);
+            return panel;
+        }
+    }
+
+    private static class ActionButtonRenderer extends JPanel implements javax.swing.table.TableCellRenderer {
+        private final JButton btnEdit = new JButton("Sửa");
+        private final JButton btnLock = new JButton("Khóa");
+
+        public ActionButtonRenderer() {
+            setLayout(new FlowLayout(FlowLayout.CENTER, 6, 0));
+            setOpaque(true);
+            
+            styleActionButton(btnEdit, new Color(240, 244, 248), TEXT_DARK);
+            styleActionButton(btnLock, new Color(254, 243, 199), new Color(146, 64, 14));
+
+            add(btnEdit);
+            add(btnLock);
+        }
+
+        private void styleActionButton(JButton btn, Color bg, Color fg) {
+            btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btn.setBackground(bg);
+            btn.setForeground(fg);
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            return this;
+        }
+    }
+
+    private static class ActionButtonEditor extends DefaultCellEditor {
+        private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        private final JButton btnEdit = new JButton("Sửa");
+        private final JButton btnLock = new JButton("Khóa");
+        private String currentStaffId;
+        private String currentStaffName;
+        private String currentUsername;
+        private String currentRole;
+        private String currentStatus;
+        private final RolePermissionPanel outer;
+
+        public ActionButtonEditor(JCheckBox checkBox, RolePermissionPanel outerInstance) {
+            super(checkBox);
+            this.outer = outerInstance;
+            panel.setOpaque(true);
+
+            styleEditButton(btnEdit);
+            styleLockButton(btnLock);
+
+            btnEdit.addActionListener(e -> {
+                fireEditingStopped();
+                outer.showAccountDialog(currentStaffId, currentStaffName, currentUsername, currentRole, currentStatus, null, false);
+            });
+
+            btnLock.addActionListener(e -> {
+                fireEditingStopped();
+                int confirm = JOptionPane.showConfirmDialog(panel, 
+                        "Bạn có chắc muốn thay đổi trạng thái tài khoản của nhân viên: " + currentStaffName + "?", 
+                        "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        boolean targetActive = !"Hoạt động".equals(currentStatus);
+                        boolean success = outer.personnelAccountDAO.save(
+                                currentStaffId, currentStaffName, currentUsername, null, currentRole, null, 0.0, targetActive, true, currentUsername
+                        );
+                        if (success) {
+                            JOptionPane.showMessageDialog(panel, "Đã cập nhật trạng thái xuống CSDL thành công!");
+                            outer.loadAccountsFromDB();
+                        }
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(panel, "Thực hiện thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            });
+
+            panel.add(btnEdit);
+            panel.add(btnLock);
+        }
+
+        private void styleEditButton(JButton btn) {
+            btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btn.setBackground(new Color(240, 244, 248));
+            btn.setForeground(TEXT_DARK);
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        private void styleLockButton(JButton btn) {
+            btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btn.setBackground(new Color(254, 243, 199));
+            btn.setForeground(new Color(146, 64, 14));
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            currentStaffId = (String) table.getValueAt(row, 0);
+            currentUsername = (String) table.getValueAt(row, 1);
+            currentStaffName = (String) table.getValueAt(row, 2);
+            currentRole = (String) table.getValueAt(row, 3);
+            currentStatus = (String) table.getValueAt(row, 4);
+            panel.setBackground(table.getSelectionBackground());
+            return panel;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "ThaoTac";
+        }
     }
 }
