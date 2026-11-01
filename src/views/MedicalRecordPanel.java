@@ -1,6 +1,7 @@
 package views;
 
-import Audit.AuditLog;
+import models.dao.HoSoBenhAnDAO;
+import models.entity.HoSoBenhAn;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -8,6 +9,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.List;
 
 public class MedicalRecordPanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -32,6 +36,7 @@ public class MedicalRecordPanel extends JPanel {
 
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
+    private final HoSoBenhAnDAO medicalRecordDAO = new HoSoBenhAnDAO();
 
     public MedicalRecordPanel() {
         setLayout(new BorderLayout(0, 15));
@@ -94,14 +99,8 @@ public class MedicalRecordPanel extends JPanel {
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
 
-        String[] columns = {"Mã HS", "Bệnh nhân", "Chẩn đoán", "Nha sĩ điều trị", "Trạng thái"};
-        Object[][] data = {
-            {"HS001", "Nguyễn Văn A", "Viêm nướu", "Dr. Nguyễn Minh Sỹ Luân", "Đang điều trị"},
-            {"HS002", "Trần Thị B", "Mọc lệch răng khôn hàm dưới", "Dr. Nguyễn Minh Sỹ Luân", "Hoàn thành"},
-            {"HS003", "Lê Hoàng C", "Sâu răng", "Dr. Nguyễn Minh Sỹ Luân", "Đang điều trị"}
-        };
-
-        tableModel = new DefaultTableModel(data, columns) {
+        String[] columns = {"Mã HS", "Mã khách hàng", "Chẩn đoán", "Mã nha sĩ", "Trạng thái"};
+        tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
@@ -146,6 +145,7 @@ public class MedicalRecordPanel extends JPanel {
         centerContainer.add(formPanel, BorderLayout.EAST);
 
         add(centerContainer, BorderLayout.CENTER);
+        loadDataFromDatabase();
     }
 
     private JPanel createInlineFormPanel() {
@@ -176,9 +176,9 @@ public class MedicalRecordPanel extends JPanel {
         panel.add(Box.createVerticalStrut(14));
 
         txtRecordId = addFieldToForm(panel, "Mã hồ sơ:");
-        txtCustName = addFieldToForm(panel, "Tên bệnh nhân:");
+        txtCustName = addFieldToForm(panel, "Mã khách hàng:");
         txtDiagnosis = addFieldToForm(panel, "Chẩn đoán:");
-        txtDoctor = addFieldToForm(panel, "Nha sĩ điều trị:");
+        txtDoctor = addFieldToForm(panel, "Mã nha sĩ:");
 
         JLabel lblStat = createFieldLabel("Trạng thái:");
         panel.add(lblStat);
@@ -310,23 +310,32 @@ public class MedicalRecordPanel extends JPanel {
         String doctor = txtDoctor.getText().trim();
         String status = (String) cbStatus.getSelectedItem();
 
-        if (id.isEmpty() || name.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã hồ sơ và Tên bệnh nhân!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (id.isEmpty() || name.isEmpty() || doctor.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã hồ sơ, Mã khách hàng và Mã nha sĩ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (!isEditing) {
-            tableModel.addRow(new Object[]{id, name, diagnosis, doctor, status});
-            JOptionPane.showMessageDialog(this, "Thêm hồ sơ bệnh án thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            tableModel.setValueAt(name, selectedRowIndex, 1);
-            tableModel.setValueAt(diagnosis, selectedRowIndex, 2);
-            tableModel.setValueAt(doctor, selectedRowIndex, 3);
-            tableModel.setValueAt(status, selectedRowIndex, 4);
-            JOptionPane.showMessageDialog(this, "Cập nhật hồ sơ bệnh án thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            Date examDate = new Date();
+            String examResult = "";
+            if (isEditing) {
+                for (HoSoBenhAn current : medicalRecordDAO.getAll()) {
+                    if (id.equals(current.getMaBenhAn())) {
+                        if (current.getNgayKham() != null) examDate = current.getNgayKham();
+                        examResult = current.getKetQuaKham();
+                        break;
+                    }
+                }
+            }
+            HoSoBenhAn record = new HoSoBenhAn(id, name, doctor, examDate, examResult, diagnosis, status);
+            boolean saved = isEditing ? medicalRecordDAO.update(record) : medicalRecordDAO.insert(record);
+            if (!saved) throw new SQLException("Bản ghi không tồn tại hoặc không được lưu.");
+            clearForm();
+            loadDataFromDatabase();
+            JOptionPane.showMessageDialog(this, "Đã lưu hồ sơ bệnh án vào SQL Server.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể lưu hồ sơ bệnh án: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
         }
-        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Bệnh án - mã " + id);
-        clearForm();
     }
 
     private void performDelete() {
@@ -339,10 +348,23 @@ public class MedicalRecordPanel extends JPanel {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
             String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-            tableModel.removeRow(modelRow);
-            AuditLog.event("DELETE", "Bệnh án - mã " + id);
-            clearForm();
-            JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                if (!medicalRecordDAO.delete(id)) throw new SQLException("Không tìm thấy hồ sơ bệnh án.");
+                clearForm();
+                loadDataFromDatabase();
+                JOptionPane.showMessageDialog(this, "Đã xóa hồ sơ bệnh án.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Không thể xóa hồ sơ bệnh án: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void loadDataFromDatabase() {
+        tableModel.setRowCount(0);
+        List<HoSoBenhAn> records = medicalRecordDAO.getAll();
+        for (HoSoBenhAn record : records) {
+            tableModel.addRow(new Object[]{record.getMaBenhAn(), record.getMaKhachHang(), record.getChuanDoan(),
+                    record.getMaNhanVien(), record.getTrangThai()});
         }
     }
 }

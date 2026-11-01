@@ -1,6 +1,7 @@
 package views;
 
-import Audit.AuditLog;
+import models.dao.LichLamViecDAO;
+import models.entity.LichLamViec;
 import report.PdfTableExport;
 
 import javax.swing.*;
@@ -8,6 +9,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 
 public class WorkProcessPanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -27,6 +32,7 @@ public class WorkProcessPanel extends JPanel {
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
+    private final LichLamViecDAO scheduleDAO = new LichLamViecDAO();
 
     public WorkProcessPanel() {
         setLayout(new BorderLayout(0, 15));
@@ -72,13 +78,7 @@ public class WorkProcessPanel extends JPanel {
         centerContainer.setOpaque(false);
 
         String[] cols = {"Mã Phân Ca", "Họ Tên Nhân Viên", "Ca Trực", "Ngày Trực", "Trạng Thái"};
-        Object[][] data = {
-            {"PC001", "Nguyễn Gia Băng", "Ca Sáng (08:00 - 12:00)", "21/10/2026", "Đã phân công"},
-            {"PC002", "Nguyễn Hoàng Khải", "Ca Chiều (13:30 - 17:30)", "21/10/2026", "Đã phân công"},
-            {"PC003", "Nguyễn Ngọc Minh Châu", "Ca Tối (18:00 - 21:00)", "22/10/2026", "Đã phân công"}
-        };
-
-        tableModel = new DefaultTableModel(data, cols) {
+        tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(tableModel);
@@ -92,7 +92,7 @@ public class WorkProcessPanel extends JPanel {
                 selectedRowIndex = table.convertRowIndexToModel(table.getSelectedRow());
                 txtShiftId.setText((String) tableModel.getValueAt(selectedRowIndex, 0));
                 txtShiftId.setEnabled(false);
-                txtStaffName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
+                txtStaffName.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 1)));
                 cbShiftTime.setSelectedItem(tableModel.getValueAt(selectedRowIndex, 2));
                 txtDate.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
                 isEditing = true;
@@ -106,6 +106,7 @@ public class WorkProcessPanel extends JPanel {
 
         centerContainer.add(createFormPanel(), BorderLayout.EAST);
         add(centerContainer, BorderLayout.CENTER);
+        loadDataFromDatabase();
     }
 
     private JPanel createFormPanel() {
@@ -135,7 +136,7 @@ public class WorkProcessPanel extends JPanel {
         panel.add(Box.createVerticalStrut(12));
 
         txtShiftId = addField(panel, "Mã Phân Ca:");
-        txtStaffName = addField(panel, "Tên Nhân Viên:");
+        txtStaffName = addField(panel, "Mã Nhân Viên:");
 
         JLabel lblShift = createFieldLabel("Chọn Ca Trực:");
         panel.add(lblShift);
@@ -204,26 +205,33 @@ public class WorkProcessPanel extends JPanel {
 
     private void performSave() {
         String id = txtShiftId.getText().trim();
-        String name = txtStaffName.getText().trim();
+        String employeeId = txtStaffName.getText().trim();
         String shift = (String) cbShiftTime.getSelectedItem();
         String date = txtDate.getText().trim();
 
-        if (id.isEmpty() || name.isEmpty() || date.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin phân ca!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (id.isEmpty() || employeeId.isEmpty() || date.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã lịch, mã nhân viên và ngày trực!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        if (!isEditing) {
-            tableModel.addRow(new Object[]{id, name, shift, date, "Đã phân công"});
-            JOptionPane.showMessageDialog(this, "Phân ca thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            tableModel.setValueAt(name, selectedRowIndex, 1);
-            tableModel.setValueAt(shift, selectedRowIndex, 2);
-            tableModel.setValueAt(date, selectedRowIndex, 3);
-            JOptionPane.showMessageDialog(this, "Cập nhật ca trực thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            LocalDate workDate = UiKit.parseDate(date);
+            if (workDate == null) throw new DateTimeParseException("empty", date, 0);
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\((\\d{2}:\\d{2})\\s*-\\s*(\\d{2}:\\d{2})\\)").matcher(shift);
+            if (!matcher.find()) throw new IllegalArgumentException("Ca trực không hợp lệ.");
+            LichLamViec schedule = new LichLamViec(id, employeeId, java.sql.Date.valueOf(workDate),
+                    matcher.group(1), matcher.group(2), "Đã phân công");
+            boolean saved = isEditing ? scheduleDAO.update(schedule) : scheduleDAO.insert(schedule);
+            if (!saved) throw new SQLException("Không tìm thấy hoặc không lưu được lịch làm việc.");
+            clearForm();
+            loadDataFromDatabase();
+            JOptionPane.showMessageDialog(this, "Đã lưu lịch làm việc vào SQL Server.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Ngày trực phải đúng định dạng dd/MM/yyyy.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể lưu lịch làm việc: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Cảnh báo", JOptionPane.WARNING_MESSAGE);
         }
-        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Phân ca - mã " + id);
-        clearForm();
     }
 
     private void performDelete() {
@@ -232,10 +240,14 @@ public class WorkProcessPanel extends JPanel {
             int modelRow = table.convertRowIndexToModel(r);
             if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa ca trực này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-                tableModel.removeRow(modelRow);
-                AuditLog.event("DELETE", "Phân ca - mã " + id);
-                clearForm();
-                JOptionPane.showMessageDialog(this, "Đã xóa ca trực!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                try {
+                    if (!scheduleDAO.delete(id)) throw new SQLException("Không tìm thấy lịch làm việc.");
+                    clearForm();
+                    loadDataFromDatabase();
+                    JOptionPane.showMessageDialog(this, "Đã xóa lịch làm việc.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa lịch làm việc: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                }
             }
         } else {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn dòng cần xóa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -256,6 +268,26 @@ public class WorkProcessPanel extends JPanel {
     private void performSearch() {
         String kw = txtSearch.getText().trim();
         rowSorter.setRowFilter(kw.isEmpty() ? null : RowFilter.regexFilter("(?i)" + kw));
+    }
+
+    private void loadDataFromDatabase() {
+        tableModel.setRowCount(0);
+        List<LichLamViec> schedules = scheduleDAO.getAllLichLamViec();
+        for (LichLamViec schedule : schedules) {
+            String shift = shiftLabel(schedule.getGioBatDau(), schedule.getGioKetThuc());
+            tableModel.addRow(new Object[]{schedule.getMaLichLamViec(), schedule.getMaNhanVien(), shift,
+                    schedule.getNgayLamViec() == null ? "" : UiKit.fmt(schedule.getNgayLamViec().toLocalDate()),
+                    schedule.getTrangThai()});
+        }
+    }
+
+    private String shiftLabel(String start, String end) {
+        String shift = "(" + start + " - " + end + ")";
+        for (int i = 0; i < cbShiftTime.getItemCount(); i++) {
+            String option = cbShiftTime.getItemAt(i);
+            if (option.contains(shift)) return option;
+        }
+        return "Ca " + shift;
     }
 
     private JButton createStaticButton(String text, Color bg, int width) {

@@ -1,12 +1,18 @@
 package views;
 
-import Audit.AuditLog;
+import models.dao.KhuyenMaiDAO;
+import models.entity.KhuyenMai;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
+import java.util.List;
 
 public class PromotionProcessPanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -27,6 +33,7 @@ public class PromotionProcessPanel extends JPanel {
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
+    private final KhuyenMaiDAO promotionDAO = new KhuyenMaiDAO();
 
    
 
@@ -82,13 +89,7 @@ public class PromotionProcessPanel extends JPanel {
         centerContainer.setOpaque(false);
 
         String[] cols = {"Mã KM", "Tên Chương Trình Ưu Đãi", "Mức Giảm (%)", "Ngày Bắt Đầu", "Ngày Kết Thúc", "Trạng Thái"};
-        Object[][] data = {
-            {"KM001", "Ưu đãi niềng răng tháng 10", "20%", "01/10/2026", "31/10/2026", "Đang áp dụng"},
-            {"KM002", "Giảm giá lấy cao răng HSSV", "50%", "05/10/2026", "25/10/2026", "Đang áp dụng"},
-            {"KM003", "Tẩy trắng răng công nghệ cao", "30%", "01/11/2026", "30/11/2026", "Sắp diễn ra"}
-        };
-
-        tableModel = new DefaultTableModel(data, cols) {
+        tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(tableModel);
@@ -100,11 +101,11 @@ public class PromotionProcessPanel extends JPanel {
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
                 selectedRowIndex = table.convertRowIndexToModel(table.getSelectedRow());
-                txtPromoId.setText((String) tableModel.getValueAt(selectedRowIndex, 0));
+                txtPromoId.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 0)));
                 txtPromoId.setEnabled(false);
-                txtPromoName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
-                txtDiscount.setText((String) tableModel.getValueAt(selectedRowIndex, 2));
-                txtEndDate.setText((String) tableModel.getValueAt(selectedRowIndex, 4));
+                txtPromoName.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 1)));
+                txtDiscount.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 2)));
+                txtEndDate.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 4)));
                 isEditing = true;
             }
         });
@@ -116,6 +117,7 @@ public class PromotionProcessPanel extends JPanel {
 
         centerContainer.add(createFormPanel(), BorderLayout.EAST);
         add(centerContainer, BorderLayout.CENTER);
+        loadDataFromDatabase();
     }
 
     private JPanel createFormPanel() {
@@ -228,23 +230,44 @@ public class PromotionProcessPanel extends JPanel {
             return;
         }
 
-        if (!endDate.isEmpty() && !txtEndDate.isValidDate()) {
-            JOptionPane.showMessageDialog(this, "Ngày kết thúc không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-
-            return;
+        try {
+            LocalDate until = UiKit.parseDate(endDate);
+            if (until == null) throw new IllegalArgumentException("Vui lòng chọn ngày kết thúc.");
+            double percent = Double.parseDouble(discount.replace("%", "").replace(",", ".").trim());
+            if (percent < 0 || percent > 100) throw new NumberFormatException();
+            LocalDate from = LocalDate.now();
+            boolean active = true;
+            if (isEditing) {
+                for (KhuyenMai current : promotionDAO.getAll()) {
+                    if (id.equals(current.getMaKhuyenMai())) {
+                        if (current.getNgayBatDau() != null) from = new java.sql.Date(current.getNgayBatDau().getTime()).toLocalDate();
+                        active = current.getTrangThai() == null || current.getTrangThai();
+                        break;
+                    }
+                }
+            }
+            if (until.isBefore(from)) throw new IllegalArgumentException("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
+            KhuyenMai promotion = new KhuyenMai();
+            promotion.setMaKhuyenMai(id);
+            promotion.setTenKhuyenMai(name);
+            promotion.setGiaTriGiam(percent);
+            promotion.setNgayBatDau(java.sql.Date.valueOf(from));
+            promotion.setNgayKetThuc(java.sql.Date.valueOf(until));
+            promotion.setTrangThai(active);
+            boolean saved = isEditing ? promotionDAO.update(promotion) : promotionDAO.insert(promotion);
+            if (!saved) throw new SQLException("Không tìm thấy hoặc không lưu được khuyến mãi.");
+            clearForm();
+            loadDataFromDatabase();
+            JOptionPane.showMessageDialog(this, "Đã lưu khuyến mãi vào SQL Server.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Ngày kết thúc phải đúng định dạng dd/MM/yyyy.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Mức giảm phải là số từ 0 đến 100.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể lưu khuyến mãi: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
         }
-
-        if (!isEditing) {
-            tableModel.addRow(new Object[]{id, name, discount.isEmpty() ? "0%" : discount, "01/10/2026", endDate.isEmpty() ? "31/12/2026" : endDate, "Đang áp dụng"});
-            JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            tableModel.setValueAt(name, selectedRowIndex, 1);
-            tableModel.setValueAt(discount, selectedRowIndex, 2);
-            tableModel.setValueAt(endDate, selectedRowIndex, 4);
-            JOptionPane.showMessageDialog(this, "Cập nhật khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        }
-        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Khuyến mãi - mã " + id);
-        clearForm();
     }
 
     private void performDelete() {
@@ -253,10 +276,14 @@ public class PromotionProcessPanel extends JPanel {
             int modelRow = table.convertRowIndexToModel(r);
             if (JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa khuyến mãi này?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-                tableModel.removeRow(modelRow);
-                AuditLog.event("DELETE", "Khuyến mãi - mã " + id);
-                clearForm();
-                JOptionPane.showMessageDialog(this, "Đã xóa khuyến mãi!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                try {
+                    if (!promotionDAO.delete(id)) throw new SQLException("Không tìm thấy khuyến mãi.");
+                    clearForm();
+                    loadDataFromDatabase();
+                    JOptionPane.showMessageDialog(this, "Đã xóa khuyến mãi.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa khuyến mãi: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                }
             }
         } else {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khuyến mãi cần xóa trên bảng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -272,6 +299,19 @@ public class PromotionProcessPanel extends JPanel {
         txtDiscount.setText("");
         txtEndDate.setText("");
         table.clearSelection();
+    }
+
+    private void loadDataFromDatabase() {
+        tableModel.setRowCount(0);
+        List<KhuyenMai> promotions = promotionDAO.getAll();
+        for (KhuyenMai promotion : promotions) {
+            Date start = promotion.getNgayBatDau();
+            Date end = promotion.getNgayKetThuc();
+            String status = promotion.getTrangThai() != null && promotion.getTrangThai() ? "Đang áp dụng" : "Ngừng áp dụng";
+            tableModel.addRow(new Object[]{promotion.getMaKhuyenMai(), promotion.getTenKhuyenMai(),
+                    String.valueOf(promotion.getGiaTriGiam()) + "%", start == null ? "" : UiKit.fmt(new java.sql.Date(start.getTime()).toLocalDate()),
+                    end == null ? "" : UiKit.fmt(new java.sql.Date(end.getTime()).toLocalDate()), status});
+        }
     }
 
     private void performSearch() {

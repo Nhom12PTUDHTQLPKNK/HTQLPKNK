@@ -1,6 +1,7 @@
 package views;
 
-import Audit.AuditLog;
+import models.dao.DichVuDAO;
+import models.entity.DichVu;
 import report.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -8,6 +9,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.sql.SQLException;
+import java.util.List;
 
 public class ServicePanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -31,6 +34,7 @@ public class ServicePanel extends JPanel {
 
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
+    private final DichVuDAO dichVuDAO = new DichVuDAO();
 
     public ServicePanel() {
         setLayout(new BorderLayout(0, 15));
@@ -91,15 +95,7 @@ public class ServicePanel extends JPanel {
         centerContainer.setOpaque(false);
 
         String[] columns = {"Mã DV", "Tên dịch vụ", "Loại điều trị", "Đơn giá (VNĐ)", "Đơn vị tính"};
-        Object[][] data = {
-            {"DV001", "Cạo vôi răng tổng quát", "Nha khoa tổng quát", "320.000", "Lần"},
-            {"DV002", "Tẩy trắng răng Laser", "Thẩm mỹ", "2.500.000", "Liệu trình"},
-            {"DV003", "Niềng răng mắc cài kim loại", "Chỉnh nha", "25.000.000", "Gói"},
-            {"DV004", "Nhổ răng khôn mọc lệch", "Tiểu phẫu", "1.500.000", "Răng"},
-            {"DV005", "Trám răng thẩm mỹ Composite", "Nha khoa tổng quát", "450.000", "Răng"}
-        };
-
-        tableModel = new DefaultTableModel(data, columns) {
+        tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
@@ -135,6 +131,7 @@ public class ServicePanel extends JPanel {
         centerContainer.add(formPanel, BorderLayout.EAST);
 
         add(centerContainer, BorderLayout.CENTER);
+        loadDataFromDatabase();
     }
 
     private JPanel createInlineFormPanel() {
@@ -284,12 +281,12 @@ public class ServicePanel extends JPanel {
         int viewRow = table.getSelectedRow();
         if (viewRow == -1) return;
         selectedRowIndex = table.convertRowIndexToModel(viewRow);
-        txtServiceId.setText((String) tableModel.getValueAt(selectedRowIndex, 0));
+        txtServiceId.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 0)));
         txtServiceId.setEnabled(false);
-        txtServiceName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
+        txtServiceName.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 1)));
         cbCategory.setSelectedItem(tableModel.getValueAt(selectedRowIndex, 2));
-        txtPrice.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
-        txtUnit.setText((String) tableModel.getValueAt(selectedRowIndex, 4));
+        txtPrice.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 3)));
+        txtUnit.setText(String.valueOf(tableModel.getValueAt(selectedRowIndex, 4)));
         isEditing = true;
     }
 
@@ -305,18 +302,26 @@ public class ServicePanel extends JPanel {
             return;
         }
 
-        if (!isEditing) {
-            tableModel.addRow(new Object[]{id, name, category, price, unit});
-            JOptionPane.showMessageDialog(this, "Thêm dịch vụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            tableModel.setValueAt(name, selectedRowIndex, 1);
-            tableModel.setValueAt(category, selectedRowIndex, 2);
-            tableModel.setValueAt(price, selectedRowIndex, 3);
-            tableModel.setValueAt(unit, selectedRowIndex, 4);
-            JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            double amount = Double.parseDouble(price.replace(".", "").replace(",", "."));
+            if (amount < 0) throw new NumberFormatException();
+            String description = "";
+            if (isEditing) {
+                for (DichVu current : dichVuDAO.getAllDichVu()) {
+                    if (id.equals(current.getMaDichVu())) { description = current.getMoTa(); break; }
+                }
+            }
+            DichVu service = new DichVu(id, name, category, amount, unit, description);
+            boolean saved = isEditing ? dichVuDAO.update(service) : dichVuDAO.insert(service);
+            if (!saved) throw new SQLException("Không tìm thấy hoặc không lưu được dịch vụ.");
+            JOptionPane.showMessageDialog(this, isEditing ? "Cập nhật dịch vụ thành công!" : "Thêm dịch vụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            clearForm();
+            loadDataFromDatabase();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Đơn giá phải là số không âm (ví dụ 320000).", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể lưu dịch vụ: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
         }
-        AuditLog.event(isEditing ? "UPDATE" : "CREATE", "Dịch vụ - mã " + id);
-        clearForm();
     }
 
     private void performDeleteService() {
@@ -329,10 +334,23 @@ public class ServicePanel extends JPanel {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
             String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-            tableModel.removeRow(modelRow);
-            AuditLog.event("DELETE", "Dịch vụ - mã " + id);
-            clearForm();
-            JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                if (!dichVuDAO.delete(id)) throw new SQLException("Không tìm thấy dịch vụ.");
+                clearForm();
+                loadDataFromDatabase();
+                JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Không thể xóa dịch vụ: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void loadDataFromDatabase() {
+        tableModel.setRowCount(0);
+        List<DichVu> services = dichVuDAO.getAllDichVu();
+        for (DichVu service : services) {
+            tableModel.addRow(new Object[]{service.getMaDichVu(), service.getTenDichVu(), service.getLoaiDieuTri(),
+                    service.getDonGia(), service.getDonViTinh()});
         }
     }
 }

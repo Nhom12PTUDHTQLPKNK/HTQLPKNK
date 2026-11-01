@@ -40,6 +40,7 @@ public final class AuditLog {
     }
 
     private static final List<Entry> ENTRIES = new ArrayList<>();
+    private static volatile boolean tableReady;
     // phiên đăng nhập hiện tại
     private static String sid, suser, srole;
     private static LocalDateTime sstart;
@@ -82,6 +83,8 @@ public final class AuditLog {
                                          String action, String detail, long secs) {
         Entry e = new Entry(LocalDateTime.now().withNano(0), clean(session), clean(user), clean(role),
                 clean(action), clean(detail), secs);
+        // Kết nối có thể chưa sẵn sàng khi ứng dụng khởi động; thử tạo/kiểm tra bảng lại khi ghi.
+        if (!tableReady && !ensureTable()) return;
         String sql = "INSERT INTO " + TABLE +
                 " (OccurredAt, SessionId, Username, UserRole, ActionName, Detail, DurationSeconds) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -95,7 +98,7 @@ public final class AuditLog {
             ps.executeUpdate();
             ENTRIES.add(e);
         } catch (SQLException ex) {
-            System.err.println("Không ghi được audit vào SQL Server: " + ex.getMessage());
+            System.err.println("Không ghi được audit vào SQL Server (" + TABLE + "): " + ex.getMessage());
         }
     }
 
@@ -103,24 +106,27 @@ public final class AuditLog {
         return s == null ? "" : s.replace('\t', ' ').replace('\r', ' ').replace('\n', ' ');
     }
 
-    private static void load() {
-        ENTRIES.clear();
+    private static synchronized void load() {
+        List<Entry> loaded = new ArrayList<>();
         String sql = "SELECT OccurredAt, SessionId, Username, UserRole, ActionName, Detail, DurationSeconds " +
                 "FROM " + TABLE + " ORDER BY AuditId";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                ENTRIES.add(new Entry(rs.getTimestamp("OccurredAt").toLocalDateTime(),
+                loaded.add(new Entry(rs.getTimestamp("OccurredAt").toLocalDateTime(),
                         rs.getString("SessionId"), rs.getString("Username"), rs.getString("UserRole"),
                         rs.getString("ActionName"), rs.getString("Detail"), rs.getLong("DurationSeconds")));
             }
+            ENTRIES.clear();
+            ENTRIES.addAll(loaded);
         } catch (SQLException ex) {
-            System.err.println("Không tải được audit từ SQL Server: " + ex.getMessage());
+            System.err.println("Không tải được audit từ SQL Server (" + TABLE + "): " + ex.getMessage());
         }
     }
 
-    private static void ensureTable() {
+    private static synchronized boolean ensureTable() {
+        if (tableReady) return true;
         String sql = "IF OBJECT_ID('dbo.AuditLog', 'U') IS NULL BEGIN " +
                 "CREATE TABLE dbo.AuditLog (" +
                 "AuditId BIGINT IDENTITY(1,1) PRIMARY KEY, " +
@@ -130,8 +136,11 @@ public final class AuditLog {
                 "DurationSeconds BIGINT NOT NULL) END";
         try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.execute();
+            tableReady = true;
+            return true;
         } catch (SQLException ex) {
-            System.err.println("Không tạo/kiểm tra được bảng dbo.AuditLog: " + ex.getMessage());
+            System.err.println("Không tạo/kiểm tra được bảng dbo.AuditLog trên SQL Server: " + ex.getMessage());
+            return false;
         }
     }
 

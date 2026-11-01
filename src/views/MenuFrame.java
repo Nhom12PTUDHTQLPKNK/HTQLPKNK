@@ -310,9 +310,9 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
         mainContentPanel.add(new ExaminationProcessPanel(), CARD_EXAMINATION);
 
-        addBlankCard(CARD_TREATMENT_PLAN);
-        addBlankCard(CARD_PRESCRIPTION);
-        addBlankCard(CARD_REEXAMINATION);
+        mainContentPanel.add(new TreatmentPlanPanel(), CARD_TREATMENT_PLAN);
+        mainContentPanel.add(new ElectronicPrescriptionPanel(), CARD_PRESCRIPTION);
+        mainContentPanel.add(new ReexaminationPanel(), CARD_REEXAMINATION);
 
         add(mainContentPanel, BorderLayout.CENTER);
         showView(CARD_DASHBOARD);
