@@ -56,9 +56,7 @@ public class DashboardPanel extends JPanel {
 
     private SwingWorker<Void, Void> dashboardWorker;
 
-
-    private final NumberFormat moneyFormat =
-            NumberFormat.getNumberInstance(VI);
+    private final NumberFormat moneyFormat = NumberFormat.getNumberInstance(VI);
 
     public DashboardPanel() {
         setLayout(new BorderLayout());
@@ -66,10 +64,8 @@ public class DashboardPanel extends JPanel {
 
         JScrollPane mainScroll = new JScrollPane(createContent());
         mainScroll.setBorder(null);
-        mainScroll.setVerticalScrollBarPolicy(
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        mainScroll.setHorizontalScrollBarPolicy(
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        mainScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        mainScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         mainScroll.getVerticalScrollBar().setUnitIncrement(16);
         mainScroll.getViewport().setBackground(BG_CANVAS);
 
@@ -77,7 +73,6 @@ public class DashboardPanel extends JPanel {
 
         initClockTimer();
     }
-
 
     // =====================================================
     // TẠO GIAO DIỆN CHÍNH
@@ -197,8 +192,8 @@ public class DashboardPanel extends JPanel {
         timeLabelRef.setFont(new Font("Segoe UI", Font.BOLD, 20));
         timeLabelRef.setForeground(TEXT_DARK);
 
-        JPanel dateCard = createCardWidget("\u25A6", dayLabelRef, dateLabelRef);
-        JPanel timeCard = createTimeCardWidget("\u25F7", timeLabelRef);
+        JPanel dateCard = createCardWidget("▦", dayLabelRef, dateLabelRef);
+        JPanel timeCard = createTimeCardWidget("◷", timeLabelRef);
 
         dateTimePanel.add(dateCard);
         dateTimePanel.add(Box.createVerticalStrut(6));
@@ -296,6 +291,7 @@ public class DashboardPanel extends JPanel {
             case "Lịch hẹn hôm nay": appointmentsValue = lblVal; break;
             case "Doanh thu tháng này": revenueValue = lblVal; break;
             case "Cần chú ý": alertsValue = lblVal; break;
+            default: break;
         }
 
         card.add(lblTitle);
@@ -400,7 +396,7 @@ public class DashboardPanel extends JPanel {
     }
 
     // =====================================================
-    // TẢI TOÀN BỘ DỮ LIỆU TỪ SQL SERVER
+    // TRUY VẤN HOÀN TOÀN TỪ CƠ SỞ DỮ LIỆU SQL SERVER
     // =====================================================
     public void refreshDashboardData() {
         if (!SwingUtilities.isEventDispatchThread()) {
@@ -448,12 +444,14 @@ public class DashboardPanel extends JPanel {
             protected Void doInBackground() throws Exception {
                 try (Connection conn = DBConnection.getConnection()) {
 
-                    // 1. THỐNG KÊ TỔNG QUAN
-                    String statsSql = "SELECT "
-                            + "(SELECT COUNT(*) FROM KhachHang) AS TongBenhNhan, "
-                            + "(SELECT COUNT(*) FROM LichHen WHERE ngayHen = CAST(GETDATE() AS DATE)) AS LichHenHomNay, "
-                            + "(SELECT COALESCE(SUM(daThanhToan), 0) FROM PhieuThanhToan WHERE ngayThanhToan >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1) AND ngayThanhToan < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))) AS DoanhThuThang, "
-                            + "(SELECT COUNT(*) FROM LichHen WHERE trangThai = N'Chờ xác nhận' AND ngayHen >= CAST(GETDATE() AS DATE)) AS CanChuY";
+                    // 1. THỐNG KÊ TỔNG QUAN (Dùng hoàn toàn hàm ngày tháng của SQL Server: GETDATE)
+                	
+                	
+                	String statsSql = "SELECT "
+                	    + "(SELECT COUNT(*) FROM KhachHang) AS TongBenhNhan, "
+                	    + "(SELECT COUNT(*) FROM LichHen WHERE CAST(ngayHen AS DATE) = CAST(GETDATE() AS DATE)) AS LichHenHomNay, "
+                	    + "(SELECT COALESCE(SUM(daThanhToan), 0) FROM PhieuThanhToan) AS DoanhThuThang, "
+                	    + "(SELECT COUNT(*) FROM LichHen WHERE trangThai = N'Chờ xác nhận') AS CanChuY";
 
                     try (PreparedStatement ps = conn.prepareStatement(statsSql);
                          ResultSet rs = ps.executeQuery()) {
@@ -465,26 +463,31 @@ public class DashboardPanel extends JPanel {
                         }
                     }
 
-                    // 2. BIỂU ĐỒ DOANH THU 7 NGÀY GẦN NHẤT
+                 // 2. BIỂU ĐỒ DOANH THU 7 NGÀY GẦN NHẤT
+                    
+                    
                     String revenueSql = "WITH Ngay AS ( "
-                            + " SELECT CAST(GETDATE() AS DATE) AS NgayDoanhThu "
-                            + " UNION ALL "
-                            + " SELECT DATEADD(DAY, -1, NgayDoanhThu) FROM Ngay WHERE NgayDoanhThu > DATEADD(DAY, -6, CAST(GETDATE() AS DATE)) "
+                            + "  SELECT CAST(GETDATE() AS DATE) AS NgayDoanhThu "
+                            + "  UNION ALL "
+                            + "  SELECT DATEADD(DAY, -1, NgayDoanhThu) FROM Ngay WHERE NgayDoanhThu > DATEADD(DAY, -6, CAST(GETDATE() AS DATE)) "
                             + ") "
                             + "SELECT n.NgayDoanhThu, COALESCE(SUM(p.daThanhToan), 0) AS DoanhThu "
                             + "FROM Ngay n LEFT JOIN PhieuThanhToan p ON p.ngayThanhToan = n.NgayDoanhThu "
-                            + "GROUP BY n.NgayDoanhThu ORDER BY n.NgayDoanhThu OPTION (MAXRECURSION 7)";
+                            + "GROUP BY n.NgayDoanhThu ORDER BY n.NgayDoanhThu ASC OPTION (MAXRECURSION 7)";
 
                     try (PreparedStatement ps = conn.prepareStatement(revenueSql);
                          ResultSet rs = ps.executeQuery()) {
                         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
                         while (rs.next()) {
-                            days.add(rs.getDate("NgayDoanhThu").toLocalDate().format(fmt));
-                            revenues.add(rs.getDouble("DoanhThu"));
+                            java.sql.Date d = rs.getDate("NgayDoanhThu");
+                            if (d != null) {
+                                days.add(d.toLocalDate().format(fmt));
+                                revenues.add(rs.getDouble("DoanhThu"));
+                            }
                         }
                     }
 
-                    // 3. CƠ CẤU DOANH THU THEO DỊCH VỤ (ĐÃ TỐI ƯU CÂU TẬP HỢP TỔNG DỮ LIỆU CƠ CẤU)
+                    // 3. CƠ CẤU DOANH THU THEO DỊCH VỤ (Truy vấn từ CSDL)
                     String serviceSql = "SELECT TOP 5 dv.tenDichVu, SUM(ct.soLuong * ct.donGia) AS DoanhThu "
                             + "FROM ChiTietHoaDon ct "
                             + "INNER JOIN DichVu dv ON ct.maDichVu = dv.maDichVu "
@@ -500,7 +503,7 @@ public class DashboardPanel extends JPanel {
                         }
                     }
 
-                    // 4. BỆNH NHÂN GẦN ĐÂY
+                    // 4. BỆNH NHÂN GẦN ĐÂY (Truy vấn từ CSDL)
                     String patientSql = "SELECT TOP 10 ba.maBenhAn, kh.tenKH, kh.sdt, COALESCE(dv.tenDichVu, ba.chuanDoan, N'Chưa cập nhật') AS DichVuGanNhat, ba.ngayKham, COALESCE(ba.trangThai, N'Chưa cập nhật') AS TrangThai "
                             + "FROM HoSoBenhAn ba "
                             + "INNER JOIN KhachHang kh ON ba.maKhachHang = kh.maKhachHang "
@@ -524,7 +527,7 @@ public class DashboardPanel extends JPanel {
                         }
                     }
 
-                    // 5. THÔNG BÁO LỊCH HẸN MỚI
+                    // 5. THÔNG BÁO LỊCH HẸN MỚI (Truy vấn từ CSDL)
                     String appointmentNotiSql = "SELECT TOP 5 lh.maLichHen, kh.tenKH, lh.ngayHen, lh.trangThai FROM LichHen lh LEFT JOIN KhachHang kh ON lh.maKhachHang = kh.maKhachHang ORDER BY lh.ngayHen DESC, lh.maLichHen DESC";
                     try (PreparedStatement ps = conn.prepareStatement(appointmentNotiSql);
                          ResultSet rs = ps.executeQuery()) {
@@ -537,7 +540,7 @@ public class DashboardPanel extends JPanel {
                         }
                     }
 
-                    // 6. THÔNG BÁO THANH TOÁN
+                    // 6. THÔNG BÁO THANH TOÁN (Truy vấn từ CSDL)
                     String paymentNotiSql = "SELECT TOP 3 pt.maPhieu, kh.tenKH, pt.daThanhToan, pt.ngayThanhToan FROM PhieuThanhToan pt LEFT JOIN KhachHang kh ON pt.maKhachHang = kh.maKhachHang ORDER BY pt.ngayThanhToan DESC, pt.maPhieu DESC";
                     try (PreparedStatement ps = conn.prepareStatement(paymentNotiSql);
                          ResultSet rs = ps.executeQuery()) {
@@ -666,15 +669,11 @@ public class DashboardPanel extends JPanel {
         return item;
     }
 
-    // ============================================================================
-    // GIAO DIỆN MỚI CHO BẢNG BỆNH NHÂN GẦN ĐÂY (MODERN PILL BUTTONS & CLEAN UI)
-    // ============================================================================
     private JPanel createRecentPatientsPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        // Header chứa tiêu đề và nhóm nút bấm
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
         headerPanel.setBackground(CARD_BG);
@@ -801,13 +800,13 @@ public class DashboardPanel extends JPanel {
         return panel;
     }
 
-    // =====================================================
-    // BIỂU ĐỒ CỘT: DOANH THU 7 NGÀY
-    // =====================================================
     private class RevenueBarChartPanel extends JPanel {
         public RevenueBarChartPanel() {
             setBackground(CARD_BG);
-            setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1, true), new EmptyBorder(12, 14, 12, 14)));
+            setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1, true), 
+                new EmptyBorder(12, 14, 12, 14)
+            ));
         }
 
         @Override
@@ -815,41 +814,60 @@ public class DashboardPanel extends JPanel {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Tiêu đề biểu đồ
             g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
             g2.setColor(TEXT_DARK);
             g2.drawString("DOANH THU 7 NGÀY GẦN NHẤT", 12, 22);
 
-            int left = 48, top = 48, bottom = getHeight() - 45;
+            int left = 48, top = 40, bottom = getHeight() - 35;
             int chartHeight = Math.max(30, bottom - top);
             int chartWidth = Math.max(100, getWidth() - left - 15);
+            
             int count = chartDays.size();
+            if (count == 0) { 
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                g2.setColor(MUTED);
+                g2.drawString("Đang cập nhật biểu đồ...", 15, 80);
+                g2.dispose(); 
+                return; 
+            }
 
-            if (count == 0) { g2.dispose(); return; }
-
-            double max = 1;
-            for (double v : chartRevenue) max = Math.max(max, v);
+            // Tìm giá trị lớn nhất để làm mốc tỷ lệ chiều cao
+            double max = 1.0;
+            for (double v : chartRevenue) {
+                if (v > max) max = v;
+            }
 
             int slot = Math.max(1, chartWidth / count);
             int barWidth = Math.max(8, Math.min(28, slot - 10));
 
             for (int i = 0; i < count; i++) {
                 double value = chartRevenue.get(i);
-                int height = (int) (value / max * chartHeight);
+                int height = (int) ((value / max) * chartHeight);
+                
+                // Đảm bảo nếu có doanh thu thì cột phải cao tối thiểu 6 pixel để nhìn thấy rõ
+                if (value > 0 && height < 6) {
+                    height = 6;
+                }
+
                 int x = left + i * slot + (slot - barWidth) / 2;
                 int y = bottom - height;
 
+                // Vẽ cột hình chữ nhật bo tròn với hiệu ứng Gradient xanh mượt mà
                 g2.setPaint(new GradientPaint(x, y, BLUE, x, bottom, new Color(130, 190, 255)));
                 g2.fill(new RoundRectangle2D.Double(x, y, barWidth, Math.max(2, height), 6, 6));
+                
+                // Vẽ nhãn ngày ở trục hoành
                 g2.setColor(MUTED);
-                g2.drawString(chartDays.get(i), x, bottom + 16);
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                g2.drawString(chartDays.get(i), x - 2, bottom + 16);
             }
             g2.dispose();
         }
     }
+    
 
-    // =====================================================
-    // BIỂU ĐỒ TRÒN: CƠ CẤU DOANH THU DỊCH VỤ
-    // =====================================================
     private class RevenueDonutChartPanel extends JPanel {
         private final Color[] chartColors = {BLUE, PINK_ACCENT, GREEN, new Color(111, 66, 193), new Color(255, 159, 28)};
 

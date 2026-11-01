@@ -340,8 +340,8 @@ GO
 -- 1. NhanVien
 INSERT INTO NhanVien (maNhanVien, tenNhanVien, ngaySinh, sdt, chucVu, lichLamViec, trinhDo, mucLuong) VALUES
 ('NV001', N'Nguyễn Minh Tuấn', '1985-03-12', '0901234001', N'Bác sĩ trưởng', N'Thứ 2 - Thứ 7', N'Thạc sĩ Răng Hàm Mặt', 30000000.0),
-('NV002', N'Trần Ngọc Mai', '1990-07-21', '0901234002', N'Bác sĩ nha khoa', N'Thứ 2 - Thứ 6', N'Đại học Răng Hàm Mặt', 22000000.0),
-('NV003', N'Lê Hoàng Nam', '1988-11-05', '0901234003', N'Bác sĩ nha khoa', N'Thứ 2 - Thứ 7', N'Đại học Răng Hàm Mặt', 23000000.0),
+('NV002', N'Trần Ngọc Mai', '1990-07-21', '0901234002', N'Nha sĩ', N'Thứ 2 - Thứ 6', N'Đại học Răng Hàm Mặt', 22000000.0),
+('NV003', N'Lê Hoàng Nam', '1988-11-05', '0901234003', N'Nha sĩ', N'Thứ 2 - Thứ 7', N'Đại học Răng Hàm Mặt', 23000000.0),
 ('NV004', N'Phạm Thu Hà', '1995-02-18', '0901234004', N'Lễ tân', N'Thứ 2 - Thứ 7', N'Cao đẳng', 10000000.0),
 ('NV005', N'Võ Quốc Bảo', '1992-09-09', '0901234005', N'Điều dưỡng', N'Thứ 2 - Thứ 7', N'Cao đẳng Điều dưỡng', 12000000.0);
 
@@ -361,10 +361,10 @@ INSERT INTO KhachHang (maKhachHang, tenKH, gioiTinh, diaChi, ngaySinh, sdt, tien
 -- 3. TaiKhoan
 INSERT INTO TaiKhoan (tenDN, matKhau, trangThai, quyen, maNhanVien) VALUES
 ('admin', N'123456', 1, N'Admin', 'NV001'),
-('bsmai', N'123456', 1, N'Bác sĩ', 'NV002'),
-('bsnam', N'123456', 1, N'Bác sĩ', 'NV003'),
+('bsmai', N'123456', 1, N'Nha sĩ', 'NV002'),
+('bsnam', N'123456', 1, N'Nha sĩ', 'NV003'),
 ('letan', N'123456', 1, N'Lễ tân', 'NV004'),
-('dieuduong', N'123456', 1, N'Điều dưỡng', 'NV005');
+('yta', N'123456', 1, N'Y tá', 'NV005');
 
 -- 4. LichLamViec
 INSERT INTO LichLamViec (maLichLamViec, maNhanVien, ngayLamViec, gioBatDau, gioKetThuc, trangThai) VALUES
