@@ -53,7 +53,6 @@ public class BookingProcessPanel extends JPanel {
     private JLabel lblDetailName, lblDetailPhone, lblDetailDate, lblDetailService, lblDetailDoctor, lblDetailStatus;
     private JButton btnActionPrimary, btnActionCancel;
 
-    // Lưu trữ toàn bộ dữ liệu thô để lọc tìm kiếm
     private List<Object[]> allAppointmentsList;
 
     public BookingProcessPanel() {
@@ -108,7 +107,7 @@ public class BookingProcessPanel extends JPanel {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
         searchPanel.setOpaque(false);
 
-        txtSearch = new PlaceholderTextField("Nhập tên, SĐT hoặc mã lịch hẹn...");
+        txtSearch = new PlaceholderTextField("Nhập tên, SĐT hoặc mã lịch hẹn");
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtSearch.setPreferredSize(new Dimension(270, 38));
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
@@ -174,7 +173,7 @@ public class BookingProcessPanel extends JPanel {
         iconPanel.setBackground(lightColor);
         iconPanel.setPreferredSize(new Dimension(52, 52));
 
-        JLabel icon = new JLabel("🦷");
+        JLabel icon = new JLabel("");
         icon.setFont(new Font("Segoe UI", Font.PLAIN, 20));
         iconPanel.add(icon);
 
@@ -271,11 +270,10 @@ public class BookingProcessPanel extends JPanel {
         tabbedPane.addTab("Đã xác nhận (0)", scrollConfirmed);
         tabbedPane.addTab("Lịch sử xử lý (0)", scrollHistory);
 
-        // Lắng nghe sự kiện đổi tab để tự động cập nhật tên và hiển thị nút thao tác cho phù hợp
+        // Lắng nghe sự kiện chuyển đổi tab để cập nhật trạng thái các nút bấm bên phải
         tabbedPane.addChangeListener(e -> {
             if (selectedAppointmentId != null) {
-                // Tự động cập nhật lại nhãn nút bấm dựa vào tab đang chọn
-                updateActionPrimaryButtonState();
+                updateActionButtonsState();
             }
         });
 
@@ -360,11 +358,11 @@ public class BookingProcessPanel extends JPanel {
         centerBox.setOpaque(false);
         centerBox.setBorder(new EmptyBorder(8, 0, 8, 0));
 
-        JLabel lblDateTime = new JLabel("📅 " + date + " • " + time);
+        JLabel lblDateTime = new JLabel("" + date + " • " + time);
         lblDateTime.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDateTime.setForeground(TEXT_GRAY);
 
-        JLabel lblService = new JLabel("🦷 " + (service.isEmpty() ? "Khám nha khoa" : service));
+        JLabel lblService = new JLabel("" + (service.isEmpty() ? "Khám nha khoa" : service));
         lblService.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblService.setForeground(BLUE_PRIMARY);
 
@@ -376,12 +374,12 @@ public class BookingProcessPanel extends JPanel {
         JPanel bottomBox = new JPanel(new BorderLayout());
         bottomBox.setOpaque(false);
 
-        JLabel lblDoctor = new JLabel("👨‍⚕️ " + (doctor.isEmpty() ? "Chưa phân công" : doctor));
+        JLabel lblDoctor = new JLabel("" + (doctor.isEmpty() ? "Chưa phân công" : doctor));
         lblDoctor.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblDoctor.setForeground(TEXT_GRAY);
         bottomBox.add(lblDoctor, BorderLayout.WEST);
 
-        JLabel lblArrow = new JLabel("➔");
+        JLabel lblArrow = new JLabel("");
         lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblArrow.setForeground(BLUE_PRIMARY);
         bottomBox.add(lblArrow, BorderLayout.EAST);
@@ -437,7 +435,7 @@ public class BookingProcessPanel extends JPanel {
         lblDetailName.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblDetailName.setForeground(TEXT_DARK);
 
-        lblDetailPhone = new JLabel("📞 ---");
+        lblDetailPhone = new JLabel("---");
         lblDetailPhone.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDetailPhone.setForeground(TEXT_GRAY);
 
@@ -447,10 +445,10 @@ public class BookingProcessPanel extends JPanel {
         detailCard.add(Box.createVerticalStrut(12));
         detailCard.add(new JSeparator());
 
-        lblDetailDate = addDetailRow(detailCard, "📅 Ngày hẹn:", "---");
-        lblDetailService = addDetailRow(detailCard, "🦷 Dịch vụ:", "---");
-        lblDetailDoctor = addDetailRow(detailCard, "👨‍⚕️ Bác sĩ:", "---");
-        lblDetailStatus = addDetailRow(detailCard, "📌 Trạng thái:", "---");
+        lblDetailDate = addDetailRow(detailCard, "Ngày hẹn:", "---");
+        lblDetailService = addDetailRow(detailCard, "Dịch vụ:", "---");
+        lblDetailDoctor = addDetailRow(detailCard, "Bác sĩ:", "---");
+        lblDetailStatus = addDetailRow(detailCard, "Trạng thái:", "---");
 
         JPanel centerContainer = new JPanel();
         centerContainer.setLayout(new BoxLayout(centerContainer, BoxLayout.Y_AXIS));
@@ -499,7 +497,7 @@ public class BookingProcessPanel extends JPanel {
         return lblVal;
     }
 
-    // ==================== LUỒNG CHUYỂN TRẠNG THÁI (ĐÃ FIX TAB ĐÃ XÁC NHẬN) ====================
+    // ==================== LUỒNG CHUYỂN TRẠNG THÁI ====================
     private void performFlowAction() {
         if (selectedAppointmentId == null || selectedAppointmentId.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn thẻ lịch hẹn từ danh sách!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -510,19 +508,15 @@ public class BookingProcessPanel extends JPanel {
         boolean success = false;
 
         if (currentTab == 0) {
-            // Tab 0: Chờ xác nhận -> Bấm để chuyển sang "Đã xác nhận"
+            // Tab 0 (Chờ xác nhận): Bấm xác nhận lịch hẹn
             success = lichHenDAO.xacNhanLichHen(selectedAppointmentId);
             if (success) {
                 AuditLog.event("UPDATE", "Xác nhận lịch hẹn - mã " + selectedAppointmentId);
-                JOptionPane.showMessageDialog(this, "Đã chuyển lịch hẹn sang trạng thái [Đã xác nhận]!");
+                JOptionPane.showMessageDialog(this, "Đã xác nhận lịch hẹn!");
             }
         } else if (currentTab == 1) {
-            // Tab 1: Đã xác nhận -> Bấm để đưa sang khám bệnh (Cập nhật trạng thái thành "Đang khám" hoặc "Chờ khám" để bác sĩ bấm khám)
-            success = lichHenDAO.updateStatus(selectedAppointmentId, "Đang khám");
-            if (success) {
-                AuditLog.event("UPDATE", "Chuyển lịch sang khám bệnh - mã " + selectedAppointmentId);
-                JOptionPane.showMessageDialog(this, "Đã chuyển dữ liệu sang phòng khám bệnh cho bác sĩ!");
-            }
+           
+            return;
         } else {
             JOptionPane.showMessageDialog(this, "Lịch hẹn này đã kết thúc xử lý!");
             return;
@@ -534,17 +528,25 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // Cập nhật trạng thái và tên nút bấm chính tùy theo tab đang chọn
-    private void updateActionPrimaryButtonState() {
+
+    private void updateActionButtonsState() {
         int tabIdx = tabbedPane.getSelectedIndex();
         if (tabIdx == 0) {
+            // Tab Chờ xác nhận: Hiện nút xác nhận và nút hủy
             btnActionPrimary.setText("Xác nhận lịch hẹn");
+            btnActionPrimary.setEnabled(true);
             btnActionPrimary.setVisible(true);
+            btnActionCancel.setVisible(true);
         } else if (tabIdx == 1) {
-            btnActionPrimary.setText("Chuyển sang Khám bệnh"); // Đã sửa tên nút cho tab Đã xác nhận
+            // Tab Đã xác nhận:
+            btnActionPrimary.setText("Xác nhận lịch hẹn");
+            btnActionPrimary.setEnabled(false);
             btnActionPrimary.setVisible(true);
+            btnActionCancel.setVisible(false);
         } else {
+            // Tab Lịch sử xử lý
             btnActionPrimary.setVisible(false);
+            btnActionCancel.setVisible(false);
         }
     }
 
@@ -621,7 +623,7 @@ public class BookingProcessPanel extends JPanel {
         lblDetailDoctor.setText(doctor);
         lblDetailStatus.setText(status);
 
-        updateActionPrimaryButtonState();
+        updateActionButtonsState();
     }
 
     private void performDelete() {
@@ -644,11 +646,12 @@ public class BookingProcessPanel extends JPanel {
     private void clearForm() {
         selectedAppointmentId = null;
         lblDetailName.setText("Chưa chọn lịch hẹn");
-        lblDetailPhone.setText("📞 ---");
+        lblDetailPhone.setText("---");
         lblDetailDate.setText("---");
         lblDetailService.setText("---");
         lblDetailDoctor.setText("---");
         lblDetailStatus.setText("---");
+        updateActionButtonsState();
     }
 
     private void performSearch() {
@@ -662,7 +665,16 @@ public class BookingProcessPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color color = getModel().isPressed() ? background.darker() : (getModel().isRollover() ? background.brighter() : background);
+                
+                Color color = background;
+                if (!isEnabled()) {
+                    color = new Color(205, 210, 218); // Màu xám mờ hiện đại khi bị disable
+                } else if (getModel().isPressed()) {
+                    color = background.darker();
+                } else if (getModel().isRollover()) {
+                    color = background.brighter();
+                }
+
                 g2.setColor(color);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.dispose();
