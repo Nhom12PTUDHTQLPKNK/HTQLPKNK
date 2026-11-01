@@ -1,254 +1,771 @@
+
 package views;
 
 import Audit.AuditLog;
 import sql.DBConnection;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-
-
-
-
+import javax.swing.border.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
 import java.sql.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AppointmentBookingPanel extends JPanel {
 
-    private static final Color BLUE_PRIMARY = new Color(11, 95, 204);
-    private static final Color GREEN_ACCENT = new Color(24, 117, 58);
-    private static final Color PINK_ACCENT = new Color(174, 35, 86);
-    private static final Color BG_CANVAS = new Color(243, 248, 253);
+    // màu
+
+    private static final Color BLUE_PRIMARY = new Color(45, 112, 220);
+    private static final Color BLUE_LIGHT = new Color(232, 241, 255);
+
+    private static final Color GREEN_ACCENT = new Color(35, 160, 115);
+    private static final Color GREEN_LIGHT = new Color(229, 247, 239);
+
+    private static final Color RED_ACCENT = new Color(220, 75, 85);
+    private static final Color RED_LIGHT = new Color(255, 235, 237);
+
+    private static final Color ORANGE_ACCENT = new Color(235, 153, 55);
+    private static final Color ORANGE_LIGHT = new Color(255, 245, 225);
+
+    private static final Color BG_CANVAS = new Color(244, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color TEXT_DARK = new Color(15, 29, 69);
-    private static final Color BORDER_LIGHT = new Color(224, 233, 243);
-    private static final Color MUTED = new Color(91, 112, 145);
 
-    // Màu nền nhẹ cho badge trạng thái khách hàng
-    private static final Color BADGE_BLUE_BG = new Color(225, 240, 255);
-    private static final Color BADGE_ORANGE_BG = new Color(255, 243, 220);
-    private static final Color BADGE_GRAY_BG = new Color(240, 244, 248);
+    private static final Color TEXT_DARK = new Color(35, 52, 78);
+    private static final Color TEXT_GRAY = new Color(119, 135, 157);
+    private static final Color BORDER_LIGHT = new Color(225, 233, 243);
+    private static final Color READONLY_BG = new Color(243, 246, 250);
 
-    // Số ghế nha khoa tối đa của phòng khám (số ca được khám cùng một giờ).
-    // CSDL chưa có bảng ghế nên cấu hình tạm bằng hằng số.
-    private static final int MAX_CHAIRS = 3;
+    private static final String STATUS_PENDING = "Chờ xác nhận";
 
-    // Các khung giờ chuẩn
     private static final String[] STANDARD_TIMES = {
-        "08:00", "08:30",
-        "09:00", "09:30",
-        "10:00", "10:30",
-        "11:00", "11:30",
-        "13:30", "14:00",
-        "14:30", "15:00",
-        "15:30", "16:00",
-        "16:30", "17:00"
+            "08:00", "08:30",
+            "09:00", "09:30",
+            "10:00", "10:30",
+            "11:00", "11:30",
+            "13:30", "14:00",
+            "14:30", "15:00",
+            "15:30", "16:00",
+            "16:30", "17:00"
     };
 
-    private JTable tableLichDat;
-    private DefaultTableModel modelLichDat;
-    private TableRowSorter<DefaultTableModel> sorterLichDat;
+    private static final int PAGE_SIZE = 10;
 
-    private JTextField txtSearchPhone;
+
+    private static class ServiceItem {
+        String id;
+        String name;
+
+        ServiceItem(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static class DoctorItem {
+        String id;
+        String name;
+
+        DoctorItem(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    // dữ liệu form
 
     private JTextField txtAppId;
     private JTextField txtCustId;
-    private JTextField txtCustName;
     private JTextField txtPhone;
-    private datepicker.DatePickerField txtAppDate;
-
-    // Thông tin bổ sung, chỉ hiện khi là khách hàng mới
-    private JPanel panelNewCustomer;
-    private datepicker.DatePickerField txtNewBirth;
-    private JTextField txtNewHistory;
+    private JTextField txtCustName;
 
     private JComboBox<ServiceItem> cbService;
-    private JComboBox<EmployeeItem> cbDoctor;
-    private JComboBox<String> cbStatus;
+    private JComboBox<DoctorItem> cbDoctor;
     private JComboBox<String> cbTime;
 
+    private JSpinner spDate;
+
     private JLabel lblCustomerStatus;
+    private JLabel lblDayTableTitle;
 
-    private boolean isEditing = false;
+    private JPanel timeGridPanel;
 
-    // =====================================================
-    // MODEL COMBOBOX
-    // =====================================================
+    // dl form
 
-    private static class ServiceItem {
+    private JTable table;
+    private DefaultTableModel modelDayTable;
+    private TableRowSorter<DefaultTableModel> sorter;
 
-        String id;
-        String name;
-        double price;
+    private JTextField txtSearch;
+    private JComboBox<String> cbStatusFilter;
 
-        ServiceItem(String id, String name, double price) {
-            this.id = id;
-            this.name = name;
-            this.price = price;
-        }
+    private JButton btnPrevious;
+    private JButton btnNext;
 
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
+    private JLabel lblPageInfo;
 
-    private static class EmployeeItem {
+    // Thống kê nhanh
+    private JLabel lblTotalAppointments;
+    private JLabel lblPendingAppointments;
+    private JLabel lblConfirmedAppointments;
 
-        String id;
-        String name;
-        String position;
+    private int currentPage = 0;
+    private int totalPages = 1;
 
-        EmployeeItem(String id, String name, String position) {
-            this.id = id;
-            this.name = name;
-            this.position = position;
-        }
+    private int hoveredRow = -1;
 
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
+    // ================= STATE =================
 
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
+    private boolean isDateSelected = false;
+    private boolean existingCustomer = false;
+    private String existingCustomerId = null;
+    private String lastLookedPhone = "";
+
+    private boolean loading = false;
+
+    private Set<String> busyTimes = new HashSet<String>();
+
+    // ================= CONSTRUCTOR =================
 
     public AppointmentBookingPanel() {
 
-        setLayout(new BorderLayout(0, 15));
+        setLayout(new BorderLayout(0, 18));
         setBackground(BG_CANVAS);
-        setBorder(new EmptyBorder(20, 30, 20, 30));
+        setBorder(new EmptyBorder(22, 25, 22, 25));
 
-        createInterface();
+        add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // Lấy dữ liệu trực tiếp từ SQL Server
-        loadServices();
-        loadDoctors();
-        loadAppointments();
+        JPanel content = new JPanel(new BorderLayout(18, 0));
+        content.setOpaque(false);
 
-        clearForm();
+        content.add(createFormCard(), BorderLayout.WEST);
+        content.add(createDayTableCard(), BorderLayout.CENTER);
+
+        add(content, BorderLayout.CENTER);
+
+        refreshData();
     }
 
-    // =====================================================
-    // LÀM MỚI DỮ LIỆU KHI MỞ MÀN HÌNH (MenuFrame gọi hàm này)
-    // =====================================================
+    // ================= REFRESH DATA =================
 
     public void refreshData() {
 
-        // Nhớ lại lựa chọn hiện tại để không mất khi tải lại
-        ServiceItem oldService = (ServiceItem) cbService.getSelectedItem();
-        EmployeeItem oldDoctor = (EmployeeItem) cbDoctor.getSelectedItem();
+        loading = true;
 
-        String oldServiceName = oldService == null ? null : oldService.name;
-        String oldDoctorId = oldDoctor == null ? null : oldDoctor.id;
+        try {
+            loadServices();
+            loadDoctors();
 
-        loadServices();
-        loadDoctors();
+            isDateSelected = false;
 
-        if (oldServiceName != null) {
-            selectServiceByName(oldServiceName);
+        } finally {
+            loading = false;
         }
 
-        if (oldDoctorId != null) {
-            selectDoctorById(oldDoctorId);
-        }
-
-        loadAppointments();
-
-        if (!isEditing) {
-            refreshNextAppointmentId();
-        }
+        refreshPreviewIds();
+        refreshAvailability();
     }
 
-    // =====================================================
-    // GIAO DIỆN CHÍNH
-    // =====================================================
+    // ================= HEADER =================
 
-    private void createInterface() {
+    private JPanel createHeaderPanel() {
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        JLabel lblTitle = new JLabel(
-            "Quản Lý & Đặt Lịch Hẹn Khách Hàng"
+        JPanel titleRow = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 10, 0)
         );
 
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(TEXT_DARK);
+        titleRow.setOpaque(false);
+        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblSub = new JLabel(
-            "Thêm mới lịch hẹn hoặc nhập SĐT để tra cứu thông tin khách hàng"
+        JLabel iconLabel = new JLabel();
+
+        java.net.URL imageURL =
+                getClass().getResource("/img/rang-tiepnhan.png");
+
+        if (imageURL != null) {
+
+            ImageIcon originalIcon = new ImageIcon(imageURL);
+
+            Image scaledImage = originalIcon.getImage()
+                    .getScaledInstance(38, 38, Image.SCALE_SMOOTH);
+
+            iconLabel.setIcon(new ImageIcon(scaledImage));
+
+        } else {
+            System.err.println("Không tìm thấy ảnh: /img/rang-tiepnhan.png");
+        }
+
+        JLabel title = new JLabel("Đặt Lịch Hẹn");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 25));
+        title.setForeground(TEXT_DARK);
+
+        titleRow.add(iconLabel);
+        titleRow.add(title);
+
+        JLabel subtitle = new JLabel(
+                "Phòng khám nha khoa Smile Dental"
         );
 
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(TEXT_GRAY);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel titleBox = new JPanel();
-        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
-        titleBox.setOpaque(false);
+        panel.add(titleRow);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(subtitle);
 
-        titleBox.add(lblTitle);
-        titleBox.add(Box.createVerticalStrut(3));
-        titleBox.add(lblSub);
+        return panel;
+    }
 
-        headerPanel.add(titleBox, BorderLayout.WEST);
+    // ================= FORM CARD =================
 
-        JPanel toolbarPanel = new JPanel(
-            new FlowLayout(FlowLayout.RIGHT, 10, 0)
+    private JPanel createFormCard() {
+
+        RoundedPanel card = new RoundedPanel(16, CARD_BG);
+
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(18, 18, 18, 18));
+        card.setPreferredSize(new Dimension(420, 0));
+
+        JLabel heading = new JLabel("Thông tin lịch hẹn");
+        heading.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        heading.setForeground(TEXT_DARK);
+
+        JPanel form = new JPanel();
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+
+        // Mã lịch hẹn
+
+        txtAppId = createTextField(false);
+        txtCustId = createTextField(false);
+
+        addRow(form, "Mã lịch hẹn", txtAppId);
+
+        // Nhóm khách hàng
+
+        JPanel customerGroup = createGroupPanel(
+                "Thông tin khách hàng"
         );
 
-        toolbarPanel.setOpaque(false);
+        txtPhone = createTextField(true);
+        txtCustName = createTextField(true);
 
-        JLabel lblSearch = new JLabel("Nhập SĐT:");
-        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        addRow(customerGroup, "Mã khách hàng", txtCustId);
+        addRow(customerGroup, "Số điện thoại", txtPhone);
 
-        txtSearchPhone = new JTextField(14);
-        txtSearchPhone.setPreferredSize(new Dimension(150, 36));
-        styleTextField(txtSearchPhone);
-
-        txtSearchPhone.addActionListener(e -> performPhoneLookup());
-
-        JButton btnSearch = createButton(
-            "Tra Cứu", BLUE_PRIMARY
+        lblCustomerStatus = new JLabel(
+                "Nhập số điện thoại để kiểm tra khách hàng"
         );
 
-        btnSearch.addActionListener(e -> performPhoneLookup());
+        lblCustomerStatus.setFont(
+                new Font("Segoe UI", Font.BOLD, 11)
+        );
 
-        toolbarPanel.add(lblSearch);
-        toolbarPanel.add(txtSearchPhone);
-        toolbarPanel.add(btnSearch);
+        lblCustomerStatus.setOpaque(true);
+        lblCustomerStatus.setBorder(
+                new EmptyBorder(7, 9, 7, 9)
+        );
 
-        headerPanel.add(toolbarPanel, BorderLayout.EAST);
+        lblCustomerStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        add(headerPanel, BorderLayout.NORTH);
+        lblCustomerStatus.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 35)
+        );
 
-        // BẢNG LỊCH HẸN
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setOpaque(false);
+        customerGroup.add(lblCustomerStatus);
+        customerGroup.add(Box.createVerticalStrut(8));
+
+        addRow(customerGroup, "Tên khách hàng", txtCustName);
+
+        form.add(customerGroup);
+        form.add(Box.createVerticalStrut(14));
+
+        // Nhóm dịch vụ và lịch hẹn
+
+        JPanel appointmentGroup = createGroupPanel(
+                "Thông tin dịch vụ và lịch hẹn"
+        );
+
+        cbService = new JComboBox<ServiceItem>();
+        cbDoctor = new JComboBox<DoctorItem>();
+        cbTime = new JComboBox<String>();
+
+        styleCombo(cbService);
+        styleCombo(cbDoctor);
+        styleCombo(cbTime);
+
+        addRow(appointmentGroup, "Dịch vụ khám", cbService);
+        addRow(appointmentGroup, "Nha sĩ phụ trách", cbDoctor);
+
+        spDate = new JSpinner(
+                new SpinnerDateModel(
+                        new Date(),
+                        null,
+                        null,
+                        Calendar.DAY_OF_MONTH
+                )
+        );
+
+        JSpinner.DateEditor dateEditor =
+                new JSpinner.DateEditor(spDate, "dd/MM/yyyy");
+
+        spDate.setEditor(dateEditor);
+        spDate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        addRow(appointmentGroup, "Ngày hẹn", spDate);
+
+        JLabel timeLabel = new JLabel("Chọn giờ hẹn");
+
+        timeLabel.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+
+        timeLabel.setForeground(TEXT_DARK);
+        timeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        appointmentGroup.add(timeLabel);
+        appointmentGroup.add(Box.createVerticalStrut(7));
+
+        // Lưới giờ trống
+
+        timeGridPanel = new JPanel();
+
+        timeGridPanel.setOpaque(false);
+
+        timeGridPanel.setLayout(
+                new BoxLayout(timeGridPanel, BoxLayout.Y_AXIS)
+        );
+
+        JScrollPane timeScroll = new JScrollPane(timeGridPanel);
+
+        timeScroll.setBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT)
+        );
+
+        timeScroll.setPreferredSize(new Dimension(340, 85));
+
+        timeScroll.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 85)
+        );
+
+        timeScroll.setMinimumSize(
+                new Dimension(0, 85)
+        );
+
+        timeScroll.getVerticalScrollBar().setUnitIncrement(12);
+
+        appointmentGroup.add(timeScroll);
+
+        // Chú thích màu giờ hẹn
+
+        JPanel legendPanel = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 8, 7)
+        );
+
+        legendPanel.setOpaque(false);
+        legendPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        legendPanel.add(createLegendItem(
+                new Color(211, 245, 229),
+                "Còn trống"
+        ));
+
+        legendPanel.add(createLegendItem(
+                new Color(255, 225, 228),
+                "Đã đặt"
+        ));
+
+        legendPanel.add(createLegendItem(
+                new Color(232, 235, 240),
+                "Không khả dụng"
+        ));
+
+        appointmentGroup.add(legendPanel);
+
+        // Combo giờ được giữ lại để phục vụ logic lưu dữ liệu.
+        // Người dùng chọn giờ trực tiếp trên lưới.
+
+        cbTime.setVisible(false);
+
+        form.add(appointmentGroup);
+        JScrollPane formScroll = new JScrollPane(form);
+
+        formScroll.setBorder(null);
+        formScroll.setOpaque(false);
+        formScroll.getViewport().setOpaque(false);
+
+        formScroll.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+
+        formScroll.getVerticalScrollBar().setUnitIncrement(15);
+
+        // Sự kiện chọn nha sĩ
+
+        cbDoctor.addActionListener(e -> {
+            if (!loading) {
+                refreshAvailability();
+            }
+        });
+
+        // Sự kiện chọn ngày
+
+        spDate.addChangeListener(e -> {
+            if (!loading) {
+                isDateSelected = true;
+                refreshAvailability();
+            }
+        });
+
+        // Tra cứu khách hàng
+
+        txtPhone.addActionListener(e -> lookupCustomer(true));
+
+        txtPhone.addFocusListener(new FocusAdapter() {
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                lookupCustomer(true);
+            }
+        });
+
+        txtPhone.getDocument().addDocumentListener(
+                new DocumentListener() {
+
+                    private void changed() {
+                        SwingUtilities.invokeLater(
+                                () -> lookupCustomer(false)
+                        );
+                    }
+
+                    @Override
+                    public void insertUpdate(DocumentEvent e) {
+                        changed();
+                    }
+
+                    @Override
+                    public void removeUpdate(DocumentEvent e) {
+                        changed();
+                    }
+
+                    @Override
+                    public void changedUpdate(DocumentEvent e) {
+                        changed();
+                    }
+                }
+        );
+
+        // Nút lưu lịch hẹn
+
+        JButton btnSave = createButton(
+                "LƯU LỊCH HẸN",
+                new Color(20, 145, 75)
+        );
+
+        btnSave.setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+
+        btnSave.setForeground(Color.WHITE);
+        btnSave.setBackground(new Color(20, 145, 75));
+
+        btnSave.setOpaque(true);
+        btnSave.setContentAreaFilled(true);
+        btnSave.setBorderPainted(false);
+        btnSave.setFocusPainted(false);
+
+        btnSave.setPreferredSize(new Dimension(0, 54));
+        btnSave.setMinimumSize(new Dimension(0, 54));
+        btnSave.setBorder(
+                new EmptyBorder(12, 20, 12, 20)
+        );
+
+        btnSave.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
+
+        btnSave.addActionListener(e -> performSave());
+
+        card.add(heading, BorderLayout.NORTH);
+        card.add(formScroll, BorderLayout.CENTER);
+        card.add(btnSave, BorderLayout.SOUTH);
+
+        setCustomerBadge(
+                "Nhập số điện thoại để kiểm tra khách hàng",
+                TEXT_GRAY,
+                READONLY_BG
+        );
+
+        return card;
+    }
+
+    // ================= TIME LEGEND =================
+
+    private JPanel createLegendItem(Color color, String text) {
+
+        JPanel item = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 5, 0)
+        );
+
+        item.setOpaque(false);
+
+        JPanel colorBox = new JPanel();
+
+        colorBox.setPreferredSize(new Dimension(12, 12));
+        colorBox.setBackground(color);
+
+        colorBox.setBorder(
+                BorderFactory.createLineBorder(
+                        new Color(210, 218, 228)
+                )
+        );
+
+        JLabel label = new JLabel(text);
+
+        label.setFont(
+                new Font("Segoe UI", Font.PLAIN, 10)
+        );
+
+        label.setForeground(TEXT_GRAY);
+
+        item.add(colorBox);
+        item.add(label);
+
+        return item;
+    }
+
+    // ================= GROUP PANEL =================
+
+    private JPanel createGroupPanel(String title) {
+
+        JPanel panel = new JPanel();
+
+        panel.setOpaque(false);
+
+        panel.setLayout(
+                new BoxLayout(panel, BoxLayout.Y_AXIS)
+        );
+
+        TitledBorder border = BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT),
+                title
+        );
+
+        border.setTitleFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+
+        border.setTitleColor(BLUE_PRIMARY);
+
+        panel.setBorder(new CompoundBorder(
+                border,
+                new EmptyBorder(10, 10, 8, 10)
+        ));
+
+        return panel;
+    }
+
+    // ================= TABLE CARD =================
+
+    private JPanel createDayTableCard() {
+
+        RoundedPanel card = new RoundedPanel(16, CARD_BG);
+
+        card.setLayout(new BorderLayout(0, 12));
+        card.setBorder(new EmptyBorder(18, 18, 18, 18));
+
+        lblDayTableTitle = new JLabel(
+                "Tất cả lịch hẹn hiện có"
+        );
+
+        lblDayTableTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+
+        lblDayTableTitle.setForeground(TEXT_DARK);
+
+        // Thanh phía trên
+
+        JPanel topPanel = new JPanel();
+
+        topPanel.setOpaque(false);
+
+        topPanel.setLayout(
+                new BoxLayout(topPanel, BoxLayout.Y_AXIS)
+        );
+
+        JPanel titlePanel = new JPanel(new BorderLayout());
+
+        titlePanel.setOpaque(false);
+
+        titlePanel.add(lblDayTableTitle, BorderLayout.WEST);
+
+        JButton btnReload = createOutlineButton("Tải lại");
+
+        btnReload.setPreferredSize(
+                new Dimension(100, 34)
+        );
+
+        btnReload.addActionListener(e -> {
+
+            isDateSelected = false;
+            currentPage = 0;
+
+            refreshAvailability();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Đã tải lại danh sách lịch hẹn!",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        });
+
+        titlePanel.add(btnReload, BorderLayout.EAST);
+
+        topPanel.add(titlePanel);
+        topPanel.add(Box.createVerticalStrut(12));
+
+        // ================= THẺ THỐNG KÊ =================
+
+        JPanel statsPanel = new JPanel(
+                new GridLayout(1, 3, 10, 0)
+        );
+
+        statsPanel.setOpaque(false);
+
+        JPanel totalCard = createStatCard(
+                "Tổng lịch hẹn",
+                "0",
+                new Color(45, 112, 220),
+                new Color(232, 241, 255),
+                "/img/ca-wait.png"
+        );
+
+        JPanel pendingCard = createStatCard(
+                "Chờ xác nhận",
+                "0",
+                new Color(190, 130, 25),
+                new Color(255, 245, 225),
+                "/img/ca-cancel.png"
+        );
+
+        JPanel confirmedCard = createStatCard(
+                "Đã xác nhận",
+                "0",
+                new Color(25, 140, 85),
+                new Color(229, 247, 239),
+                "/img/ca-confirm.png"
+        );
+
+        lblTotalAppointments =
+                (JLabel) totalCard.getClientProperty("valueLabel");
+
+        lblPendingAppointments =
+                (JLabel) pendingCard.getClientProperty("valueLabel");
+
+        lblConfirmedAppointments =
+                (JLabel) confirmedCard.getClientProperty("valueLabel");
+
+        statsPanel.add(totalCard);
+        statsPanel.add(pendingCard);
+        statsPanel.add(confirmedCard);
+
+        statsPanel.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 80)
+        );
+
+        statsPanel.setPreferredSize(
+                new Dimension(600, 80)
+        );
+
+        topPanel.add(statsPanel);
+        topPanel.add(Box.createVerticalStrut(14));
+
+        // ================= THANH TÌM KIẾM =================
+
+        JPanel searchPanel = new JPanel(
+                new BorderLayout(10, 0)
+        );
+
+        searchPanel.setOpaque(false);
+
+        txtSearch = createTextField(true);
+
+        txtSearch.setToolTipText(
+                "Tìm theo tên khách hàng hoặc số điện thoại"
+        );
+
+        txtSearch.setPreferredSize(
+                new Dimension(220, 36)
+        );
+
+        cbStatusFilter = new JComboBox<String>(
+                new String[]{
+                        "Tất cả",
+                        "Chờ xác nhận",
+                        "Đã xác nhận",
+                        "Hoàn thành",
+                        "Đã hủy"
+                }
+        );
+
+        styleCombo(cbStatusFilter);
+
+        cbStatusFilter.setPreferredSize(
+                new Dimension(155, 36)
+        );
+
+        searchPanel.add(txtSearch, BorderLayout.CENTER);
+        searchPanel.add(cbStatusFilter, BorderLayout.EAST);
+
+        topPanel.add(searchPanel);
+        topPanel.add(Box.createVerticalStrut(12));
+
+        // ================= BẢNG DỮ LIỆU =================
 
         String[] columns = {
-            "Mã Lịch Hẹn",
-            "Mã KH",
-            "Tên Khách Hàng",
-            "SĐT",
-            "Dịch vụ khám",
-            "Nha sĩ phụ trách",
-            "Ngày hẹn",
-            "Giờ",
-            "Trạng thái"
+                "Mã Lịch Hẹn",
+                "Giờ",
+                "Khách Hàng",
+                "SĐT",
+                "Dịch Vụ",
+                "Trạng Thái"
         };
 
-        modelLichDat = new DefaultTableModel(null, columns) {
+        modelDayTable = new DefaultTableModel(null, columns) {
 
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -256,761 +773,936 @@ public class AppointmentBookingPanel extends JPanel {
             }
         };
 
-        tableLichDat = new JTable(modelLichDat);
+        table = new JTable(modelDayTable) {
 
-        sorterLichDat = new TableRowSorter<>(modelLichDat);
-        tableLichDat.setRowSorter(sorterLichDat);
+            @Override
+            protected void paintComponent(Graphics g) {
 
-        styleTable(tableLichDat);
+                super.paintComponent(g);
 
-        tableLichDat.getSelectionModel().addListSelectionListener(e -> {
+                if (getRowCount() == 0) {
 
-            if (!e.getValueIsAdjusting()
-                    && tableLichDat.getSelectedRow() != -1) {
+                    Graphics2D g2 = (Graphics2D) g.create();
 
-                loadDataToFormForEdit();
+                    g2.setRenderingHint(
+                            RenderingHints.KEY_TEXT_ANTIALIASING,
+                            RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+                    );
+
+                    String message = "Chưa có lịch hẹn nào";
+
+                    g2.setFont(
+                            new Font("Segoe UI", Font.BOLD, 15)
+                    );
+
+                    g2.setColor(TEXT_GRAY);
+
+                    FontMetrics fm = g2.getFontMetrics();
+
+                    int x = (
+                            getWidth() - fm.stringWidth(message)
+                    ) / 2;
+
+                    int y = getHeight() / 2;
+
+                    g2.drawString(message, x, y);
+
+                    g2.dispose();
+                }
             }
-        });
+        };
 
-        JScrollPane scroll = new JScrollPane(tableLichDat);
+        sorter = new TableRowSorter<DefaultTableModel>(
+                modelDayTable
+        );
+
+        table.setRowSorter(sorter);
+
+        styleTable(table);
+
+        JScrollPane scroll = new JScrollPane(table);
 
         scroll.setBorder(
-            BorderFactory.createLineBorder(BORDER_LIGHT)
+                BorderFactory.createLineBorder(BORDER_LIGHT)
         );
 
         scroll.getViewport().setBackground(Color.WHITE);
 
-        tablePanel.add(scroll, BorderLayout.CENTER);
+        // ================= PHÂN TRANG =================
 
-        JPanel formPanel = createFormPanel();
-
-        // Form nằm trong ScrollPane để khi hiện thêm ô thông tin
-        // khách hàng mới vẫn không bị tràn màn hình nhỏ
-        JScrollPane formScroll = new JScrollPane(
-            formPanel,
-            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        JPanel paginationPanel = new JPanel(
+                new FlowLayout(FlowLayout.CENTER, 12, 5)
         );
 
-        formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
-        formScroll.getViewport().setBackground(BG_CANVAS);
-        formScroll.setPreferredSize(new Dimension(350, 0));
+        paginationPanel.setOpaque(false);
 
-        JPanel centerPanel = new JPanel(new BorderLayout(15, 0));
-        centerPanel.setOpaque(false);
+        btnPrevious = createOutlineButton("‹ Trước");
+        btnNext = createOutlineButton("Sau ›");
 
-        centerPanel.add(tablePanel, BorderLayout.CENTER);
-        centerPanel.add(formScroll, BorderLayout.EAST);
+        lblPageInfo = new JLabel("Trang 1/1");
 
-        add(centerPanel, BorderLayout.CENTER);
+        lblPageInfo.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+
+        lblPageInfo.setForeground(TEXT_DARK);
+
+        btnPrevious.addActionListener(e -> {
+
+            if (currentPage > 0) {
+                currentPage--;
+                updatePagination();
+            }
+        });
+
+        btnNext.addActionListener(e -> {
+
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updatePagination();
+            }
+        });
+
+        paginationPanel.add(btnPrevious);
+        paginationPanel.add(lblPageInfo);
+        paginationPanel.add(btnNext);
+
+        // SỰ KIỆN TÌM KIẾM
+
+        txtSearch.getDocument().addDocumentListener(
+                new DocumentListener() {
+
+                    private void changed() {
+                        currentPage = 0;
+                        updatePagination();
+                    }
+
+                    @Override
+                    public void insertUpdate(DocumentEvent e) {
+                        changed();
+                    }
+
+                    @Override
+                    public void removeUpdate(DocumentEvent e) {
+                        changed();
+                    }
+
+                    @Override
+                    public void changedUpdate(DocumentEvent e) {
+                        changed();
+                    }
+                }
+        );
+
+        cbStatusFilter.addActionListener(e -> {
+            currentPage = 0;
+            updatePagination();
+        });
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+
+        bottomPanel.setOpaque(false);
+
+        bottomPanel.add(
+                paginationPanel,
+                BorderLayout.CENTER
+        );
+
+        card.add(topPanel, BorderLayout.NORTH);
+        card.add(scroll, BorderLayout.CENTER);
+        card.add(bottomPanel, BorderLayout.SOUTH);
+
+        return card;
     }
 
-    // =====================================================
-    // FORM ĐẶT LỊCH
-    // =====================================================
+    //thẻ thống kê
 
-    private JPanel createFormPanel() {
+    private JPanel createStatCard(
+            String title,
+            String value,
+            Color foreground,
+            Color background,
+            String imagePath
+    ) {
+        RoundedPanel card = new RoundedPanel(18, background);
 
-        JPanel panel = new JPanel();
+        card.setLayout(new BorderLayout(14, 0));
+        card.setBorder(new EmptyBorder(16, 18, 16, 18));
 
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(CARD_BG);
+        // Ảnh minh họa
+        JLabel lblImage = new JLabel();
+        lblImage.setHorizontalAlignment(SwingConstants.CENTER);
+        lblImage.setPreferredSize(new Dimension(65, 65));
 
-        panel.setBorder(
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT),
-                new EmptyBorder(18, 18, 18, 18)
-            )
-        );
+        java.net.URL imageURL = getClass().getResource(imagePath);
 
-        JLabel lblTitle = new JLabel("Thông Tin Đặt Lịch Hẹn");
+        if (imageURL != null) {
+            ImageIcon original = new ImageIcon(imageURL);
 
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(TEXT_DARK);
+            Image scaled = original.getImage().getScaledInstance(
+                    58, 58, Image.SCALE_SMOOTH
+            );
+
+            lblImage.setIcon(new ImageIcon(scaled));
+        } else {
+            System.err.println("Không tìm thấy ảnh: " + imagePath);
+            lblImage.setText("●");
+            lblImage.setFont(new Font("Segoe UI", Font.BOLD, 35));
+            lblImage.setForeground(foreground);
+        }
+
+        // Nội dung
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(foreground);
+
+        JLabel lblValue = new JLabel(value);
+        lblValue.setFont(new Font("Segoe UI", Font.BOLD, 29));
+        lblValue.setForeground(foreground);
+
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblValue.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        panel.add(lblTitle);
-        panel.add(Box.createVerticalStrut(14));
+        content.add(lblTitle);
+        content.add(Box.createVerticalStrut(5));
+        content.add(lblValue);
 
-        txtAppId = addTextField(panel, "Mã lịch hẹn:");
-        txtAppId.setEditable(false);
+        card.add(lblImage, BorderLayout.WEST);
+        card.add(content, BorderLayout.CENTER);
 
-        txtCustId = addTextField(panel, "Mã khách hàng:");
-        txtCustId.setEditable(false);
+        card.putClientProperty("valueLabel", lblValue);
 
-        txtCustName = addTextField(panel, "Tên khách hàng:");
-        txtPhone = addTextField(panel, "Số điện thoại:");
+        card.setPreferredSize(new Dimension(200, 112));
+        card.setMinimumSize(new Dimension(150, 105));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
 
-        // Badge trạng thái khách hàng cũ / mới
-        lblCustomerStatus = new JLabel();
+        return card;
+    }
 
-        lblCustomerStatus.setFont(
-            new Font("Segoe UI", Font.BOLD, 11)
+    //cập nhật thống kê
+
+    private void updateStatistics() {
+
+        if (modelDayTable == null
+                || lblTotalAppointments == null
+                || lblPendingAppointments == null
+                || lblConfirmedAppointments == null) {
+            return;
+        }
+
+        int total = modelDayTable.getRowCount();
+        int pending = 0;
+        int confirmed = 0;
+        for (int i = 0; i < modelDayTable.getRowCount(); i++) {
+
+            String status = String.valueOf(
+                    modelDayTable.getValueAt(i, 5)
+            ).trim();
+
+            if ("Chờ xác nhận".equalsIgnoreCase(status)) {
+                pending++;
+            }
+
+            if ("Đã xác nhận".equalsIgnoreCase(status)) {
+                confirmed++;
+            }
+        }
+
+        lblTotalAppointments.setText(
+                String.valueOf(total)
         );
 
-        lblCustomerStatus.setOpaque(true);
-        lblCustomerStatus.setBorder(new EmptyBorder(4, 8, 4, 8));
-        lblCustomerStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        setBadge("Chưa kiểm tra khách hàng", MUTED, BADGE_GRAY_BG);
-
-        panel.add(lblCustomerStatus);
-        panel.add(Box.createVerticalStrut(12));
-
-        // Thông tin bổ sung cho khách hàng mới (ẩn mặc định)
-        panelNewCustomer = new JPanel();
-        panelNewCustomer.setLayout(
-            new BoxLayout(panelNewCustomer, BoxLayout.Y_AXIS)
-        );
-        panelNewCustomer.setOpaque(false);
-        panelNewCustomer.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        txtNewBirth = addDatePicker(
-            panelNewCustomer, "Ngày sinh (dd/MM/yyyy, tùy chọn):"
+        lblPendingAppointments.setText(
+                String.valueOf(pending)
         );
 
-        txtNewHistory = addTextField(
-            panelNewCustomer, "Tiền sử bệnh / dị ứng (tùy chọn):"
+        lblConfirmedAppointments.setText(
+                String.valueOf(confirmed)
+        );
+    }
+
+    //bảng STYLE 
+
+    private void styleTable(JTable table) {
+
+        table.setRowHeight(40);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        table.setForeground(TEXT_DARK);
+        table.setBackground(Color.WHITE);
+
+        table.setGridColor(new Color(239, 243, 248));
+        table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(true);
+
+        table.setFillsViewportHeight(true);
+
+        table.setSelectionBackground(BLUE_LIGHT);
+        table.setSelectionForeground(TEXT_DARK);
+
+        table.setIntercellSpacing(new Dimension(0, 1));
+
+        JTableHeader header = table.getTableHeader();
+
+        header.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
         );
 
-        panelNewCustomer.setVisible(false);
-        panel.add(panelNewCustomer);
+        header.setBackground(new Color(239, 245, 252));
+        header.setForeground(TEXT_DARK);
 
-        // Tự tra cứu khi nhấn Enter hoặc khi rời khỏi ô số điện thoại
-        txtPhone.addActionListener(e -> lookupCustomerByPhone());
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setReorderingAllowed(false);
 
-        txtPhone.addFocusListener(new FocusAdapter() {
+        DefaultTableCellRenderer headerRenderer =
+                (DefaultTableCellRenderer) header.getDefaultRenderer();
+
+        headerRenderer.setHorizontalAlignment(
+                SwingConstants.CENTER
+        );
+
+        // Renderer căn giữa các cột thông thường
+
+        DefaultTableCellRenderer center =
+                new DefaultTableCellRenderer() {
+
+                    @Override
+                    public Component getTableCellRendererComponent(
+                            JTable table,
+                            Object value,
+                            boolean selected,
+                            boolean focus,
+                            int row,
+                            int column
+                    ) {
+
+                        super.getTableCellRendererComponent(
+                                table,
+                                value,
+                                selected,
+                                focus,
+                                row,
+                                column
+                        );
+
+                        setHorizontalAlignment(
+                                SwingConstants.CENTER
+                        );
+
+                        if (selected) {
+                            setBackground(BLUE_LIGHT);
+                        } else if (row == hoveredRow) {
+                            setBackground(new Color(235, 244, 255));
+                        } else if (row % 2 == 0) {
+                            setBackground(Color.WHITE);
+                        } else {
+                            setBackground(new Color(248, 250, 253));
+                        }
+
+                        setForeground(TEXT_DARK);
+
+                        return this;
+                    }
+                };
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+
+            table.getColumnModel()
+                    .getColumn(i)
+                    .setCellRenderer(center);
+        }
+
+        // Badge trạng thái
+
+        table.getColumnModel()
+                .getColumn(5)
+                .setCellRenderer(new StatusBadgeRenderer());
+
+        // Hover hàng
+
+        table.addMouseMotionListener(new MouseAdapter() {
+
             @Override
-            public void focusLost(FocusEvent e) {
+            public void mouseMoved(MouseEvent e) {
 
-                if (!isEditing
-                        && txtPhone.getText().trim().length() >= 10) {
+                int row = table.rowAtPoint(e.getPoint());
 
-                    lookupCustomerByPhone();
+                if (row != hoveredRow) {
+                    hoveredRow = row;
+                    table.repaint();
                 }
             }
         });
 
-        // DỊCH VỤ LẤY TỪ SQL
-        cbService = new JComboBox<>();
+        table.addMouseListener(new MouseAdapter() {
 
-        addComboBox(panel, "Dịch vụ khám:", cbService);
-
-        // NHA SĨ LẤY TỪ SQL
-        cbDoctor = new JComboBox<>();
-
-        addComboBox(panel, "Nha sĩ phụ trách:", cbDoctor);
-
-        txtAppDate = addDatePicker(
-            panel, "Ngày hẹn (dd/MM/yyyy):"
-        );
-
-        cbTime = new JComboBox<>(STANDARD_TIMES);
-
-        addComboBox(panel, "Giờ hẹn:", cbTime);
-
-        JButton btnAvailable = createButton(
-            "Xem giờ trống của nha sĩ", GREEN_ACCENT
-        );
-
-        btnAvailable.setMaximumSize(
-            new Dimension(Integer.MAX_VALUE, 36)
-        );
-
-        btnAvailable.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        btnAvailable.addActionListener(e -> showAvailableTimes());
-
-        panel.add(btnAvailable);
-        panel.add(Box.createVerticalStrut(12));
-
-        cbStatus = new JComboBox<>(new String[]{
-            "Chờ xác nhận",
-            "Đã xác nhận",
-            "Hoàn thành",
-            "Đã hủy"
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoveredRow = -1;
+                table.repaint();
+            }
         });
-
-        addComboBox(panel, "Trạng thái:", cbStatus);
-
-        JPanel buttonPanel = new JPanel(
-            new GridLayout(1, 2, 10, 0)
-        );
-
-        buttonPanel.setOpaque(false);
-
-        buttonPanel.setMaximumSize(
-            new Dimension(Integer.MAX_VALUE, 38)
-        );
-
-        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JButton btnSave = createButton(
-            "Lưu Lịch", GREEN_ACCENT
-        );
-
-        JButton btnClear = createButton(
-            "Làm Mới", PINK_ACCENT
-        );
-
-        btnSave.addActionListener(e -> performSave());
-        btnClear.addActionListener(e -> clearForm());
-
-        buttonPanel.add(btnSave);
-        buttonPanel.add(btnClear);
-
-        panel.add(buttonPanel);
-
-        return panel;
     }
 
-    // =====================================================
-    // HÀM TẠO GIAO DIỆN
-    // =====================================================
+    // trạng thái
 
-    private JTextField addTextField(
-            JPanel panel, String label) {
+    private class StatusBadgeRenderer
+            extends DefaultTableCellRenderer {
 
-        JLabel lbl = new JLabel(label);
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean selected,
+                boolean focus,
+                int row,
+                int column
+        ) {
 
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JLabel label = new JLabel( value == null ? "" : value.toString()
+            );
 
-        panel.add(lbl);
-        panel.add(Box.createVerticalStrut(4));
+            label.setFont(
+                    new Font("Segoe UI", Font.BOLD, 11)
+            );
 
-        JTextField txt = new JTextField();
+            label.setHorizontalAlignment(
+                    SwingConstants.CENTER
+            );
 
-        styleTextField(txt);
+            label.setOpaque(true);
 
-        txt.setMaximumSize(
-            new Dimension(Integer.MAX_VALUE, 34)
-        );
+            String status = value == null
+                    ? ""
+                    : value.toString().trim();
 
-        txt.setAlignmentX(Component.LEFT_ALIGNMENT);
+            Color fg = TEXT_GRAY;
+            Color bg = READONLY_BG;
 
-        panel.add(txt);
-        panel.add(Box.createVerticalStrut(10));
+            if ("Chờ xác nhận".equalsIgnoreCase(status)) {
 
-        return txt;
+                fg = new Color(160, 110, 10);
+                bg = ORANGE_LIGHT;
+
+            } else if ("Đã xác nhận".equalsIgnoreCase(status)) {
+
+                fg = BLUE_PRIMARY;
+                bg = BLUE_LIGHT;
+
+            } else if ("Hoàn thành".equalsIgnoreCase(status)) {
+
+                fg = new Color(25, 130, 85);
+                bg = GREEN_LIGHT;
+
+            } else if ("Đã hủy".equalsIgnoreCase(status)) {
+
+                fg = RED_ACCENT;
+                bg = RED_LIGHT;
+            }
+
+            if (selected) {
+                bg = BLUE_LIGHT;
+            }
+
+            label.setForeground(fg);
+            label.setBackground(bg);
+
+            label.setBorder(
+                    new EmptyBorder(5, 10, 5, 10));
+
+            JPanel wrapper = new JPanel(new GridBagLayout());
+
+            wrapper.setOpaque(true);
+
+            if (selected) {
+                wrapper.setBackground(BLUE_LIGHT);
+            } else if (row == hoveredRow) {
+                wrapper.setBackground(new Color(235, 244, 255));
+            } else if (row % 2 == 0) {
+                wrapper.setBackground(Color.WHITE);
+            } else {
+                wrapper.setBackground(new Color(248, 250, 253));
+            }
+
+            wrapper.add(label);
+
+            return wrapper;
+        }
     }
 
-    private datepicker.DatePickerField addDatePicker(JPanel panel, String label) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(lbl);
-        panel.add(Box.createVerticalStrut(4));
-        datepicker.DatePickerField field = new datepicker.DatePickerField();
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(field);
-        panel.add(Box.createVerticalStrut(10));
+    // cập nhật trang đếm
+
+    private void updatePagination() {
+
+        if (sorter == null) {
+            return;
+        }
+
+        final String keyword = txtSearch == null
+                ? "": txtSearch.getText().trim().toLowerCase();
+
+        final String status = cbStatusFilter == null
+                ? "Tất cả"
+                : (String) cbStatusFilter.getSelectedItem();
+
+        // Đếm số dòng phù hợp với tìm kiếm và trạng thái
+
+        int matchingRows = 0;
+
+        for (int i = 0; i < modelDayTable.getRowCount(); i++) {
+
+            String customer = String.valueOf(
+                    modelDayTable.getValueAt(i, 2)
+            ).toLowerCase();
+
+            String phone = String.valueOf(
+                    modelDayTable.getValueAt(i, 3)
+            ).toLowerCase();
+
+            String rowStatus = String.valueOf(
+                    modelDayTable.getValueAt(i, 5)
+            );
+
+            boolean matchKeyword = keyword.isEmpty()
+                    || customer.contains(keyword)
+                    || phone.contains(keyword);
+
+            boolean matchStatus = "Tất cả".equals(status)
+                    || status.equalsIgnoreCase(rowStatus);
+
+            if (matchKeyword && matchStatus) {
+                matchingRows++;
+            }
+        }
+
+        totalPages = Math.max(
+                1,
+                (int) Math.ceil(
+                        matchingRows / (double) PAGE_SIZE
+                )
+        );
+
+        if (currentPage >= totalPages) {
+            currentPage = totalPages - 1;
+        }
+
+        if (currentPage < 0) {
+            currentPage = 0;
+        }
+
+        final int start = currentPage * PAGE_SIZE;
+        final int end = start + PAGE_SIZE;
+
+        RowFilter<DefaultTableModel, Integer> filter =
+                new RowFilter<DefaultTableModel, Integer>() {
+
+                    @Override
+                    public boolean include(
+                            Entry<? extends DefaultTableModel,
+                                    ? extends Integer> entry
+                    ) {
+
+                        int modelRow = entry.getIdentifier();
+
+                        String customer = String.valueOf(
+                                entry.getValue(2)
+                        ).toLowerCase();
+
+                        String phone = String.valueOf(
+                                entry.getValue(3)
+                        ).toLowerCase();
+
+                        String rowStatus = String.valueOf(
+                                entry.getValue(5)
+                        );
+
+                        boolean matchKeyword = keyword.isEmpty()
+                                || customer.contains(keyword)
+                                || phone.contains(keyword);
+
+                        boolean matchStatus = "Tất cả".equals(status)
+                                || status.equalsIgnoreCase(rowStatus);
+
+                        return matchKeyword
+                                && matchStatus
+                                && modelRow >= start
+                                && modelRow < end;
+                    }
+                };
+
+        sorter.setRowFilter(filter);
+
+        lblPageInfo.setText(
+                "Trang " + (currentPage + 1)
+                        + "/" + totalPages
+                        + "  |  " + matchingRows + " lịch hẹn"
+        );
+
+        btnPrevious.setEnabled(currentPage > 0);
+        btnNext.setEnabled(currentPage < totalPages - 1);
+    }
+
+    //UI thành phần
+
+    private JTextField createTextField(boolean editable) {
+
+        JTextField field = new JTextField();
+
+        field.setFont(
+                new Font("Segoe UI", Font.PLAIN, 13)
+        );
+
+        field.setForeground(TEXT_DARK);
+        field.setEditable(editable);
+
+        Border normalBorder = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1),
+                new EmptyBorder(5, 10, 5, 10)
+        );
+
+        Border focusBorder = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BLUE_PRIMARY, 2),
+                new EmptyBorder(4, 9, 4, 9)
+        );
+
+        field.setBorder(normalBorder);
+
+        if (!editable) {
+
+            field.setBackground(READONLY_BG);
+
+        } else {
+
+            field.setBackground(Color.WHITE);
+
+            field.addFocusListener(new FocusAdapter() {
+
+                @Override
+                public void focusGained(FocusEvent e) {
+                    field.setBorder(focusBorder);
+                }
+
+                @Override
+                public void focusLost(FocusEvent e) {
+                    field.setBorder(normalBorder);
+                }
+            });
+        }
+
         return field;
     }
-    private void addComboBox(
-            JPanel panel,
-            String label,
-            JComboBox<?> combo) {
 
-        JLabel lbl = new JLabel(label);
-
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(lbl);
-        panel.add(Box.createVerticalStrut(4));
+    private void styleCombo(JComboBox<?> combo) {
 
         combo.setFont(
-            new Font("Segoe UI", Font.PLAIN, 13)
+                new Font("Segoe UI", Font.PLAIN, 13)
         );
 
         combo.setBackground(Color.WHITE);
-
-        combo.setMaximumSize(
-            new Dimension(Integer.MAX_VALUE, 34)
-        );
-
-        combo.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(combo);
-        panel.add(Box.createVerticalStrut(10));
+        combo.setForeground(TEXT_DARK);
     }
 
-    private void styleTextField(JTextField txt) {
+    private void addRow(
+            JPanel panel,
+            String labelText,
+            JComponent field
+    ) {
 
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-
-        txt.setBorder(
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT),
-                new EmptyBorder(4, 8, 4, 8)
-            )
-        );
+        addRow(panel, labelText, field, 36);
     }
 
-    private JButton createButton(String text, Color color) {
+    private void addRow(
+            JPanel panel,
+            String labelText,
+            JComponent field,
+            int height
+    ) {
 
-        final Color normalColor = color;
-        final Color hoverColor = color.darker();
+        JLabel label = new JLabel(labelText);
 
-        JButton btn = new JButton(text);
-
-        // Dùng UI cơ bản để màu nền tô kín 100% ô nút
-        // (một số giao diện hệ thống như Windows sẽ bỏ qua setBackground)
-        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
-
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(normalColor);
-
-        btn.setOpaque(true);
-        btn.setContentAreaFilled(true);
-        btn.setBorderPainted(false);
-        btn.setBorder(new EmptyBorder(6, 14, 6, 14));
-        btn.setFocusPainted(false);
-
-        btn.setCursor(
-            Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        label.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
         );
 
-        btn.setPreferredSize(new Dimension(100, 36));
+        label.setForeground(TEXT_DARK);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Hiệu ứng rê chuột: xanh đậm hơn một chút
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                btn.setBackground(hoverColor);
-            }
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                btn.setBackground(normalColor);
-            }
-        });
+        field.setPreferredSize(
+                new Dimension(360, height)
+        );
 
-        return btn;
+        field.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, height)
+        );
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(12));
     }
 
-    // Cập nhật badge trạng thái khách hàng
-    private void setBadge(String text, Color fg, Color bg) {
+    private void setCustomerBadge(
+            String text,
+            Color fg,
+            Color bg
+    ) {
 
         lblCustomerStatus.setText(text);
         lblCustomerStatus.setForeground(fg);
         lblCustomerStatus.setBackground(bg);
     }
 
-    // Hiện / ẩn ô thông tin bổ sung của khách hàng mới
-    private void setNewCustomerMode(boolean isNew) {
+    // BUTTON
 
-        panelNewCustomer.setVisible(isNew);
+    private JButton createButton(
+            String text,
+            Color background
+    ) {
 
-        if (!isNew) {
-            txtNewBirth.setText("");
-            txtNewHistory.setText("");
-        }
+        JButton button = new JButton(text);
 
-        panelNewCustomer.revalidate();
-        panelNewCustomer.repaint();
-    }
-
-    private void styleTable(JTable table) {
-        table.setRowHeight(38);
-
-        table.setFont(
-            new Font("Segoe UI", Font.PLAIN, 13)
+        button.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
         );
 
-        table.setForeground(TEXT_DARK);
-        table.setGridColor(new Color(240, 244, 248));
+        button.setForeground(Color.WHITE);
+        button.setBackground(background);
 
-        table.setSelectionBackground(
-            new Color(225, 240, 255)
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+
+        button.setBorder(
+                new EmptyBorder(8, 16, 8, 16)
         );
 
-        table.setSelectionForeground(TEXT_DARK);
-
-        table.getTableHeader().setFont(
-            new Font("Segoe UI", Font.BOLD, 13)
+        button.setCursor(
+                Cursor.getPredefinedCursor(
+                        Cursor.HAND_CURSOR
+                )
         );
 
-        table.getTableHeader().setBackground(
-            new Color(245, 248, 253)
-        );
+        Color normal = background;
+        Color hover = new Color(15, 112, 57);
 
-        table.getTableHeader().setForeground(TEXT_DARK);
+        button.addMouseListener(new MouseAdapter() {
 
-        table.getTableHeader().setPreferredSize(
-            new Dimension(0, 36)
-        );
-
-        // TÙY CHỈNH MÀU SẮC TRẠNG THÁI TRÊN BẢNG
-        table.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(hover);
+            }
 
-                if (!isSelected) {
-                    setBackground(Color.WHITE);
-                    String status = value != null ? value.toString() : "";
-                    if (status.equals("Chờ xác nhận")) {
-                        setForeground(TEXT_DARK);
-                        setFont(new Font("Segoe UI", Font.BOLD, 13));
-                    } else if (status.equals("Hoàn thành")) {
-                        setForeground(GREEN_ACCENT);
-                        setFont(new Font("Segoe UI", Font.BOLD, 13));
-                    } else if (status.equals("Đã xác nhận")) {
-                        setForeground(BLUE_PRIMARY);
-                        setFont(new Font("Segoe UI", Font.BOLD, 13));
-                    } else if (status.equals("Đã hủy")) {
-                        setForeground(PINK_ACCENT);
-                        setFont(new Font("Segoe UI", Font.BOLD, 13));
-                    } else {
-                        setForeground(TEXT_DARK);
-                        setFont(new Font("Segoe UI", Font.PLAIN, 13));
-                    }
-                } else {
-                    setForeground(table.getSelectionForeground());
-                    setBackground(table.getSelectionBackground());
-                }
-                setHorizontalAlignment(SwingConstants.CENTER);
-                return c;
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(normal);
             }
         });
+
+        return button;
     }
 
-    // =====================================================
-    // LOAD DỊCH VỤ TỪ DATABASE
-    // =====================================================
+    private JButton createOutlineButton(String text) {
+
+        JButton button = new JButton(text);
+
+        button.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+
+        button.setForeground(BLUE_PRIMARY);
+        button.setBackground(Color.WHITE);
+
+        button.setOpaque(true);
+        button.setFocusPainted(false);
+
+        button.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                new Color(190, 211, 243)
+                        ),
+                        new EmptyBorder(6, 12, 6, 12)
+                )
+        );
+
+        button.setCursor(
+                Cursor.getPredefinedCursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        button.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(BLUE_LIGHT);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(Color.WHITE);
+            }
+        });
+
+        return button;
+    }
+
+    //  tải service
 
     private void loadServices() {
 
         cbService.removeAllItems();
 
         String sql =
-            "SELECT maDichVu, tenDichVu, donGia "
-            + "FROM DichVu "
-            + "ORDER BY tenDichVu";
+                "SELECT maDichVu, tenDichVu "+ "FROM DichVu ORDER BY tenDichVu";
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()
+        ) {
 
             while (rs.next()) {
 
-                ServiceItem item = new ServiceItem(
-                    rs.getString("maDichVu"),
-                    rs.getString("tenDichVu"),
-                    rs.getDouble("donGia")
+                cbService.addItem(
+                        new ServiceItem(
+                                rs.getString("maDichVu"),
+                                rs.getString("tenDichVu")
+                        )
                 );
-
-                cbService.addItem(item);
             }
 
         } catch (SQLException e) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Không thể tải danh sách dịch vụ!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
+            showError(
+                    "Không thể tải danh sách dịch vụ!\n"
+                            + e.getMessage()
             );
         }
     }
 
-    // =====================================================
-    // LOAD NHA SĨ TỪ DATABASE
-    // =====================================================
+    // LOAD DOCTOR
 
     private void loadDoctors() {
 
+        DoctorItem old =
+                (DoctorItem) cbDoctor.getSelectedItem();
+
+        String oldId = old == null ? null : old.id;
         cbDoctor.removeAllItems();
-
         String sql =
-            "SELECT maNhanVien, tenNhanVien, chucVu "
-            + "FROM NhanVien "
-            + "WHERE chucVu LIKE N'%Bác sĩ%' "
-            + "ORDER BY tenNhanVien";
+                "SELECT maNhanVien, tenNhanVien FROM NhanVien "
+                        + "WHERE chucVu LIKE N'%Bác sĩ%' "
+                        + "OR chucVu LIKE N'%Nha sĩ%' "
+                        + "ORDER BY tenNhanVien";
 
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()
+        ) {
 
             while (rs.next()) {
 
-                EmployeeItem item = new EmployeeItem(
-                    rs.getString("maNhanVien"),
-                    rs.getString("tenNhanVien"),
-                    rs.getString("chucVu")
+                cbDoctor.addItem(
+                        new DoctorItem(
+                                rs.getString("maNhanVien"),
+                                rs.getString("tenNhanVien")
+                        )
                 );
-
-                cbDoctor.addItem(item);
             }
 
         } catch (SQLException e) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Không thể tải danh sách nha sĩ!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
+            showError(
+                    "Không thể tải danh sách nha sĩ!\n"
+                            + e.getMessage()
             );
         }
-    }
 
-    // =====================================================
-    // LOAD LỊCH HẸN TỪ DATABASE
-    // =====================================================
+        if (oldId != null) {
 
-    private void loadAppointments() {
+            for (int i = 0; i < cbDoctor.getItemCount(); i++) {
 
-        modelLichDat.setRowCount(0);
-
-        // Tên dịch vụ được lưu trong cột ghiChu nên lấy trực tiếp LH.ghiChu
-        String sql =
-            "SELECT "
-            + "LH.maLichHen, "
-            + "KH.maKhachHang, "
-            + "KH.tenKH, "
-            + "KH.sdt, "
-            + "LH.ghiChu, "
-            + "NV.tenNhanVien, "
-            + "CONVERT(VARCHAR(10), LH.ngayHen, 103) AS ngayHen, "
-            + "LH.gioKham, "
-            + "LH.trangThai "
-            + "FROM LichHen LH "
-            + "INNER JOIN KhachHang KH "
-            + "ON LH.maKhachHang = KH.maKhachHang "
-            + "LEFT JOIN NhanVien NV "
-            + "ON LH.maNhanVien = NV.maNhanVien "
-            + "ORDER BY LH.ngayHen DESC, LH.gioKham DESC";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-
-                Object[] row = {
-                    rs.getString("maLichHen"),
-                    rs.getString("maKhachHang"),
-                    rs.getString("tenKH"),
-                    rs.getString("sdt"),
-                    rs.getString("ghiChu"),
-                    rs.getString("tenNhanVien"),
-                    rs.getString("ngayHen"),
-                    rs.getString("gioKham"),
-                    rs.getString("trangThai")
-                };
-
-                modelLichDat.addRow(row);
-            }
-
-        } catch (SQLException e) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Không thể tải danh sách lịch hẹn!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
-            );
-        }
-    }
-
-    // =====================================================
-    // TRA CỨU KHÁCH HÀNG BẰNG SĐT (CŨ / MỚI + ĐIỂM TÍCH LŨY)
-    // =====================================================
-
-    private boolean lookupCustomerByPhone() {
-
-        String phone = txtPhone.getText().trim();
-
-        if (phone.isEmpty()) {
-            return false;
-        }
-
-        String sql =
-            "SELECT maKhachHang, tenKH, diemTichLuy "
-            + "FROM KhachHang "
-            + "WHERE sdt = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, phone);
-
-            try (ResultSet rs = ps.executeQuery()) {
-
-                // ----- Khách hàng cũ -----
-                if (rs.next()) {
-
-                    txtCustId.setText(
-                        rs.getString("maKhachHang")
-                    );
-
-                    txtCustName.setText(
-                        rs.getString("tenKH")
-                    );
-
-                    // Điểm tích lũy lấy trực tiếp từ cột diemTichLuy trong SQL
-                    int points = rs.getInt("diemTichLuy");
-
-                    setBadge(
-                        "Khách hàng cũ đã đến khám - "
-                        + points + " điểm tích lũy",
-                        BLUE_PRIMARY,
-                        BADGE_BLUE_BG
-                    );
-
-                    setNewCustomerMode(false);
-
-                    return true;
+                if (cbDoctor.getItemAt(i).id.equals(oldId)) {
+                    cbDoctor.setSelectedIndex(i);
+                    break;
                 }
             }
-
-            // ----- Khách hàng mới -----
-            txtCustId.setText("");
-
-            setBadge(
-                "Khách hàng mới - Tạo hồ sơ khi lưu",
-                new Color(190, 110, 0),
-                BADGE_ORANGE_BG
-            );
-
-            setNewCustomerMode(true);
-
-            return false;
-
-        } catch (SQLException e) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Lỗi tra cứu khách hàng!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
-            );
-
-            return false;
         }
     }
 
-    // =====================================================
-    // THOÁT CHẾ ĐỘ SỬA (để đặt lịch mới)
-    // =====================================================
+    //  giới tính
 
-    private void leaveEditMode() {
-
-        if (!isEditing) {
-            return;
-        }
-
-        isEditing = false;
-
-        tableLichDat.clearSelection();
-
-        refreshNextAppointmentId();
-    }
-
-    // TRA CỨU LỊCH HẸN BẰNG SĐT
-    
-    private void performPhoneLookup() {
-
-        String phone = txtSearchPhone.getText().trim();
-
-        if (phone.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng nhập số điện thoại!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
-            );
-
-            return;
-        }
-
-        // Tra cứu để đặt lịch mới -> không giữ trạng thái đang sửa
-        leaveEditMode();
-
-        txtPhone.setText(phone);
-
-        boolean customerExists = lookupCustomerByPhone();
-
-        if (!customerExists) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Không tìm thấy khách hàng có số điện thoại này!\n"
-                + "Bạn có thể nhập thêm thông tin để tạo hồ sơ mới.",
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-
-            return;
-        }
-
-        loadAppointments();
-
-        sorterLichDat.setRowFilter(
-            RowFilter.regexFilter(
-                "(?i)" + java.util.regex.Pattern.quote(phone),
-                3
-            )
-        );
-
-        // Không tự chọn dòng đầu: chọn dòng sẽ đẩy form sang chế độ SỬA và làm nút "Lưu Lịch" cập nhật lịch cũ thay vì tạo lịch mới.
-        if (tableLichDat.getRowCount() == 0) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Khách hàng đã tồn tại nhưng chưa có lịch hẹn.",
-                "Thông tin",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-        }
-    }
-
-    // =====================================================
-    // TẠO MÃ LỊCH HẸN
-    // =====================================================
-
-    private String generateAppointmentId(
-            Connection conn) throws SQLException {
+    private String generateId(
+            Connection conn,
+            String tableName,
+            String column,
+            String prefix,
+            boolean lock
+    ) throws SQLException {
 
         String sql =
-            "SELECT ISNULL(MAX(TRY_CONVERT(INT, "
-            + "SUBSTRING(maLichHen, 3, 18))), 0) + 1 "
-            + "FROM LichHen WITH (UPDLOCK, HOLDLOCK) "
-            + "WHERE maLichHen LIKE 'LH%'";
+                "SELECT ISNULL(MAX(TRY_CONVERT(INT, "
+                        + "SUBSTRING(" + column + ", 3, 18))), 0) + 1 "
+                        + "FROM " + tableName
+                        + (lock ? " WITH (UPDLOCK, HOLDLOCK)" : "")
+                        + " WHERE " + column + " LIKE '"
+                        + prefix + "%'";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()
+        ) {
 
             if (rs.next()) {
-                return String.format("LH%03d", rs.getInt(1));
+                return String.format(
+                        prefix + "%03d",
+                        rs.getInt(1)
+                );
             }
         }
 
-        return "LH001";
+        return prefix + "001";
     }
 
-    // Hiển thị mã lịch hẹn kế tiếp trên form (chỉ để xem trước)
-    private void refreshNextAppointmentId() {
+    private void refreshPreviewIds() {
 
         try (Connection conn = DBConnection.getConnection()) {
 
             txtAppId.setText(
-                generateAppointmentId(conn)
+                    generateId(
+                            conn,
+                            "LichHen",
+                            "maLichHen",
+                            "LH",
+                            false
+                    )
             );
+
+            if (!existingCustomer) {
+
+                String phone = txtPhone.getText().trim();
+
+                if (phone.matches("\\d{10,15}")) {
+
+                    txtCustId.setText(
+                            generateId(
+                                    conn,
+                                    "KhachHang",
+                                    "maKhachHang",
+                                    "KH",
+                                    false
+                            ) + " (mới)"
+                    );
+
+                } else {
+                    txtCustId.setText("");
+                }
+            }
 
         } catch (SQLException e) {
 
@@ -1018,364 +1710,620 @@ public class AppointmentBookingPanel extends JPanel {
         }
     }
 
-    // =====================================================
-    // TẠO MÃ KHÁCH HÀNG
-    // =====================================================
+    // K/Hang
 
-    private String generateCustomerId(
-            Connection conn) throws SQLException {
+    private void resetCustomerState() {
 
-        String sql =
-            "SELECT ISNULL(MAX(TRY_CONVERT(INT, "
-            + "SUBSTRING(maKhachHang, 3, 18))), 0) + 1 "
-            + "FROM KhachHang WITH (UPDLOCK, HOLDLOCK) "
-            + "WHERE maKhachHang LIKE 'KH%'";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) {
-                return String.format("KH%03d", rs.getInt(1));
-            }
+        if (existingCustomer) {
+            txtCustName.setText("");
         }
+        existingCustomer = false;
+        existingCustomerId = null;
+        lastLookedPhone = "";
 
-        return "KH001";
+        txtCustName.setEditable(true);
+        txtCustName.setBackground(Color.WHITE);
+
+        txtCustId.setText("");
+
+        setCustomerBadge(
+                "Nhập số điện thoại để kiểm tra khách hàng",
+                TEXT_GRAY,
+                READONLY_BG
+        );
     }
 
-    // =====================================================
-    // TÌM HOẶC TẠO KHÁCH HÀNG
-    // =====================================================
+    private void lookupCustomer(boolean force) {
 
-    private String findOrCreateCustomer(
-            Connection conn,
-            String name,
-            String phone,
-            java.sql.Date birthDate,
-            String medicalHistory) throws SQLException {
+        String phone = txtPhone.getText().trim();
 
-        String sqlFind =
-            "SELECT maKhachHang, tenKH "
-            + "FROM KhachHang WITH (UPDLOCK, HOLDLOCK) "
-            + "WHERE sdt = ?";
+        if (!phone.matches("\\d{10,15}")) {
 
-        try (PreparedStatement ps = conn.prepareStatement(sqlFind)) {
+            if (!phone.isEmpty()
+                    && phone.length() >= 10
+                    && force) {
+
+                setCustomerBadge(
+                        "Số điện thoại phải gồm 10 đến 15 chữ số",
+                        RED_ACCENT,
+                        RED_LIGHT
+                );
+
+            } else {
+                resetCustomerState();
+            }
+
+            return;
+        }
+
+        if (!force && phone.equals(lastLookedPhone)) {
+            return;
+        }
+
+        String sql =
+                "SELECT TOP 1 maKhachHang, tenKH, diemTichLuy "
+                        + "FROM KhachHang "
+                        + "WHERE sdt = ? "
+                        + "ORDER BY maKhachHang";
+
+        try (
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setString(1, phone);
 
             try (ResultSet rs = ps.executeQuery()) {
 
-                if (rs.next()) {
-
-                    String id = rs.getString("maKhachHang");
-
-                    txtCustId.setText(id);
-                    txtCustName.setText(rs.getString("tenKH"));
-
-                    return id;
-                }
-            }
-        }
-
-        String newId = generateCustomerId(conn);
-
-        String sqlInsert =
-            "INSERT INTO KhachHang "
-            + "(maKhachHang, tenKH, sdt, ngaySinh, "
-            + "tienSuBenh, diemTichLuy) "
-            + "VALUES (?, ?, ?, ?, ?, 0)";
-
-        try (PreparedStatement ps = conn.prepareStatement(sqlInsert)) {
-
-            ps.setString(1, newId);
-            ps.setString(2, name);
-            ps.setString(3, phone);
-
-            if (birthDate != null) {
-                ps.setDate(4, birthDate);
-            } else {
-                ps.setNull(4, Types.DATE);
-            }
-
-            if (medicalHistory != null && !medicalHistory.isEmpty()) {
-                ps.setString(5, medicalHistory);
-            } else {
-                ps.setNull(5, Types.NVARCHAR);
-            }
-
-            ps.executeUpdate();
-        }
-
-        txtCustId.setText(newId);
-        txtCustName.setText(name);
-
-        return newId;
-    }
-
-    // =====================================================
-    // KIỂM TRA TRÙNG LỊCH NHA SĨ
-    // =====================================================
-
-    private boolean isDuplicateAppointment(
-            Connection conn,
-            String doctorId,
-            java.sql.Date appointmentDate,
-            String time,
-            String appointmentId) throws SQLException {
-
-        String sql =
-            "SELECT COUNT(*) "
-            + "FROM LichHen "
-            + "WHERE maNhanVien = ? "
-            + "AND ngayHen = ? "
-            + "AND gioKham = ? "
-            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
-            + "AND maLichHen <> ?";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, doctorId);
-            ps.setDate(2, appointmentDate);
-            ps.setString(3, time);
-            ps.setString(4, appointmentId);
-
-            try (ResultSet rs = ps.executeQuery()) {
+                lastLookedPhone = phone;
 
                 if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            }
-        }
 
-        return false;
-    }
+                    existingCustomer = true;
 
-    // =====================================================
-    // KIỂM TRA GHẾ NHA KHOA (tối đa MAX_CHAIRS ca / cùng giờ)
-    // =====================================================
+                    existingCustomerId =
+                            rs.getString("maKhachHang");
 
-    private boolean isChairFull(
-            Connection conn,
-            java.sql.Date appointmentDate,
-            String time,
-            String appointmentId) throws SQLException {
+                    txtCustId.setText(existingCustomerId);
 
-        String sql =
-            "SELECT COUNT(*) "
-            + "FROM LichHen "
-            + "WHERE ngayHen = ? "
-            + "AND gioKham = ? "
-            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
-            + "AND maLichHen <> ?";
+                    txtCustName.setText(
+                            rs.getString("tenKH")
+                    );
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    txtCustName.setEditable(false);
+                    txtCustName.setBackground(READONLY_BG);
 
-            ps.setDate(1, appointmentDate);
-            ps.setString(2, time);
-            ps.setString(3, appointmentId);
+                    setCustomerBadge(
+                            "✓ Khách hàng cũ - "
+                                    + rs.getInt("diemTichLuy")
+                                    + " điểm tích lũy",
+                            BLUE_PRIMARY,
+                            BLUE_LIGHT
+                    );
 
-            try (ResultSet rs = ps.executeQuery()) {
+                } else {
 
-                if (rs.next()) {
-                    return rs.getInt(1) >= MAX_CHAIRS;
-                }
-            }
-        }
+                    existingCustomer = false;
+                    existingCustomerId = null;
 
-        return false;
-    }
-
-    // =====================================================
-    // KIỂM TRA GIỜ TRỐNG (theo nha sĩ + theo số ghế)
-    // =====================================================
-
-    private void showAvailableTimes() {
-
-        EmployeeItem doctor =
-            (EmployeeItem) cbDoctor.getSelectedItem();
-
-        if (doctor == null) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Không có nha sĩ để chọn!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
-            );
-
-            return;
-        }
-
-        java.sql.Date date;
-
-        try {
-
-            date = parseDate(txtAppDate.getText().trim());
-
-        } catch (ParseException e) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Ngày phải đúng định dạng dd/MM/yyyy!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
-            );
-
-            return;
-        }
-
-        String excludeId = isEditing
-            ? txtAppId.getText().trim()
-            : "";
-
-        // Giờ nha sĩ đã bận
-        String sqlDoctor =
-            "SELECT gioKham "
-            + "FROM LichHen "
-            + "WHERE maNhanVien = ? "
-            + "AND ngayHen = ? "
-            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
-            + "AND maLichHen <> ?";
-
-        // Giờ mà số ghế đã đầy (tính cả các nha sĩ khác)
-        String sqlChairs =
-            "SELECT gioKham "
-            + "FROM LichHen "
-            + "WHERE ngayHen = ? "
-            + "AND ISNULL(trangThai, N'') <> N'Đã hủy' "
-            + "AND maLichHen <> ? "
-            + "GROUP BY gioKham "
-            + "HAVING COUNT(*) >= ?";
-
-        try (Connection conn = DBConnection.getConnection()) {
-
-            java.util.Set<String> occupied =
-                new java.util.HashSet<>();
-
-            try (PreparedStatement ps =
-                    conn.prepareStatement(sqlDoctor)) {
-
-                ps.setString(1, doctor.id);
-                ps.setDate(2, date);
-                ps.setString(3, excludeId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                        occupied.add(rs.getString("gioKham"));
+                    if (!txtCustName.isEditable()) {
+                        txtCustName.setText("");
                     }
+
+                    txtCustName.setEditable(true);
+                    txtCustName.setBackground(Color.WHITE);
+
+                    txtCustId.setText(
+                            generateId(
+                                    conn,
+                                    "KhachHang",
+                                    "maKhachHang",
+                                    "KH",
+                                    false
+                            ) + " (mới)"
+                    );
+
+                    setCustomerBadge(
+                            "✓ Khách hàng mới - hồ sơ sẽ được tạo khi lưu",
+                            ORANGE_ACCENT,
+                            ORANGE_LIGHT
+                    );
                 }
-            }
-
-            try (PreparedStatement ps =
-                    conn.prepareStatement(sqlChairs)) {
-
-                ps.setDate(1, date);
-                ps.setString(2, excludeId);
-                ps.setInt(3, MAX_CHAIRS);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                        occupied.add(rs.getString("gioKham"));
-                    }
-                }
-            }
-
-            java.util.List<String> available =
-                new java.util.ArrayList<>();
-
-            for (String time : STANDARD_TIMES) {
-
-                if (!occupied.contains(time)) {
-                    available.add(time);
-                }
-            }
-
-            if (available.isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Không còn giờ trống trong ngày này!",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
-
-                return;
-            }
-
-            String selected = (String) JOptionPane.showInputDialog(
-                this,
-                "Chọn giờ khám còn trống:",
-                "Giờ khám",
-                JOptionPane.INFORMATION_MESSAGE,
-                null,
-                available.toArray(),
-                available.get(0)
-            );
-
-            if (selected != null) {
-                selectTime(selected);
             }
 
         } catch (SQLException e) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Không thể kiểm tra giờ trống!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
+            showError(
+                    "Lỗi tra cứu khách hàng!\n"
+                            + e.getMessage()
             );
         }
     }
 
-    // =====================================================
-    // CHUYỂN NGÀY
-    // =====================================================
+    // ngày
 
-    private java.sql.Date parseDate(
-            String dateText) throws ParseException {
+    private LocalDate getSelectedDate() {
 
-        SimpleDateFormat sdf =
-            new SimpleDateFormat("dd/MM/yyyy");
+        Date value = (Date) spDate.getValue();
 
-        sdf.setLenient(false);
-
-        Date date = sdf.parse(dateText);
-
-        if (!sdf.format(date).equals(dateText)) {
-            throw new ParseException("Ngày không hợp lệ", 0);
-        }
-
-        return new java.sql.Date(date.getTime());
+        return value.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
     }
 
-    // LƯU LỊCH HẸN
-    
+    private String formatTime(String time) {
+
+        if (time == null) {
+            return "";
+        }
+
+        time = time.trim();
+
+        if (time.length() >= 5) {
+            return time.substring(0, 5);
+        }
+
+        return time;
+    }
+
+    // tải all cái lịch hẹn
+
+    private void loadAllAppointments() {
+
+        modelDayTable.setRowCount(0);
+
+        String sql =
+                "SELECT LH.maLichHen, LH.gioKham, "
+                        + "KH.tenKH, KH.sdt, LH.ghiChu, LH.trangThai "
+                        + "FROM LichHen LH "
+                        + "LEFT JOIN KhachHang KH "
+                        + "ON LH.maKhachHang = KH.maKhachHang "
+                        + "ORDER BY LH.ngayHen DESC, LH.gioKham ASC";
+
+        try (
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()
+        ) {
+
+            while (rs.next()) {
+
+                modelDayTable.addRow(new Object[]{
+                        rs.getString("maLichHen"),
+                        formatTime(rs.getString("gioKham")),
+                        rs.getString("tenKH"),
+                        rs.getString("sdt"),
+                        rs.getString("ghiChu"),
+                        rs.getString("trangThai")
+                });
+            }
+
+        } catch (SQLException e) {
+
+            showError(
+                    "Không thể tải tất cả lịch hẹn!\n"
+                            + e.getMessage()
+            );
+        }
+
+        currentPage = 0;
+
+        updateStatistics();
+        updatePagination();
+    }
+
+    // tải all bởi ngày
+
+    private void loadAppointmentsByDate(LocalDate date) {
+
+        modelDayTable.setRowCount(0);
+
+        String sql =
+                "SELECT LH.maLichHen, LH.gioKham, "
+                        + "KH.tenKH, KH.sdt, LH.ghiChu, LH.trangThai "
+                        + "FROM LichHen LH "
+                        + "LEFT JOIN KhachHang KH "
+                        + "ON LH.maKhachHang = KH.maKhachHang "
+                        + "WHERE LH.ngayHen = ? "
+                        + "ORDER BY LH.gioKham ASC";
+
+        try (
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setDate(
+                    1,
+                    java.sql.Date.valueOf(date)
+            );
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    modelDayTable.addRow(new Object[]{
+                            rs.getString("maLichHen"),
+                            formatTime(rs.getString("gioKham")),
+                            rs.getString("tenKH"),
+                            rs.getString("sdt"),
+                            rs.getString("ghiChu"),
+                            rs.getString("trangThai")
+                    });
+                }
+            }
+
+        } catch (SQLException e) {
+
+            showError(
+                    "Không thể tải lịch hẹn của ngày đã chọn!\n"
+                            + e.getMessage()
+            );
+        }
+
+        currentPage = 0;
+
+        updateStatistics();
+        updatePagination();
+    }
+
+    // ô thời gian
+
+    private void renderTimeGrid(
+            Set<String> busy,
+            LocalDate date
+    ) {
+
+        timeGridPanel.removeAll();
+
+        JPanel morningPanel = createTimeGroup(
+                "Buổi sáng",
+                0,
+                8,
+                busy,
+                date
+        );
+
+        JPanel afternoonPanel = createTimeGroup(
+                "Buổi chiều",
+                8,
+                STANDARD_TIMES.length,
+                busy,
+                date
+        );
+
+        timeGridPanel.add(morningPanel);
+        timeGridPanel.add(Box.createVerticalStrut(10));
+        timeGridPanel.add(afternoonPanel);
+
+        timeGridPanel.revalidate();
+        timeGridPanel.repaint();
+    }
+
+    private JPanel createTimeGroup(
+            String title,
+            int start,
+            int end,
+            Set<String> busy,
+            LocalDate date
+    ) {
+
+    	JPanel group = new JPanel(
+    	        new FlowLayout(FlowLayout.LEFT, 4, 3)
+    	);
+
+        group.setOpaque(false);
+
+        group.setBorder(
+                new EmptyBorder(5, 7, 8, 7)
+        );
+
+        for (int i = start; i < end; i++) {
+
+            final String slot = STANDARD_TIMES[i];
+
+            boolean occupied = busy.contains(slot);
+
+            boolean expired = date.isBefore(LocalDate.now())
+                    || (date.equals(LocalDate.now())
+                    && !LocalTime.parse(slot).isAfter(LocalTime.now()));
+
+            JButton button = new JButton(slot);
+
+            button.setFont(
+                    new Font("Segoe UI", Font.PLAIN, 9)
+            );
+
+            button.setFocusPainted(false);
+            button.setOpaque(true);
+            button.setContentAreaFilled(true);
+            button.setBorderPainted(false);
+
+            button.setBorder(
+                    new EmptyBorder(0, 0, 0, 0)
+            );
+
+            button.setPreferredSize(new Dimension(38, 17));
+            button.setMinimumSize(new Dimension(38, 17));
+            button.setMaximumSize(new Dimension(38, 17));
+
+            if (occupied) {
+
+                button.setBackground(
+                        new Color(255, 225, 228));
+
+                button.setForeground(
+                        new Color(190, 45, 55));
+
+                button.setToolTipText("Giờ đã có lịch hẹn");
+
+                button.setEnabled(false);
+
+            } else if (expired) {
+
+                button.setBackground(
+                        new Color(232, 235, 240)
+                );
+
+                button.setForeground(
+                        new Color(125, 135, 150)
+                );
+
+                button.setToolTipText(
+                        "Không thể chọn giờ này"
+                );
+
+                button.setEnabled(false);
+
+            } else {
+
+                button.setBackground(
+                        new Color(211, 245, 229)
+                );
+
+                button.setForeground(
+                        new Color(20, 125, 85)
+                );
+
+                button.setToolTipText(
+                        "Chọn giờ " + slot
+                );
+
+                button.addActionListener(e -> {
+
+                    cbTime.setSelectedItem(slot);
+
+                    updateSelectedTimeButton(slot);
+                });
+            }
+
+            group.add(button);
+        }
+
+        JPanel wrapper = new JPanel();
+
+        wrapper.setOpaque(false);
+
+        wrapper.setLayout(
+                new BoxLayout(wrapper, BoxLayout.Y_AXIS)
+        );
+
+        JLabel groupTitle = new JLabel(title);
+
+        groupTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+
+        groupTitle.setForeground(TEXT_DARK);
+        groupTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        wrapper.add(groupTitle);
+        wrapper.add(Box.createVerticalStrut(5));
+        wrapper.add(group);
+
+        return wrapper;
+    }
+
+    private void updateSelectedTimeButton(String selected) {
+
+        for (Component component : timeGridPanel.getComponents()) {
+
+            if (component instanceof JPanel) {
+
+                JPanel wrapper = (JPanel) component;
+
+                for (Component child : wrapper.getComponents()) {
+
+                    if (child instanceof JPanel) {
+
+                        JPanel group = (JPanel) child;
+
+                        for (Component buttonComponent :
+                                group.getComponents()) {
+
+                            if (buttonComponent instanceof JButton) {
+
+                                JButton button =
+                                        (JButton) buttonComponent;
+
+                                if (button.getText().equals(selected)) {
+
+                                    button.setBackground(BLUE_PRIMARY);
+                                    button.setForeground(Color.WHITE);
+
+                                } else if (button.isEnabled()) {
+
+                                	button.setBackground(new Color(211, 245, 229));
+                                    button.setForeground(new Color(20, 125, 85));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // load lại trang
+
+    private void refreshAvailability() {
+
+        if (cbTime == null || modelDayTable == null) {
+            return;
+        }
+
+        DoctorItem doctor =
+                (DoctorItem) cbDoctor.getSelectedItem();
+
+        String previousTime =
+                (String) cbTime.getSelectedItem();
+
+        cbTime.removeAllItems();
+
+        modelDayTable.setRowCount(0);
+
+        if (!isDateSelected) {
+
+            lblDayTableTitle.setText(
+                    "Tất cả lịch hẹn hiện có"
+            );
+
+            loadAllAppointments();
+
+        } else {
+
+            LocalDate selectedDate = getSelectedDate();
+
+            lblDayTableTitle.setText(
+                    "Lịch hẹn ngày "
+                            + String.format(
+                                    "%02d/%02d/%d",
+                                    selectedDate.getDayOfMonth(),
+                                    selectedDate.getMonthValue(),
+                                    selectedDate.getYear()
+                            )
+            );
+
+            loadAppointmentsByDate(selectedDate);
+        }
+
+        LocalDate date = getSelectedDate();
+
+        if (doctor == null) {
+
+            busyTimes.clear();
+
+            renderTimeGrid(busyTimes, date);
+
+            return;
+        }
+
+        busyTimes.clear();
+
+        String sql =
+                "SELECT gioKham, trangThai FROM LichHen "
+                        + "WHERE maNhanVien = ? AND ngayHen = ?";
+
+        try (
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setString(1, doctor.id);
+
+            ps.setDate(
+                    2,
+                    java.sql.Date.valueOf(date)
+            );
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    String time = formatTime(
+                            rs.getString("gioKham")
+                    );
+
+                    String status = rs.getString("trangThai");
+
+                    if (!time.isEmpty()
+                            && !"Đã hủy".equalsIgnoreCase(
+                                    status == null ? "" : status.trim()
+                            )) {
+
+                        busyTimes.add(time);
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+
+            showError(
+                    "Không thể kiểm tra giờ trống!\n"
+                            + e.getMessage()
+            );
+
+            return;
+        }
+
+        renderTimeGrid(busyTimes, date);
+
+        LocalDate today = LocalDate.now();
+
+        for (String slot : STANDARD_TIMES) {
+
+            if (busyTimes.contains(slot)) {
+                continue;
+            }
+
+            if (date.isBefore(today)) {
+                continue;
+            }
+
+            if (date.equals(today)
+                    && !LocalTime.parse(slot).isAfter(LocalTime.now())) {
+                continue;
+            }
+
+            cbTime.addItem(slot);
+        }
+
+        if (previousTime != null) {
+
+            for (int i = 0; i < cbTime.getItemCount(); i++) {
+
+                if (previousTime.equals(cbTime.getItemAt(i))) {
+
+                    cbTime.setSelectedItem(previousTime);
+
+                    updateSelectedTimeButton(previousTime);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    // lưu lịch
+
     private void performSave() {
 
-        String name = txtCustName.getText().trim();
         String phone = txtPhone.getText().trim();
+        String name = txtCustName.getText().trim();
 
         ServiceItem service =
-            (ServiceItem) cbService.getSelectedItem();
+                (ServiceItem) cbService.getSelectedItem();
 
-        EmployeeItem doctor =
-            (EmployeeItem) cbDoctor.getSelectedItem();
+        DoctorItem doctor =
+                (DoctorItem) cbDoctor.getSelectedItem();
 
-        String dateText = txtAppDate.getText().trim();
+        String time = cbTime.getSelectedItem() == null? null: cbTime.getSelectedItem().toString();
 
-        String time = (String) cbTime.getSelectedItem();
+        LocalDate date = getSelectedDate();
 
-        String status = (String) cbStatus.getSelectedItem();
+        if (phone.isEmpty() || name.isEmpty()) {
 
-        if (name.isEmpty() || phone.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng nhập tên và số điện thoại khách hàng!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
+            showWarning(
+                    "Vui lòng nhập số điện thoại và tên khách hàng!"
             );
 
             return;
@@ -1383,106 +2331,60 @@ public class AppointmentBookingPanel extends JPanel {
 
         if (!phone.matches("\\d{10,15}")) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Số điện thoại phải có từ 10 đến 15 chữ số!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
+            showWarning(
+                    "Số điện thoại phải có từ 10 đến 15 chữ số!"
             );
 
             return;
         }
 
-        if (service == null || doctor == null
-                || time == null || status == null) {
+        if (service == null || doctor == null) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn đầy đủ dịch vụ, nha sĩ, giờ và trạng thái!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
+            showWarning(
+                    "Chưa có dịch vụ hoặc nha sĩ. "
+                            + "Vui lòng kiểm tra dữ liệu trong hệ thống!"
             );
 
             return;
         }
 
-        java.sql.Date appointmentDate;
+        if (date.isBefore(LocalDate.now())) {
 
-        try {
-
-            appointmentDate = parseDate(dateText);
-
-        } catch (ParseException e) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Ngày hẹn không đúng định dạng dd/MM/yyyy!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
+            showWarning(
+                    "Ngày hẹn không được nằm trong quá khứ!"
             );
 
             return;
         }
 
-        if (!isEditing && appointmentDate.toLocalDate()
-                .isBefore(java.time.LocalDate.now())) {
+        if (time == null) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Ngày hẹn không được nằm trong quá khứ!",
-                "Thông báo",
-                JOptionPane.WARNING_MESSAGE
+            showWarning(
+                    "Vui lòng chọn một giờ hẹn còn trống!"
             );
 
             return;
         }
 
-        // Thông tin bổ sung của khách hàng mới (tùy chọn)
-        java.sql.Date birthDate = null;
-        String medicalHistory = null;
+        if (busyTimes.contains(time)) {
 
-        if (panelNewCustomer.isVisible()) {
+            showWarning(
+                    "Giờ hẹn này đã có người đặt. "
+                            + "Vui lòng chọn giờ khác!"
+            );
 
-            String birthText = txtNewBirth.getText().trim();
+            refreshAvailability();
 
-            if (!birthText.isEmpty()) {
-
-                try {
-
-                    birthDate = parseDate(birthText);
-
-                } catch (ParseException e) {
-
-                    JOptionPane.showMessageDialog(
-                        this,
-                        "Ngày sinh không đúng định dạng dd/MM/yyyy!",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                    );
-
-                    return;
-                }
-
-                if (birthDate.toLocalDate()
-                        .isAfter(java.time.LocalDate.now())) {
-
-                    JOptionPane.showMessageDialog(
-                        this,
-                        "Ngày sinh không được lớn hơn ngày hiện tại!",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                    );
-
-                    return;
-                }
-            }
-
-            medicalHistory = txtNewHistory.getText().trim();
+            return;
         }
 
-        String appointmentId = txtAppId.getText().trim();
+        java.sql.Date sqlDate =
+                java.sql.Date.valueOf(date);
 
-        boolean editing = isEditing;
+        String savedAppId;
+        String savedCustId;
+
+        boolean createdNewCustomer = false;
 
         try (Connection conn = DBConnection.getConnection()) {
 
@@ -1490,403 +2392,297 @@ public class AppointmentBookingPanel extends JPanel {
 
             try {
 
-                if (!editing) {
-                    appointmentId = generateAppointmentId(conn);
-                }
+                // 1. Tìm khách hàng
 
-                if (!"Đã hủy".equals(status)) {
+                String customerId = null;
 
-                    // 1. Trùng lịch của nha sĩ
-                    if (isDuplicateAppointment(
-                            conn,
-                            doctor.id,
-                            appointmentDate,
-                            time,
-                            appointmentId)) {
+                String sqlFind =
+                        "SELECT TOP 1 maKhachHang "
+                                + "FROM KhachHang WITH (UPDLOCK, HOLDLOCK) "
+                                + "WHERE sdt = ? "
+                                + "ORDER BY maKhachHang";
 
-                        conn.rollback();
+                try (
+                        PreparedStatement ps =
+                                conn.prepareStatement(sqlFind)
+                ) {
 
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Nha sĩ " + doctor.name
-                            + " đã có lịch hẹn vào lúc " + time
-                            + " ngày " + dateText
-                            + ", vui lòng chọn khung giờ khác!",
-                            "Trùng lịch nha sĩ",
-                            JOptionPane.ERROR_MESSAGE
-                        );
+                    ps.setString(1, phone);
 
-                        return;
-                    }
+                    try (ResultSet rs = ps.executeQuery()) {
 
-                    // 2. Hết ghế nha khoa
-                    if (isChairFull(
-                            conn,
-                            appointmentDate,
-                            time,
-                            appointmentId)) {
-
-                        conn.rollback();
-
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Khung giờ " + time + " ngày " + dateText
-                            + " đã đủ " + MAX_CHAIRS
-                            + " ghế nha khoa, vui lòng chọn khung giờ khác!",
-                            "Hết ghế",
-                            JOptionPane.ERROR_MESSAGE
-                        );
-
-                        return;
-                    }
-                }
-
-                String customerId = findOrCreateCustomer(
-                    conn, name, phone, birthDate, medicalHistory
-                );
-
-                if (!editing) {
-
-                    String sql =
-                        "INSERT INTO LichHen "
-                        + "(maLichHen, maKhachHang, maNhanVien, "
-                        + "ngayHen, gioKham, trangThai, ghiChu) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(sql)) {
-
-                        ps.setString(1, appointmentId);
-                        ps.setString(2, customerId);
-                        ps.setString(3, doctor.id);
-                        ps.setDate(4, appointmentDate);
-                        ps.setString(5, time);
-                        ps.setString(6, status);
-
-                        // Lưu tên dịch vụ trong ghiChu
-                        ps.setString(7, service.name);
-
-                        ps.executeUpdate();
-                    }
-
-                } else {
-
-                    String sql =
-                        "UPDATE LichHen SET "
-                        + "maKhachHang = ?, "
-                        + "maNhanVien = ?, "
-                        + "ngayHen = ?, "
-                        + "gioKham = ?, "
-                        + "trangThai = ?, "
-                        + "ghiChu = ? "
-                        + "WHERE maLichHen = ?";
-
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(sql)) {
-
-                        ps.setString(1, customerId);
-                        ps.setString(2, doctor.id);
-                        ps.setDate(3, appointmentDate);
-                        ps.setString(4, time);
-                        ps.setString(5, status);
-                        ps.setString(6, service.name);
-                        ps.setString(7, appointmentId);
-
-                        int result = ps.executeUpdate();
-
-                        if (result == 0) {
-                            throw new SQLException(
-                                "Không tìm thấy lịch hẹn cần cập nhật!"
-                            );
+                        if (rs.next()) {
+                            customerId =
+                                    rs.getString("maKhachHang");
                         }
                     }
                 }
 
-                conn.commit();
+                // 2. Tạo khách hàng mới nếu chưa tồn tại
 
-                try {
-                    AuditLog.event(
-                        editing ? "UPDATE" : "CREATE",
-                        "Lịch hẹn - mã " + appointmentId
+                if (customerId == null) {
+
+                    customerId = generateId(
+                            conn,
+                            "KhachHang",
+                            "maKhachHang",
+                            "KH",
+                            true
                     );
-                } catch (Exception ignored) {
+
+                    String sqlInsertCustomer =
+                            "INSERT INTO KhachHang "
+                                    + "(maKhachHang, tenKH, sdt, diemTichLuy) "
+                                    + "VALUES (?, ?, ?, 0)";
+
+                    try (
+                            PreparedStatement ps =
+                                    conn.prepareStatement(sqlInsertCustomer)
+                    ) {
+
+                        ps.setString(1, customerId);
+                        ps.setString(2, name);
+                        ps.setString(3, phone);
+
+                        ps.executeUpdate();
+                    }
+
+                    createdNewCustomer = true;
                 }
 
-                JOptionPane.showMessageDialog(
-                    this,
-                    editing
-                        ? "Cập nhật lịch hẹn thành công!"
-                        : "Đặt lịch thành công!\nMã lịch hẹn: "
-                            + appointmentId,
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
+                // 3. Kiểm tra trùng lịch
+
+                String sqlDup =
+                        "SELECT COUNT(*) FROM LichHen "
+                                + "WHERE maNhanVien = ? "
+                                + "AND ngayHen = ? "
+                                + "AND gioKham = ? "
+                                + "AND ISNULL(trangThai, N'') <> N'Đã hủy'";
+
+                try (
+                        PreparedStatement ps =
+                                conn.prepareStatement(sqlDup)
+                ) {
+
+                    ps.setString(1, doctor.id);
+                    ps.setDate(2, sqlDate);
+                    ps.setString(3, time);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+
+                        if (rs.next() && rs.getInt(1) > 0) {
+
+                            conn.rollback();
+
+                            showWarning(
+                                    "Nha sĩ " + doctor.name
+                                            + " vừa có người đặt lúc "
+                                            + time
+                                            + ". Vui lòng chọn giờ khác!"
+                            );
+
+                            refreshAvailability();
+
+                            return;
+                        }
+                    }
+                }
+
+                // 4. Tạo lịch hẹn
+
+                savedAppId = generateId(
+                        conn,
+                        "LichHen",
+                        "maLichHen",
+                        "LH",
+                        true
                 );
 
-            } catch (SQLException e) {
+                String sqlInsertApp =
+                        "INSERT INTO LichHen "
+                                + "(maLichHen, maKhachHang, maNhanVien, "
+                                + "ngayHen, gioKham, trangThai, ghiChu) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+                try (
+                        PreparedStatement ps =
+                                conn.prepareStatement(sqlInsertApp)
+                ) {
+
+                    ps.setString(1, savedAppId);
+                    ps.setString(2, customerId);
+                    ps.setString(3, doctor.id);
+                    ps.setDate(4, sqlDate);
+                    ps.setString(5, time);
+                    ps.setString(6, STATUS_PENDING);
+                    ps.setString(7, service.name);
+
+                    ps.executeUpdate();
+                }
+
+                conn.commit();
+
+                savedCustId = customerId;
+
+            } catch (SQLException ex) {
 
                 conn.rollback();
 
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Không thể lưu lịch hẹn!\n"
-                    + e.getMessage(),
-                    "Lỗi SQL",
-                    JOptionPane.ERROR_MESSAGE
-                );
-
-                return;
+                throw ex;
 
             } finally {
 
                 conn.setAutoCommit(true);
             }
 
-        } catch (SQLException e) {
+        } catch (SQLException ex) {
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Lỗi kết nối database!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
+            showError(
+                    "Không thể lưu lịch hẹn!\n"
+                            + ex.getMessage()
             );
 
             return;
         }
 
-        loadAppointments();
+        // Ghi nhật ký
+
+        try {
+
+            AuditLog.event(
+                    "CREATE",
+                    "Đặt lịch hẹn - mã " + savedAppId
+                            + (createdNewCustomer
+                            ? " (tạo khách hàng mới "
+                            + savedCustId + ")"
+                            : "")
+            );
+
+        } catch (Exception ignored) {
+            // Không ảnh hưởng việc đặt lịch
+        }
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Đặt lịch hẹn thành công!\n"
+                        + "Mã lịch hẹn: " + savedAppId + "\n"
+                        + "Mã khách hàng: " + savedCustId
+                        + (createdNewCustomer
+                        ? " (khách hàng mới)"
+                        : " (khách hàng cũ)") + "\n"
+                        + "Trạng thái: " + STATUS_PENDING,
+                "Thành công",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+
         clearForm();
     }
 
-    // =====================================================
-    // ĐỔ DỮ LIỆU TỪ BẢNG LÊN FORM
-    // =====================================================
-
-    private void loadDataToFormForEdit() {
-
-        int viewRow = tableLichDat.getSelectedRow();
-
-        if (viewRow == -1) {
-            return;
-        }
-
-        int row = tableLichDat.convertRowIndexToModel(viewRow);
-
-        String appointmentId =
-            modelLichDat.getValueAt(row, 0).toString();
-
-        String sql =
-            "SELECT "
-            + "LH.maLichHen, "
-            + "LH.maKhachHang, "
-            + "KH.tenKH, "
-            + "KH.sdt, "
-            + "LH.maNhanVien, "
-            + "LH.ngayHen, "
-            + "LH.gioKham, "
-            + "LH.trangThai, "
-            + "LH.ghiChu "
-            + "FROM LichHen LH "
-            + "JOIN KhachHang KH "
-            + "ON LH.maKhachHang = KH.maKhachHang "
-            + "WHERE LH.maLichHen = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, appointmentId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-
-                if (rs.next()) {
-
-                    txtAppId.setText(
-                        rs.getString("maLichHen")
-                    );
-
-                    txtCustId.setText(
-                        rs.getString("maKhachHang")
-                    );
-
-                    txtCustName.setText(
-                        rs.getString("tenKH")
-                    );
-
-                    txtPhone.setText(
-                        rs.getString("sdt")
-                    );
-
-                    selectDoctorById(rs.getString("maNhanVien"));
-
-                    // Nếu ghiChu không khớp dịch vụ nào (dữ liệu cũ)
-                    // thì bỏ chọn để người dùng chọn lại, tránh ghi đè sai.
-                    if (!selectServiceByName(rs.getString("ghiChu"))) {
-                        cbService.setSelectedIndex(-1);
-                    }
-
-                    java.sql.Date date =
-                        rs.getDate("ngayHen");
-
-                    if (date != null) {
-
-                        txtAppDate.setText(
-                            new SimpleDateFormat("dd/MM/yyyy")
-                                .format(date)
-                        );
-                    }
-
-                    selectTime(rs.getString("gioKham"));
-
-                    cbStatus.setSelectedItem(
-                        rs.getString("trangThai")
-                    );
-
-                    isEditing = true;
-
-                    setNewCustomerMode(false);
-
-                    setBadge(
-                        "Đang chỉnh sửa lịch hẹn " + appointmentId,
-                        BLUE_PRIMARY,
-                        BADGE_BLUE_BG
-                    );
-                }
-            }
-
-        } catch (SQLException e) {
-
-            JOptionPane.showMessageDialog(
-                this,
-                "Không thể tải thông tin lịch hẹn!\n"
-                + e.getMessage(),
-                "Lỗi SQL",
-                JOptionPane.ERROR_MESSAGE
-            );
-        }
-    }
-
-    // =====================================================
-    // CHỌN NHA SĨ THEO MÃ
-    // =====================================================
-
-    private void selectDoctorById(String id) {
-
-        if (id == null) {
-            return;
-        }
-
-        for (int i = 0; i < cbDoctor.getItemCount(); i++) {
-
-            EmployeeItem item = cbDoctor.getItemAt(i);
-
-            if (item.id.equals(id)) {
-                cbDoctor.setSelectedIndex(i);
-                return;
-            }
-        }
-    }
-
-    // =====================================================
-    // CHỌN DỊCH VỤ THEO TÊN
-    // =====================================================
-
-    private boolean selectServiceByName(String name) {
-
-        if (name == null) {
-            return false;
-        }
-
-        String target = name.trim();
-
-        for (int i = 0; i < cbService.getItemCount(); i++) {
-
-            ServiceItem item = cbService.getItemAt(i);
-
-            if (item.name.equalsIgnoreCase(target)) {
-                cbService.setSelectedIndex(i);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    // =====================================================
-    // CHỌN GIỜ (thêm vào danh sách nếu giờ cũ không có sẵn)
-    // =====================================================
-
-    private void selectTime(String time) {
-
-        if (time == null) {
-            return;
-        }
-
-        String target = time.trim();
-
-        for (int i = 0; i < cbTime.getItemCount(); i++) {
-
-            if (cbTime.getItemAt(i).equals(target)) {
-                cbTime.setSelectedIndex(i);
-                return;
-            }
-        }
-
-        // Ví dụ lịch cũ giờ 09:15 không nằm trong khung giờ chuẩn
-        cbTime.addItem(target);
-        cbTime.setSelectedItem(target);
-    }
-
-    // =====================================================
-    // LÀM MỚI FORM
-    // =====================================================
+    // clean 
 
     private void clearForm() {
 
-        isEditing = false;
+        existingCustomer = false;
+        existingCustomerId = null;
+        lastLookedPhone = "";
 
-        txtAppId.setText("");
-        txtCustId.setText("");
-        txtCustName.setText("");
         txtPhone.setText("");
+        txtCustName.setText("");
 
-        txtAppDate.setText(
-            new SimpleDateFormat("dd/MM/yyyy").format(new Date())
+        txtCustName.setEditable(true);
+        txtCustName.setBackground(Color.WHITE);
+
+        txtCustId.setText("");
+
+        if (cbService.getItemCount() > 0) {
+            cbService.setSelectedIndex(0);
+        }
+
+        setCustomerBadge(
+                "Nhập số điện thoại để kiểm tra khách hàng",
+                TEXT_GRAY,
+                READONLY_BG
         );
 
-        cbService.setSelectedIndex(
-            cbService.getItemCount() > 0 ? 0 : -1
+        refreshPreviewIds();
+        refreshAvailability();
+    }
+
+    // tin nhắn
+
+    private void showWarning(String message) {
+
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Thông báo",
+                JOptionPane.WARNING_MESSAGE
         );
+    }
 
-        cbDoctor.setSelectedIndex(
-            cbDoctor.getItemCount() > 0 ? 0 : -1
+    private void showError(String message) {
+
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Lỗi",
+                JOptionPane.ERROR_MESSAGE
         );
+    }
 
-        // Trả danh sách giờ về khung chuẩn (bỏ giờ lẻ thêm lúc sửa)
-        cbTime.setModel(
-            new DefaultComboBoxModel<>(STANDARD_TIMES)
-        );
+    // panel tròn
 
-        cbTime.setSelectedItem("09:00");
-        cbStatus.setSelectedItem("Chờ xác nhận");
+    private static class RoundedPanel extends JPanel {
 
-        txtSearchPhone.setText("");
+        private final int radius;
+        private final Color backgroundColor;
 
-        setNewCustomerMode(false);
+        RoundedPanel(
+                int radius,
+                Color backgroundColor
+        ) {
 
-        setBadge(
-            "Chưa kiểm tra khách hàng",
-            MUTED,
-            BADGE_GRAY_BG
-        );
+            this.radius = radius;
+            this.backgroundColor = backgroundColor;
 
+            setOpaque(false);
+        }
 
-        tableLichDat.clearSelection();
+        @Override
+        protected void paintComponent(Graphics g) {
 
-        // Tạo mã mới để hiển thị
-        refreshNextAppointmentId();
+            Graphics2D g2 = (Graphics2D) g.create();
 
-        if (sorterLichDat != null) {
-            sorterLichDat.setRowFilter(null);
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+            g2.setColor(backgroundColor);
+
+            g2.fillRoundRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    radius,
+                    radius
+            );
+
+            g2.setColor(BORDER_LIGHT);
+
+            g2.drawRoundRect(
+                    0,
+                    0,
+                    getWidth() - 1,
+                    getHeight() - 1,
+                    radius,
+                    radius
+            );
+
+            g2.dispose();
+
+            super.paintComponent(g);
         }
     }
 }
