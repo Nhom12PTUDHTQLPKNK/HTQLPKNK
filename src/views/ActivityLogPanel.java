@@ -1,7 +1,6 @@
 package views;
 
-
-    
+import Audit.AuditLog;
 import report.PdfTableExport;
 
 import javax.swing.*;
@@ -57,7 +56,8 @@ public class ActivityLogPanel extends JPanel {
     private final JLabel lblCount = new JLabel(" ");
     private boolean updatingCombos = false;
 
-    public ActivityLogPanel() { this(new DemoSource()); }
+    /** Màn hình mặc định luôn đọc nhật ký đã lưu trong dbo.AuditLog. */
+    public ActivityLogPanel() { this(new SqlAuditSource()); }
 
     public ActivityLogPanel(LogSource source) {
         this.source = source;
@@ -232,16 +232,12 @@ public class ActivityLogPanel extends JPanel {
         return new UiKit.ColorTextRenderer(m);
     }
 
-    private static final class DemoSource implements LogSource {
+    private static final class SqlAuditSource implements LogSource {
         @Override public List<LogEntry> load() {
-            LocalDateTime n = LocalDateTime.now();
             List<LogEntry> l = new ArrayList<LogEntry>();
-            l.add(new LogEntry(n.minusMinutes(5), "luan", "CREATE", "Tạo giao dịch kho PN0017 (Nhập kho) - TH001, SL 100"));
-            l.add(new LogEntry(n.minusMinutes(2), "luan", "CONFIRM", "Xác nhận giao dịch kho PN0017"));
-            l.add(new LogEntry(n.minusHours(3), "admin", "UPDATE", "Cập nhật ca #12 - BS. Lê Thu Hà"));
-            l.add(new LogEntry(n.minusDays(1), "admin", "DELETE", "Xóa ca #9 - Phạm Thị Lan"));
-            l.add(new LogEntry(n.minusDays(2), "letan01", "CREATE", "Đặt lịch hẹn cho bệnh nhân BN005"));
-            l.add(new LogEntry(n.minusDays(4), "luan", "CANCEL", "Hủy giao dịch kho PX0008"));
+            for (AuditLog.Entry entry : AuditLog.all()) {
+                l.add(new LogEntry(entry.time, entry.username, entry.action, entry.detail));
+            }
             return l;
         }
 

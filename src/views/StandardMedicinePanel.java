@@ -1,5 +1,6 @@
 package views;
 
+import Audit.AuditLog;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
@@ -911,9 +912,10 @@ public class StandardMedicinePanel extends JPanel {
                 return;
             }
 
-            saveOrUpdateMedicineToDB(code, name, tfActive.getText().trim(), selectedGroup.key, selectedForm.key, selectedRoute.key, tfManuf.getText().trim(), tfCountry.getText().trim(), medicine == null);
-            dialog.dispose();
-            loadMedicinesFromDatabase();
+            if (saveOrUpdateMedicineToDB(code, name, tfActive.getText().trim(), selectedGroup.key, selectedForm.key, selectedRoute.key, tfManuf.getText().trim(), tfCountry.getText().trim(), medicine == null)) {
+                dialog.dispose();
+                loadMedicinesFromDatabase();
+            }
         });
 
         btnCancel.addActionListener(e -> dialog.dispose());
@@ -953,7 +955,7 @@ public class StandardMedicinePanel extends JPanel {
         }
     }
 
-    private void saveOrUpdateMedicineToDB(String code, String name, String active, String maNhom, String maDBC, String maDD, String manuf, String country, boolean isInsert) {
+    private boolean saveOrUpdateMedicineToDB(String code, String name, String active, String maNhom, String maDBC, String maDD, String manuf, String country, boolean isInsert) {
         String sql = isInsert 
             ? "INSERT INTO THUOC (MaThuoc, TenThuoc, HoatChatChinh, MaNhomThuoc, MaDangBaoChe, MaDuongDung, NhaSanXuat, NuocSanXuat, TrangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
             : "UPDATE THUOC SET TenThuoc = ?, HoatChatChinh = ?, MaNhomThuoc = ?, MaDangBaoChe = ?, MaDuongDung = ?, NhaSanXuat = ?, NuocSanXuat = ? WHERE MaThuoc = ?";
@@ -979,10 +981,17 @@ public class StandardMedicinePanel extends JPanel {
                 pstmt.setString(7, country);
                 pstmt.setString(8, code);
             }
-            pstmt.executeUpdate();
+            int affected = pstmt.executeUpdate();
+            if (affected == 0) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy thuốc cần cập nhật.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
+            AuditLog.event(isInsert ? "CREATE" : "UPDATE", "Thuốc - mã " + code + ", tên " + name);
             JOptionPane.showMessageDialog(this, "Lưu thông tin thuốc thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return true;
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Lỗi cơ sở dữ liệu: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
@@ -1002,12 +1011,19 @@ public class StandardMedicinePanel extends JPanel {
                     }
                 }
 
+                int deleted;
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, code);
-                    ps.executeUpdate();
+                    deleted = ps.executeUpdate();
+                }
+                if (deleted == 0) {
+                    conn.rollback();
+                    JOptionPane.showMessageDialog(this, "Không tìm thấy thuốc cần xóa.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
 
                 conn.commit();
+                AuditLog.event("DELETE", "Thuốc - mã " + code);
                 JOptionPane.showMessageDialog(this, "Xóa thuốc thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 
                 selectedMedicine = null;

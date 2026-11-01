@@ -330,7 +330,6 @@ public class MenuFrame extends JFrame {
     public void showView(String cardName) {
         if (cardLayout != null && mainContentPanel != null) {
             cardLayout.show(mainContentPanel, cardName);
-            AuditLog.event("VIEW", "Mở màn hình " + cardName);
             if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
             	activityLogPanel.reloadSource();
             }
