@@ -45,16 +45,10 @@ IF OBJECT_ID('NhanVien', 'U') IS NOT NULL DROP TABLE NhanVien;
 IF OBJECT_ID('KhachHang', 'U') IS NOT NULL DROP TABLE KhachHang;
 IF OBJECT_ID('AuditLog', 'U') IS NOT NULL DROP TABLE AuditLog;
 GO
-<<<<<<< HEAD
+
 
 GO
-=======
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 
-<<<<<<< HEAD
-
-=======
->>>>>>> branch 'master' of https://github.com/Nhom12PTUDHTQLPKNK/HTQLPKNK.git
 -- ----------------------------------------------------------------------------
 -- PHẦN 2: TẠO CÁC BẢNG ĐỘC LẬP (BẢNG CHA)
 -- ----------------------------------------------------------------------------
