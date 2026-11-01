@@ -7,6 +7,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 
 public class AppointmentUpdatePanel extends JPanel {
     private static final Color BLUE_PRIMARY = new Color(0, 126, 255);
@@ -25,12 +28,15 @@ public class AppointmentUpdatePanel extends JPanel {
     private TableRowSorter<DefaultTableModel> sorterChoXuLy, sorterDaLam;
     private JTextField txtSearchPhone;
 
-    private JTextField txtAppId, txtCustName, txtPhone, txtTime;
-    private datepicker.DatePickerField txtAppDate;
+
+    private JTextField txtAppId, txtCustName, txtPhone, txtAppDate, txtTime;
     private JComboBox<String> cbService, cbDoctor, cbStatus;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
     private int activeTabSource = 0; // 0: Đang chờ, 1: Đã làm
+
+   
+   
 
     public AppointmentUpdatePanel() {
         setLayout(new BorderLayout(0, 15));
@@ -264,7 +270,7 @@ public class AppointmentUpdatePanel extends JPanel {
         panel.add(cbDoctor);
         panel.add(Box.createVerticalStrut(12));
 
-        txtAppDate = addDateFieldToForm(panel, "Ngày khám (dd/MM/yyyy):");
+        txtAppDate = addFieldToForm(panel, "Ngày khám (dd/MM/yyyy):");
         txtTime = addFieldToForm(panel, "Giờ khám (HH:mm):");
 
         JLabel lblStatus = createFieldLabel("Trạng thái (Chọn 'Hoàn thành' sẽ chuyển sang Đã làm):");
@@ -415,11 +421,20 @@ public class AppointmentUpdatePanel extends JPanel {
             return;
         }
 
-        if (!txtAppDate.isValidDate()) {
-            JOptionPane.showMessageDialog(this, "Ngày hẹn không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter
+                    .ofPattern("dd/MM/uuuu")
+                    .withResolverStyle(ResolverStyle.STRICT);
+
+            LocalDate.parse(date, formatter);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Ngày hẹn không hợp lệ. Vui lòng nhập ngày theo định dạng dd/MM/yyyy!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
-
+        
         Object[] rowData = new Object[]{id, name, phone, serv, doc, date, time, status};
 
         // Nếu chọn trạng thái "Hoàn thành" hoặc "Đã hủy", tự động chuyển hoặc thêm vào bảng "Đã làm"

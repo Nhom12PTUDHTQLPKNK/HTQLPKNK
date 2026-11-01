@@ -25,18 +25,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import views.UiKit;
 
-/**
- * Cập nhật kho vật tư, thiết bị, thuốc.
- *  - Tạo giao dịch NHẬP / XUẤT / ĐIỀU CHỈNH (có lô, hạn sử dụng, lý do).
- *  - Giao dịch mới ở trạng thái "Chờ xác nhận"; chỉ khi bấm "Xác nhận" thì tồn kho mới thay đổi.
- */
 public class InventoryUpdatePanel extends JPanel {
 
-    private static final String[] COLS = {"Mã GD", "Thời gian lập", "Loại", "Mã hàng", "Tên hàng", "Lô",
-            "Hạn sử dụng", "Số lượng", "ĐVT", "Lý do / Ghi chú", "Trạng thái", "Người lập"};
-    private static final Class<?>[] TYPES = {String.class, String.class, String.class, String.class, String.class,
-            String.class, String.class, Integer.class, String.class, String.class, String.class, String.class};
+    private static final String[] COLS = {
+        "Mã GD", "Thời gian lập", "Loại", "Mã hàng", "Tên hàng", "Lô",
+        "Hạn sử dụng", "Số lượng", "ĐVT", "Lý do / Ghi chú", "Trạng thái", "Người lập"
+    };
+    private static final Class<?>[] TYPES = {
+        String.class, String.class, String.class, String.class, String.class,
+        String.class, String.class, Integer.class, String.class, String.class, String.class, String.class
+    };
     private static final int COL_STATUS = 10;
     private static final String ALL = "Tất cả";
 
@@ -45,10 +45,10 @@ public class InventoryUpdatePanel extends JPanel {
 
     private final DefaultTableModel model = UiKit.readOnlyModel(COLS, TYPES);
     private final JTable table = new JTable(model);
-    private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<DefaultTableModel>(model);
+    private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
 
     private final JTextField txtSearch = UiKit.textField();
-    private final JComboBox<String> cbStatusFilter = new JComboBox<String>();
+    private final JComboBox<String> cbStatusFilter = new JComboBox<>();
 
     private final JComboBox<TxnType> cbType = new JComboBox<TxnType>(TxnType.values());
     private final JComboBox<Item> cbItem = new JComboBox<Item>();
@@ -56,23 +56,25 @@ public class InventoryUpdatePanel extends JPanel {
     private final DatePickerField txtExpiry = new DatePickerField();
     private final JTextField txtQty = UiKit.textField();
     private final JTextField txtReason = UiKit.textField();
+    
     private final JLabel lblLot = UiKit.fieldLabel("Lô hàng (để trống nếu không có lô):");
     private final JLabel lblExpiry = UiKit.fieldLabel("Hạn sử dụng (dd/MM/yyyy, nếu có):");
     private final JLabel lblQty = UiKit.fieldLabel("Số lượng:");
     private final JLabel lblReason = UiKit.fieldLabel("Nguồn nhập / ghi chú:");
     private final JLabel lblStockInfo = new JLabel(" ");
     private final JLabel lblSelected = new JLabel("Chọn giao dịch trong bảng để xác nhận / hủy.");
+    
     private final JButton btnCreate = UiKit.button("Tạo giao dịch", UiKit.BLUE_PRIMARY, Integer.MAX_VALUE);
     private final JButton btnConfirm = UiKit.button("Xác nhận", UiKit.GREEN_ACCENT, Integer.MAX_VALUE);
     private final JButton btnCancel = UiKit.button("Hủy giao dịch", UiKit.RED_ACCENT, Integer.MAX_VALUE);
     private final JButton btnClear = UiKit.button("Làm mới", UiKit.PINK_ACCENT, Integer.MAX_VALUE);
 
     private boolean adjusting = false;
-    private final Runnable refreshListener = new Runnable() {
-        @Override public void run() { UiKit.onEdt(new Runnable() { @Override public void run() { reloadAll(); } }); }
-    };
+    private final Runnable refreshListener = () -> UiKit.onEdt(this::reloadAll);
 
-    public InventoryUpdatePanel() { this(System.getProperty("user.name", "Hệ thống")); }
+    public InventoryUpdatePanel() {
+        this(System.getProperty("user.name", "Hệ thống"));
+    }
 
     public InventoryUpdatePanel(String currentUser) {
         this.currentUser = currentUser;
@@ -82,31 +84,34 @@ public class InventoryUpdatePanel extends JPanel {
         JPanel root = UiKit.pageRoot();
         add(root, BorderLayout.CENTER);
 
-        // ----- header + toolbar
+        // 1. Toolbar & Header
         JPanel tb = UiKit.toolbar();
         txtSearch.setPreferredSize(new Dimension(180, 36));
         txtSearch.setToolTipText("Tìm theo mã GD, mã/tên hàng, lô, lý do...");
-        txtSearch.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { applyFilter(); }
-        });
+        txtSearch.addActionListener(e -> applyFilter());
+
         cbStatusFilter.addItem(ALL);
-        for (TxnStatus s : TxnStatus.values()) cbStatusFilter.addItem(s.getLabel());
+        for (TxnStatus s : TxnStatus.values()) {
+            cbStatusFilter.addItem(s.getLabel());
+        }
         UiKit.styleCombo(cbStatusFilter);
         cbStatusFilter.setPreferredSize(new Dimension(140, 36));
-        cbStatusFilter.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { applyFilter(); }
-        });
+        cbStatusFilter.addActionListener(e -> applyFilter());
+
         JButton btnSearch = UiKit.button("Tìm", UiKit.BLUE_PRIMARY, 75);
-        btnSearch.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { applyFilter(); }
-        });
+        btnSearch.addActionListener(e -> applyFilter());
+
         tb.add(txtSearch);
         tb.add(cbStatusFilter);
         tb.add(btnSearch);
-        root.add(UiKit.pageHeader("Cập Nhật Kho - Nhập, Xuất, Điều Chỉnh",
-                "Tồn kho chỉ thay đổi sau khi giao dịch được xác nhận", tb), BorderLayout.NORTH);
 
-        // ----- bảng + form
+        root.add(UiKit.pageHeader(
+            "Cập Nhật Kho - Nhập, Xuất, Điều Chỉnh",
+            "Tồn kho chỉ thay đổi sau khi giao dịch được xác nhận",
+            tb
+        ), BorderLayout.NORTH);
+
+        // 2. Center Content (Table + Form)
         JPanel center = new JPanel(new BorderLayout(15, 0));
         center.setOpaque(false);
 
@@ -115,21 +120,25 @@ public class InventoryUpdatePanel extends JPanel {
         UiKit.setColumnWidths(table, 75, 140, 85, 70, 170, 80, 95, 75, 70, 190, 100, 90);
         table.getColumnModel().getColumn(COL_STATUS).setCellRenderer(statusRenderer());
         PdfTableExport.install(table, "Giao dịch kho");
-        table.getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            @Override public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) syncSelectedTxn();
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                syncSelectedTxn();
             }
         });
+
         center.add(UiKit.scroll(table), BorderLayout.CENTER);
         center.add(buildForm(), BorderLayout.EAST);
         root.add(center, BorderLayout.CENTER);
 
-        for (Item it : store.items()) cbItem.addItem(it);
+        // Load items
+        for (Item it : store.items()) {
+            cbItem.addItem(it);
+        }
         syncForm();
         reloadAll();
     }
 
-    // ------------------------------------------------------------------ form
     private JPanel buildForm() {
         JPanel p = UiKit.card();
         p.setPreferredSize(new Dimension(360, 0));
@@ -173,33 +182,25 @@ public class InventoryUpdatePanel extends JPanel {
         p.add(UiKit.buttonRow(btnConfirm, btnCancel));
         p.add(Box.createVerticalGlue());
 
-        // sự kiện
-        cbType.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { syncForm(); }
+        // Event Listeners
+        cbType.addActionListener(e -> syncForm());
+        cbItem.addActionListener(e -> syncForm());
+        cbLot.addActionListener(e -> {
+            if (!adjusting) onLotChanged();
         });
-        cbItem.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { syncForm(); }
-        });
-        cbLot.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { if (!adjusting) onLotChanged(); }
-        });
-        ((JTextComponent) cbLot.getEditor().getEditorComponent()).getDocument().addDocumentListener(new DocumentListener() {
+
+        JTextComponent editorComponent = (JTextComponent) cbLot.getEditor().getEditorComponent();
+        editorComponent.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { if (!adjusting) onLotChanged(); }
             @Override public void removeUpdate(DocumentEvent e) { if (!adjusting) onLotChanged(); }
-            @Override public void changedUpdate(DocumentEvent e) { }
+            @Override public void changedUpdate(DocumentEvent e) {}
         });
-        btnCreate.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { onCreate(); }
-        });
-        btnConfirm.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { onConfirm(); }
-        });
-        btnCancel.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { onCancel(); }
-        });
-        btnClear.addActionListener(new java.awt.event.ActionListener() {
-            @Override public void actionPerformed(java.awt.event.ActionEvent e) { clearForm(); }
-        });
+
+        btnCreate.addActionListener(e -> onCreate());
+        btnConfirm.addActionListener(e -> onConfirm());
+        btnCancel.addActionListener(e -> onCancel());
+        btnClear.addActionListener(e -> clearForm());
+
         btnConfirm.setEnabled(false);
         btnCancel.setEnabled(false);
         return p;
@@ -212,15 +213,19 @@ public class InventoryUpdatePanel extends JPanel {
         p.add(Box.createVerticalStrut(8));
     }
 
-    private Item selectedItem() { return (Item) cbItem.getSelectedItem(); }
-    private TxnType selectedType() { return (TxnType) cbType.getSelectedItem(); }
+    private Item selectedItem() {
+        return (Item) cbItem.getSelectedItem();
+    }
+
+    private TxnType selectedType() {
+        return (TxnType) cbType.getSelectedItem();
+    }
 
     private String lotText() {
         Object o = cbLot.getEditor().getItem();
         return o == null ? "" : o.toString().trim();
     }
 
-    /** Đổi nhãn / danh sách lô theo loại giao dịch và mặt hàng. */
     private void syncForm() {
         if (adjusting) return;
         adjusting = true;
@@ -239,8 +244,14 @@ public class InventoryUpdatePanel extends JPanel {
             }
             cbLot.removeAllItems();
             if (item != null) {
-                for (String lot : store.lotsOf(item.getCode(), type == TxnType.XUAT)) cbLot.addItem(lot);
-                if (cbLot.getItemCount() > 0) cbLot.setSelectedIndex(0); else cbLot.setSelectedItem("");
+                for (String lot : store.lotsOf(item.getCode(), type == TxnType.XUAT)) {
+                    cbLot.addItem(lot);
+                }
+                if (cbLot.getItemCount() > 0) {
+                    cbLot.setSelectedIndex(0);
+                } else {
+                    cbLot.setSelectedItem("");
+                }
             }
         } finally {
             adjusting = false;
@@ -251,14 +262,19 @@ public class InventoryUpdatePanel extends JPanel {
     private void onLotChanged() {
         Item item = selectedItem();
         TxnType type = selectedType();
-        if (item == null) { lblStockInfo.setText(" "); return; }
+        if (item == null) {
+            lblStockInfo.setText(" ");
+            return;
+        }
         String lot = lotText();
         LocalDate known = store.expiryOf(item.getCode(), lot);
         if (known != null) {
             txtExpiry.setText(UiKit.fmt(known));
             txtExpiry.setEditable(false);
         } else {
-            if (!txtExpiry.isEditable()) txtExpiry.setText("");
+            if (!txtExpiry.isEditable()) {
+                txtExpiry.setText("");
+            }
             txtExpiry.setEditable(type != TxnType.XUAT);
         }
         updateStockInfo();
@@ -266,7 +282,10 @@ public class InventoryUpdatePanel extends JPanel {
 
     private void updateStockInfo() {
         Item item = selectedItem();
-        if (item == null) { lblStockInfo.setText(" "); return; }
+        if (item == null) {
+            lblStockInfo.setText(" ");
+            return;
+        }
         String lot = lotText();
         int total = store.totalQty(item.getCode());
         int inLot = store.lotQty(item.getCode(), lot);
@@ -282,10 +301,12 @@ public class InventoryUpdatePanel extends JPanel {
         syncForm();
     }
 
-    // ------------------------------------------------------------------ hành động
     private void onCreate() {
         Item item = selectedItem();
-        if (item == null) { UiKit.warn(this, "Vui lòng chọn mặt hàng."); return; }
+        if (item == null) {
+            UiKit.warn(this, "Vui lòng chọn mặt hàng.");
+            return;
+        }
         int qty;
         try {
             qty = Integer.parseInt(txtQty.getText().trim());
@@ -315,8 +336,13 @@ public class InventoryUpdatePanel extends JPanel {
 
     private void onConfirm() {
         String id = selectedTxnId();
-        if (id == null) { UiKit.warn(this, "Vui lòng chọn giao dịch cần xác nhận."); return; }
-        if (!UiKit.confirm(this, "Xác nhận giao dịch " + id + "?\nTồn kho sẽ được cập nhật và không thể hoàn tác (chỉ có thể điều chỉnh).")) return;
+        if (id == null) {
+            UiKit.warn(this, "Vui lòng chọn giao dịch cần xác nhận.");
+            return;
+        }
+        if (!UiKit.confirm(this, "Xác nhận giao dịch " + id + "?\nTồn kho sẽ được cập nhật và không thể hoàn tác (chỉ có thể điều chỉnh).")) {
+            return;
+        }
         try {
             store.validatePending(id);
             Txn pending = store.transaction(id);
@@ -342,8 +368,13 @@ public class InventoryUpdatePanel extends JPanel {
 
     private void onCancel() {
         String id = selectedTxnId();
-        if (id == null) { UiKit.warn(this, "Vui lòng chọn giao dịch cần hủy."); return; }
-        if (!UiKit.confirm(this, "Hủy giao dịch " + id + "?")) return;
+        if (id == null) {
+            UiKit.warn(this, "Vui lòng chọn giao dịch cần hủy.");
+            return;
+        }
+        if (!UiKit.confirm(this, "Hủy giao dịch " + id + "?")) {
+            return;
+        }
         try {
             store.cancel(id, currentUser);
             AuditLog.event("CANCEL", "Hủy giao dịch kho " + id);
@@ -352,7 +383,6 @@ public class InventoryUpdatePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------------ bảng
     private void reloadAll() {
         String keep = selectedTxnId();
         Item selItem = selectedItem();
@@ -363,10 +393,12 @@ public class InventoryUpdatePanel extends JPanel {
             Item it = store.item(t.getItemCode());
             LocalDate exp = store.expiryOf(t.getItemCode(), t.getLotNo());
             if (exp == null) exp = t.getExpiry();
-            model.addRow(new Object[]{t.getId(), t.getCreatedAt().format(UiKit.DATE_TIME_FMT), t.getType().getLabel(),
-                    t.getItemCode(), it == null ? "" : it.getName(), t.getLotNo(), UiKit.fmt(exp),
-                    Integer.valueOf(t.getDelta()), it == null ? "" : it.getUnit(), t.getReason(),
-                    t.getStatus().getLabel(), t.getCreatedBy()});
+            model.addRow(new Object[]{
+                t.getId(), t.getCreatedAt().format(UiKit.DATE_TIME_FMT), t.getType().getLabel(),
+                t.getItemCode(), it == null ? "" : it.getName(), t.getLotNo(), UiKit.fmt(exp),
+                t.getDelta(), it == null ? "" : it.getUnit(), t.getReason(),
+                t.getStatus().getLabel(), t.getCreatedBy()
+            });
         }
         if (keep != null) selectTxn(keep);
         syncSelectedTxn();
@@ -374,12 +406,15 @@ public class InventoryUpdatePanel extends JPanel {
     }
 
     private void applyFilter() {
-        List<RowFilter<DefaultTableModel, Object>> fs = new ArrayList<RowFilter<DefaultTableModel, Object>>();
+        List<RowFilter<DefaultTableModel, Object>> fs = new ArrayList<>();
         String kw = txtSearch.getText().trim();
-        if (!kw.isEmpty()) fs.add(RowFilter.<DefaultTableModel, Object>regexFilter("(?i)" + Pattern.quote(kw)));
+        if (!kw.isEmpty()) {
+            fs.add(RowFilter.regexFilter("(?i)" + Pattern.quote(kw)));
+        }
         String st = (String) cbStatusFilter.getSelectedItem();
-        if (st != null && !ALL.equals(st))
-            fs.add(RowFilter.<DefaultTableModel, Object>regexFilter("^" + Pattern.quote(st) + "$", COL_STATUS));
+        if (st != null && !ALL.equals(st)) {
+            fs.add(RowFilter.regexFilter("^" + Pattern.quote(st) + "$", COL_STATUS));
+        }
         sorter.setRowFilter(fs.isEmpty() ? null : RowFilter.andFilter(fs));
     }
 
@@ -393,7 +428,10 @@ public class InventoryUpdatePanel extends JPanel {
         for (int i = 0; i < model.getRowCount(); i++) {
             if (id.equals(model.getValueAt(i, 0))) {
                 int v = table.convertRowIndexToView(i);
-                if (v >= 0) { table.setRowSelectionInterval(v, v); table.scrollRectToVisible(table.getCellRect(v, 0, true)); }
+                if (v >= 0) {
+                    table.setRowSelectionInterval(v, v);
+                    table.scrollRectToVisible(table.getCellRect(v, 0, true));
+                }
                 return;
             }
         }
@@ -405,19 +443,31 @@ public class InventoryUpdatePanel extends JPanel {
         boolean pending = t != null && t.getStatus() == TxnStatus.CHO_XAC_NHAN;
         btnConfirm.setEnabled(pending);
         btnCancel.setEnabled(pending);
-        if (t == null) lblSelected.setText("Chọn giao dịch trong bảng để xác nhận / hủy.");
-        else lblSelected.setText("Đang chọn: " + t.getId() + " - " + t.getStatus().getLabel());
+        if (t == null) {
+            lblSelected.setText("Chọn giao dịch trong bảng để xác nhận / hủy.");
+        } else {
+            lblSelected.setText("Đang chọn: " + t.getId() + " - " + t.getStatus().getLabel());
+        }
     }
 
     private static UiKit.ColorTextRenderer statusRenderer() {
-        Map<String, Color> m = new HashMap<String, Color>();
+        Map<String, Color> m = new HashMap<>();
         m.put(TxnStatus.CHO_XAC_NHAN.getLabel(), UiKit.ORANGE_ACCENT);
         m.put(TxnStatus.DA_XAC_NHAN.getLabel(), UiKit.GREEN_ACCENT);
         m.put(TxnStatus.DA_HUY.getLabel(), UiKit.MUTED);
         return new UiKit.ColorTextRenderer(m);
     }
 
-    // ------------------------------------------------------------------ vòng đời
-    @Override public void addNotify() { super.addNotify(); store.addListener(refreshListener); reloadAll(); }
-    @Override public void removeNotify() { store.removeListener(refreshListener); super.removeNotify(); }
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        store.addListener(refreshListener);
+        reloadAll();
+    }
+
+    @Override
+    public void removeNotify() {
+        store.removeListener(refreshListener);
+        super.removeNotify();
+    }
 }

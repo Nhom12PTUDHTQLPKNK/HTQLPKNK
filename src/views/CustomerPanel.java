@@ -1,4 +1,5 @@
 
+
 package views;
 
 import controllers.PatientController;
@@ -1027,3 +1028,4 @@ public class CustomerPanel extends JPanel {
         );
     }
 }
+

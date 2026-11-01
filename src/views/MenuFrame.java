@@ -4,6 +4,7 @@ import Audit.AuditLog;
 import controllers.AuthController;
 import models.entity.Account;
 
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -31,7 +32,6 @@ public class MenuFrame extends JFrame {
     private DashboardPanel dashboardPanel;
     private ActivityLogPanel activityLogPanel;
     private AppointmentBookingPanel bookingPanel;
-    private BookingProcessPanel bookingProcessPanel;
 
    // hệ thống
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -279,12 +279,11 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new EmployeePanel(), CARD_EMPLOYEES);
         mainContentPanel.add(new MedicalRecordPanel(), CARD_MEDICAL_RECORDS);
 
-     // cập nhật
+      // cập nhật
         mainContentPanel.add(new InventoryUpdatePanel(), CARD_INVENTORY_UPDATE);
-        bookingProcessPanel = new BookingProcessPanel();
-        mainContentPanel.add(bookingProcessPanel, CARD_APPOINTMENT_UPDATE);
+        mainContentPanel.add(new AppointmentUpdatePanel(), CARD_APPOINTMENT_UPDATE);
         mainContentPanel.add(new PersonnelAccountUpdatePanel(), CARD_PERSONNEL_UPDATE);
-        
+
       // xử lý
         bookingPanel = new AppointmentBookingPanel();
         mainContentPanel.add(bookingPanel, CARD_BOOKING);
@@ -295,15 +294,15 @@ public class MenuFrame extends JFrame {
      // tìm kiếm
         mainContentPanel.add(new CustomerSearchPanel(), CARD_SEARCH_CUSTOMER);
         mainContentPanel.add(new AppointmentSearchPanel(), CARD_SEARCH_APPOINTMENT);
-        mainContentPanel.add(new PromotionSearchPanel(), CARD_SEARCH_PROMO);
-        mainContentPanel.add(new WorkScheduleSearchPanel(), CARD_SEARCH_SHIFT);
-        mainContentPanel.add(new InventorySearchPanel(), CARD_SEARCH_INVENTORY);
-        mainContentPanel.add(new InvoiceReceiptSearchPanel(), CARD_SEARCH_INVOICE);
+        addBlankCard(CARD_SEARCH_PROMO);
+        addBlankCard(CARD_SEARCH_SHIFT);
+        addBlankCard(CARD_SEARCH_INVENTORY);
+        addBlankCard(CARD_SEARCH_INVOICE);
        // báo biểu
-        mainContentPanel.add(new RevenueDebtReportPanel(), CARD_REPORT_REVENUE);
-        mainContentPanel.add(new ServiceDentistReportPanel(), CARD_REPORT_SERVICE);
-        mainContentPanel.add(new InventoryMovementReportPanel(), CARD_REPORT_WAREHOUSE);
-        mainContentPanel.add(new ReportExportPanel(), CARD_REPORT_EXPORT);
+        addBlankCard(CARD_REPORT_REVENUE);
+        addBlankCard(CARD_REPORT_SERVICE);
+        addBlankCard(CARD_REPORT_WAREHOUSE);
+        addBlankCard(CARD_REPORT_EXPORT);
 
 
       // CARD TRẮNG ĐÂY NÈ SỬA CÁC CLASS DÁN VÔ ĐÂY
@@ -333,20 +332,14 @@ public class MenuFrame extends JFrame {
             cardLayout.show(mainContentPanel, cardName);
             AuditLog.event("VIEW", "Mở màn hình " + cardName);
             if (CARD_LOGS.equals(cardName) && activityLogPanel != null) {
-                activityLogPanel.refreshTables();
+            	activityLogPanel.reloadSource();
             }
             if (CARD_DASHBOARD.equals(cardName) && dashboardPanel != null) {
                 dashboardPanel.refreshDashboardData();
             }
-         // Tải lại dữ liệu đặt lịch
+            // Tải lại dịch vụ / nha sĩ / lịch hẹn mới nhất từ SQL mỗi lần mở
             if (CARD_BOOKING.equals(cardName) && bookingPanel != null) {
                 bookingPanel.refreshData();
-            }
-
-            // Tải lại dữ liệu tiếp nhận lịch hẹn
-            if (CARD_APPOINTMENT_UPDATE.equals(cardName)
-                    && bookingProcessPanel != null) {
-                bookingProcessPanel.refreshData();
             }
         }
     }
@@ -390,7 +383,7 @@ public class MenuFrame extends JFrame {
             byte[] qrImage = new AuthController().regenerateCurrentUserLoginQr();
             if (qrImage == null) {
                 JOptionPane.showMessageDialog(this,
-                       "Không tìm thấy tài khoản đang hoạt động để tạo mã QR.",
+                        "Không tìm thấy tài khoản đang hoạt động để tạo mã QR.",
                         "Không thể tạo mã QR", JOptionPane.WARNING_MESSAGE);
                 return;
             }

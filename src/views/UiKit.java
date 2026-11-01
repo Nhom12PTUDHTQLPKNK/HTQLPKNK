@@ -12,10 +12,6 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.Map;
 
-/**
- * Tiện ích giao diện dùng chung cho các panel của Luân (cùng bảng màu / font với InventoryUpdatePanel cũ).
- * Không dùng ký tự emoji vì font Segoe UI trên một số máy hiển thị thành ô vuông.
- */
 public final class UiKit {
     private UiKit() { }
 
@@ -35,18 +31,15 @@ public final class UiKit {
     public static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu HH:mm:ss");
     public static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
-    // ---------- định dạng / phân tích ----------
     public static Font font(int style, int size) { return new Font("Segoe UI", style, size); }
 
     public static String fmt(LocalDate d) { return d == null ? "" : d.format(DATE_FMT); }
 
-    /** Trả về null nếu rỗng; ném DateTimeParseException nếu sai định dạng dd/MM/yyyy. */
     public static LocalDate parseDate(String s) throws DateTimeParseException {
         if (s == null || s.trim().isEmpty()) return null;
         return LocalDate.parse(s.trim(), DATE_FMT);
     }
 
-    /** Trả về null nếu rỗng; ném DateTimeParseException nếu sai định dạng HH:mm. */
     public static LocalTime parseTime(String s) throws DateTimeParseException {
         if (s == null || s.trim().isEmpty()) return null;
         return LocalTime.parse(s.trim(), TIME_FMT);
@@ -56,7 +49,6 @@ public final class UiKit {
         if (SwingUtilities.isEventDispatchThread()) r.run(); else SwingUtilities.invokeLater(r);
     }
 
-    // ---------- hộp thoại ----------
     public static void info(Component parent, String msg) {
         JOptionPane.showMessageDialog(parent, msg, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -68,7 +60,6 @@ public final class UiKit {
                 JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
     }
 
-    // ---------- bố cục ----------
     public static JPanel pageRoot() {
         JPanel p = new JPanel(new BorderLayout(0, 15));
         p.setBackground(BG_CANVAS);
@@ -101,8 +92,7 @@ public final class UiKit {
         p.setOpaque(false);
         return p;
     }
-
-    /** Khung bo góc màu trắng. */
+    
     public static JPanel card() {
         JPanel p = new JPanel() {
             @Override
@@ -121,7 +111,6 @@ public final class UiKit {
         return p;
     }
 
-    // ---------- control ----------
     public static JLabel fieldLabel(String text) {
         JLabel lbl = new JLabel(text);
         lbl.setFont(font(Font.BOLD, 12));
@@ -172,7 +161,6 @@ public final class UiKit {
         return btn;
     }
 
-    /** Hàng nút nằm ngang chia đều, dùng trong form bên phải. */
     public static JPanel buttonRow(JButton... buttons) {
         JPanel row = new JPanel(new GridLayout(1, buttons.length, 8, 0));
         row.setOpaque(false);
@@ -182,8 +170,6 @@ public final class UiKit {
         return row;
     }
 
-    // ---------- bảng ----------
-    /** Model chỉ đọc; types cho phép sắp xếp đúng với cột số (Integer.class). */
     public static DefaultTableModel readOnlyModel(final String[] cols, final Class<?>... types) {
         return new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -207,7 +193,6 @@ public final class UiKit {
         table.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 
-    /** Đặt độ rộng ưu tiên cho các cột đầu tiên (các cột còn lại giữ mặc định). */
     public static void setColumnWidths(JTable t, int... widths) {
         for (int i = 0; i < widths.length && i < t.getColumnCount(); i++)
             t.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
@@ -220,7 +205,6 @@ public final class UiKit {
         return sp;
     }
 
-    /** Tô màu chữ theo giá trị ô (ví dụ cột "Trạng thái"). */
     public static class ColorTextRenderer extends DefaultTableCellRenderer {
         private final Map<String, Color> colors;
         public ColorTextRenderer(Map<String, Color> colors) { this.colors = colors; }

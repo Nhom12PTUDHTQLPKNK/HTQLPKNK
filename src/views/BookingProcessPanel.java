@@ -1,7 +1,8 @@
 
 package views;
 
-import Audit.AuditLog;
+
+
 import models.dao.LichHenDAO;
 import report.PdfTableExport;
 import sql.DBConnection;
@@ -21,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
+import Audit.AuditLog;
 
 public class BookingProcessPanel extends JPanel {
 
@@ -1357,5 +1359,6 @@ private String getCellText(
         loadServices();
         loadDoctors();
         loadAppointments();
+
     }
 }

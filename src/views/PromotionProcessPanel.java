@@ -21,12 +21,16 @@ public class PromotionProcessPanel extends JPanel {
 
     private DefaultTableModel tableModel;
     private JTable table;
+
     private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount;
     private datepicker.DatePickerField txtEndDate;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
 
+   
+
+   
     public PromotionProcessPanel() {
         setLayout(new BorderLayout(0, 15));
         setBackground(BG_CANVAS);
@@ -226,6 +230,7 @@ public class PromotionProcessPanel extends JPanel {
 
         if (!endDate.isEmpty() && !txtEndDate.isValidDate()) {
             JOptionPane.showMessageDialog(this, "Ngày kết thúc không hợp lệ. Vui lòng chọn ngày theo định dạng dd/MM/yyyy!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+
             return;
         }
 
