@@ -224,7 +224,7 @@ public class BookingProcessPanel extends JPanel {
         }
     }
 
-    // ==================== CARD GRID PANEL (THAY CHO JTABLE) ====================
+    // ==================== CARD GRID PANEL ====================
     private JPanel createCardGridPanel() {
         RoundedPanel panel = new RoundedPanel(16, CARD_BG);
         panel.setLayout(new BorderLayout(0, 12));
@@ -249,7 +249,6 @@ public class BookingProcessPanel extends JPanel {
         heading.add(lblHint);
         titlePanel.add(heading, BorderLayout.WEST);
 
-        // Container dạng lưới (Grid 3 cột cho các thẻ card)
         gridPendingContainer = new JPanel(new GridLayout(0, 3, 15, 15));
         gridPendingContainer.setOpaque(false);
 
@@ -272,6 +271,14 @@ public class BookingProcessPanel extends JPanel {
         tabbedPane.addTab("Đã xác nhận (0)", scrollConfirmed);
         tabbedPane.addTab("Lịch sử xử lý (0)", scrollHistory);
 
+        // Lắng nghe sự kiện đổi tab để tự động cập nhật tên và hiển thị nút thao tác cho phù hợp
+        tabbedPane.addChangeListener(e -> {
+            if (selectedAppointmentId != null) {
+                // Tự động cập nhật lại nhãn nút bấm dựa vào tab đang chọn
+                updateActionPrimaryButtonState();
+            }
+        });
+
         panel.add(titlePanel, BorderLayout.NORTH);
         panel.add(tabbedPane, BorderLayout.CENTER);
 
@@ -279,7 +286,6 @@ public class BookingProcessPanel extends JPanel {
     }
 
     private JScrollPane createCardScrollPane(JPanel gridContainer) {
-        // Bọc gridContainer vào một panel bọc phía trên để các card không bị kéo giãn theo chiều dọc
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(BG_CANVAS);
         wrapper.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -322,7 +328,6 @@ public class BookingProcessPanel extends JPanel {
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.setPreferredSize(new Dimension(0, 130));
 
-        // Top: Tên khách hàng & Nhãn trạng thái nhỏ
         JPanel topBox = new JPanel(new BorderLayout());
         topBox.setOpaque(false);
 
@@ -350,7 +355,6 @@ public class BookingProcessPanel extends JPanel {
         topBox.add(lblStatusBadge, BorderLayout.EAST);
         card.add(topBox, BorderLayout.NORTH);
 
-        // Center: Ngày giờ & Dịch vụ
         JPanel centerBox = new JPanel();
         centerBox.setLayout(new BoxLayout(centerBox, BoxLayout.Y_AXIS));
         centerBox.setOpaque(false);
@@ -369,7 +373,6 @@ public class BookingProcessPanel extends JPanel {
         centerBox.add(lblService);
         card.add(centerBox, BorderLayout.CENTER);
 
-        // Bottom: Bác sĩ phụ trách & Mũi tên điều hướng
         JPanel bottomBox = new JPanel(new BorderLayout());
         bottomBox.setOpaque(false);
 
@@ -385,7 +388,6 @@ public class BookingProcessPanel extends JPanel {
 
         card.add(bottomBox, BorderLayout.SOUTH);
 
-        // Sự kiện click chọn card hiển thị sang panel chi tiết bên phải
         MouseAdapter selectListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -497,7 +499,7 @@ public class BookingProcessPanel extends JPanel {
         return lblVal;
     }
 
-    // ==================== LUỒNG CHUYỂN TRẠNG THÁI ====================
+    // ==================== LUỒNG CHUYỂN TRẠNG THÁI (ĐÃ FIX TAB ĐÃ XÁC NHẬN) ====================
     private void performFlowAction() {
         if (selectedAppointmentId == null || selectedAppointmentId.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn thẻ lịch hẹn từ danh sách!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -508,16 +510,18 @@ public class BookingProcessPanel extends JPanel {
         boolean success = false;
 
         if (currentTab == 0) {
+            // Tab 0: Chờ xác nhận -> Bấm để chuyển sang "Đã xác nhận"
             success = lichHenDAO.xacNhanLichHen(selectedAppointmentId);
             if (success) {
                 AuditLog.event("UPDATE", "Xác nhận lịch hẹn - mã " + selectedAppointmentId);
                 JOptionPane.showMessageDialog(this, "Đã chuyển lịch hẹn sang trạng thái [Đã xác nhận]!");
             }
         } else if (currentTab == 1) {
-            success = lichHenDAO.updateStatus(selectedAppointmentId, "Hoàn thành");
+            // Tab 1: Đã xác nhận -> Bấm để đưa sang khám bệnh (Cập nhật trạng thái thành "Đang khám" hoặc "Chờ khám" để bác sĩ bấm khám)
+            success = lichHenDAO.updateStatus(selectedAppointmentId, "Đang khám");
             if (success) {
-                AuditLog.event("UPDATE", "Hoàn thành lịch khám - mã " + selectedAppointmentId);
-                JOptionPane.showMessageDialog(this, "Đã hoàn thành lịch hẹn!");
+                AuditLog.event("UPDATE", "Chuyển lịch sang khám bệnh - mã " + selectedAppointmentId);
+                JOptionPane.showMessageDialog(this, "Đã chuyển dữ liệu sang phòng khám bệnh cho bác sĩ!");
             }
         } else {
             JOptionPane.showMessageDialog(this, "Lịch hẹn này đã kết thúc xử lý!");
@@ -527,6 +531,20 @@ public class BookingProcessPanel extends JPanel {
         if (success) {
             clearForm();
             loadAppointments();
+        }
+    }
+
+    // Cập nhật trạng thái và tên nút bấm chính tùy theo tab đang chọn
+    private void updateActionPrimaryButtonState() {
+        int tabIdx = tabbedPane.getSelectedIndex();
+        if (tabIdx == 0) {
+            btnActionPrimary.setText("Xác nhận lịch hẹn");
+            btnActionPrimary.setVisible(true);
+        } else if (tabIdx == 1) {
+            btnActionPrimary.setText("Chuyển sang Khám bệnh"); // Đã sửa tên nút cho tab Đã xác nhận
+            btnActionPrimary.setVisible(true);
+        } else {
+            btnActionPrimary.setVisible(false);
         }
     }
 
@@ -557,7 +575,6 @@ public class BookingProcessPanel extends JPanel {
             String phone = String.valueOf(row[2]);
             String status = String.valueOf(row[7]);
 
-            // Lọc theo từ khóa tìm kiếm
             if (!query.isEmpty() && !id.toLowerCase().contains(query) && !name.toLowerCase().contains(query) && !phone.contains(query)) {
                 continue;
             }
@@ -576,7 +593,6 @@ public class BookingProcessPanel extends JPanel {
             }
         }
 
-        // Cập nhật số liệu trên thẻ thống kê và tab
         if (lblPendingCount != null) lblPendingCount.setText(String.valueOf(pendingCount));
         if (lblConfirmedCount != null) lblConfirmedCount.setText(String.valueOf(confirmedCount));
         if (lblHistoryCount != null) lblHistoryCount.setText(String.valueOf(historyCount));
@@ -605,16 +621,7 @@ public class BookingProcessPanel extends JPanel {
         lblDetailDoctor.setText(doctor);
         lblDetailStatus.setText(status);
 
-        int tabIdx = tabbedPane.getSelectedIndex();
-        if (tabIdx == 0) {
-            btnActionPrimary.setText("Xác nhận lịch hẹn");
-            btnActionPrimary.setVisible(true);
-        } else if (tabIdx == 1) {
-            btnActionPrimary.setText("Hoàn thành khám");
-            btnActionPrimary.setVisible(true);
-        } else {
-            btnActionPrimary.setVisible(false);
-        }
+        updateActionPrimaryButtonState();
     }
 
     private void performDelete() {
