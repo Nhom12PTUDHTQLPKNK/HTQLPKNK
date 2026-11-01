@@ -15,11 +15,11 @@ import java.util.Map;
 public final class UiKit {
     private UiKit() { }
 
-    public static final Color BLUE_PRIMARY = new Color(0, 126, 255);
-    public static final Color GREEN_ACCENT = new Color(40, 167, 69);
-    public static final Color RED_ACCENT = new Color(220, 53, 69);
-    public static final Color PINK_ACCENT = new Color(239, 63, 131);
-    public static final Color ORANGE_ACCENT = new Color(230, 126, 34);
+    public static final Color BLUE_PRIMARY = new Color(11, 95, 204);
+    public static final Color GREEN_ACCENT = new Color(24, 117, 58);
+    public static final Color RED_ACCENT = new Color(180, 35, 45);
+    public static final Color PINK_ACCENT = new Color(174, 35, 86);
+    public static final Color ORANGE_ACCENT = new Color(148, 75, 8);
     public static final Color BG_CANVAS = new Color(243, 248, 253);
     public static final Color CARD_BG = Color.WHITE;
     public static final Color TEXT_DARK = new Color(15, 29, 69);
@@ -139,12 +139,13 @@ public final class UiKit {
     }
 
     public static JButton button(String text, final Color bg, int width) {
+        final Color readableBg = ensureWhiteTextContrast(bg);
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isEnabled() ? bg : new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 90));
+                g2.setColor(isEnabled() ? readableBg : new Color(92, 103, 118));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
@@ -159,6 +160,33 @@ public final class UiKit {
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
+    }
+
+    /** Darkens button fills until white button text has sufficient contrast. */
+    private static Color ensureWhiteTextContrast(Color color) {
+        Color result = color == null ? BLUE_PRIMARY : color;
+        while (contrastRatio(result, Color.WHITE) < 4.5
+                && (result.getRed() > 18 || result.getGreen() > 18 || result.getBlue() > 18)) {
+            result = result.darker();
+        }
+        return result;
+    }
+
+    private static double contrastRatio(Color first, Color second) {
+        double a = luminance(first);
+        double b = luminance(second);
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    }
+
+    private static double luminance(Color color) {
+        double red = linearize(color.getRed() / 255.0);
+        double green = linearize(color.getGreen() / 255.0);
+        double blue = linearize(color.getBlue() / 255.0);
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    }
+
+    private static double linearize(double channel) {
+        return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
     }
 
     public static JPanel buttonRow(JButton... buttons) {

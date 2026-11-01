@@ -5,6 +5,7 @@ import Audit.AuditLog;
 import models.entity.Account;
 import models.entity.Role;
 import sql.DBConnection;
+import security.AccessControl;
 import javax.swing.table.DefaultTableModel;
 import java.sql.*;
 import java.util.*;
@@ -467,6 +468,16 @@ public class DataManager {
                         if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;
                     }
                 case D_NV:
+                    try (PreparedStatement lookup = conn.prepareStatement("SELECT tenDN,quyen FROM TaiKhoan WHERE maNhanVien=?")) {
+                        lookup.setString(1, id);
+                        try (ResultSet account = lookup.executeQuery()) {
+                            if (account.next()) {
+                                String username = account.getString("tenDN");
+                                if (!AccessControl.isAdministrator()) return false;
+                                if (AccessControl.isCurrentAccount(username) || AccessControl.isProtectedAdministrator(username, account.getString("quyen"))) return false;
+                            }
+                        }
+                    }
                     try (PreparedStatement ps = conn.prepareStatement("DELETE FROM NhanVien WHERE maNhanVien = ?")) {
                         ps.setString(1, id); boolean deleted = ps.executeUpdate() > 0;
                         if (deleted) AuditLog.event("DELETE", feature.title + " - mã " + id); return deleted;

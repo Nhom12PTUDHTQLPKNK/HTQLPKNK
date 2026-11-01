@@ -1,7 +1,9 @@
 package models.dao;
 
+import Audit.AuditLog;
 import models.entity.Account;
 import models.entity.Role;
+import security.AccessControl;
 import sql.DBConnection;
 
 import java.sql.*;
@@ -39,6 +41,7 @@ public class TaiKhoanDAO {
 
     public List<Object[]> getAllAccounts() {
         List<Object[]> list = new ArrayList<>();
+        if (!AccessControl.isAdministrator()) return list;
         String sql = "SELECT tenDN, maNhanVien, quyen, trangThai FROM TaiKhoan";
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -49,7 +52,7 @@ public class TaiKhoanDAO {
                 String r = rs.getString("quyen");
                 boolean statusBit = rs.getBoolean("trangThai");
                 String s = statusBit ? "Hoạt động" : "Tạm khóa";
-                list.add(new Object[]{u, id != null ? id : "", r, s});
+                list.add(new Object[]{u, id != null ? id : "", displayRole(r), s});
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -58,6 +61,8 @@ public class TaiKhoanDAO {
     }
 
     public boolean insertAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien) {
+        if (!AccessControl.isAdministrator() || tenDN == null || tenDN.trim().isEmpty()
+                || matKhau == null || matKhau.trim().isEmpty()) return false;
         String sql = "INSERT INTO TaiKhoan (tenDN, matKhau, quyen, trangThai, maNhanVien) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -70,7 +75,9 @@ public class TaiKhoanDAO {
             } else {
                 stmt.setString(5, maNhanVien);
             }
-            return stmt.executeUpdate() > 0;
+            boolean inserted = stmt.executeUpdate() > 0;
+            if (inserted) AuditLog.event("CREATE", "Tài khoản nhân sự " + tenDN.trim());
+            return inserted;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -78,6 +85,10 @@ public class TaiKhoanDAO {
     }
 
     public boolean updateAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien, boolean updatePassword) {
+        if (!AccessControl.isAdministrator() || tenDN == null || tenDN.trim().isEmpty()
+                || (updatePassword && (matKhau == null || matKhau.trim().isEmpty()))) return false;
+        if (AccessControl.isProtectedAdministrator(tenDN, null)
+                && (!trangThai || !AccessControl.isProtectedAdministrator(tenDN, quyen))) return false;
         String sql;
         if (updatePassword) {
             sql = "UPDATE TaiKhoan SET matKhau = ?, quyen = ?, trangThai = ?, maNhanVien = ? WHERE tenDN = ?";
@@ -87,6 +98,8 @@ public class TaiKhoanDAO {
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (isProtectedAdministrator(conn, tenDN)
+                    && (!trangThai || !AccessControl.isProtectedAdministrator(tenDN, quyen))) return false;
             if (updatePassword) {
                 stmt.setString(1, matKhau);
                 stmt.setString(2, quyen);
@@ -107,7 +120,9 @@ public class TaiKhoanDAO {
                 }
                 stmt.setString(4, tenDN);
             }
-            return stmt.executeUpdate() > 0;
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Tài khoản/quyền nhân sự " + tenDN.trim());
+            return updated;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -115,28 +130,86 @@ public class TaiKhoanDAO {
     }
 
     public boolean deleteAccount(String tenDN) {
+        if (!AccessControl.isAdministrator() || AccessControl.isCurrentAccount(tenDN)) return false;
         String sql = "DELETE FROM TaiKhoan WHERE tenDN = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DBConnection.getConnection()) {
+            if (isProtectedAdministrator(conn, tenDN)) return false;
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, tenDN);
-            return stmt.executeUpdate() > 0;
+                boolean deleted = stmt.executeUpdate() > 0;
+                if (deleted) AuditLog.event("DELETE", "Tài khoản nhân sự " + tenDN.trim());
+                return deleted;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
+
+    public boolean updateAccountRoleByEmployeeId(String maNhanVien, String quyen) {
+        if (!AccessControl.isAdministrator()) return false;
+        String sql = "UPDATE TaiKhoan SET quyen = ? WHERE maNhanVien = ? AND LOWER(tenDN) <> 'admin' AND UPPER(LTRIM(RTRIM(ISNULL(quyen,'')))) NOT IN ('ADMIN','QUAN_LY')";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, quyen);
+            stmt.setString(2, maNhanVien);
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Phân quyền tài khoản nhân viên " + maNhanVien);
+            return updated;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean setAccountActiveByEmployeeId(String maNhanVien, boolean active) {
+        if (!AccessControl.isAdministrator()) return false;
+        String sql = "UPDATE TaiKhoan SET trangThai = ? WHERE maNhanVien = ? AND LOWER(tenDN) <> 'admin' AND UPPER(LTRIM(RTRIM(ISNULL(quyen,'')))) NOT IN ('ADMIN','QUAN_LY')";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setBoolean(1, active);
+            stmt.setString(2, maNhanVien);
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event(active ? "UNLOCK" : "LOCK", "Tài khoản nhân viên " + maNhanVien);
+            return updated;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean isProtectedAdministrator(Connection conn, String username) throws SQLException {
+        String sql = "SELECT quyen FROM TaiKhoan WHERE tenDN = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, username);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && AccessControl.isProtectedAdministrator(username, rs.getString("quyen"));
+            }
+        }
+    }
     
     public boolean updatePassword(String tenDN, String newMatKhau) {
+        if (tenDN == null || tenDN.trim().isEmpty() || newMatKhau == null || newMatKhau.trim().isEmpty()
+                || (!AccessControl.isAdministrator() && !AccessControl.isCurrentAccount(tenDN))) return false;
         String sql = "UPDATE TaiKhoan SET matKhau = ? WHERE tenDN = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, newMatKhau);
             stmt.setString(2, tenDN);
-            return stmt.executeUpdate() > 0;
+            boolean updated = stmt.executeUpdate() > 0;
+            if (updated) AuditLog.event("UPDATE", "Đổi mật khẩu tài khoản " + tenDN.trim());
+            return updated;
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private String displayRole(String role) {
+        if (role == null) return "Lễ tân";
+        String value = role.trim().toUpperCase();
+        if (value.equals("ADMIN") || value.equals("QUAN_LY") || role.contains("Quản lý")) return "Admin";
+        if (value.equals("NHA_SI") || role.contains("Nha sĩ") || role.contains("Bác sĩ")) return "Nha sĩ";
+        if (value.equals("Y_TA") || role.contains("Y tá") || role.contains("Điều dưỡng")) return "Y tá";
+        return "Lễ tân";
     }
 
 }

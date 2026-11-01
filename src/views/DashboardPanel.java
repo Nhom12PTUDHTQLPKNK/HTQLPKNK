@@ -21,14 +21,14 @@ import java.util.Locale;
 public class DashboardPanel extends JPanel {
 
     // ================= MÀU SẮC GIAO DIỆN =================
-    private static final Color BLUE = new Color(0, 126, 255);
-    private static final Color PINK_ACCENT = new Color(239, 63, 131);
+    private static final Color BLUE = new Color(11, 95, 204);
+    private static final Color PINK_ACCENT = new Color(174, 35, 86);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color BORDER_LIGHT = new Color(224, 233, 243);
     private static final Color TEXT_DARK = new Color(15, 29, 69);
     private static final Color MUTED = new Color(91, 112, 145);
-    private static final Color GREEN = new Color(40, 167, 69);
+    private static final Color GREEN = new Color(24, 117, 58);
     private static final Locale VI = new Locale("vi", "VN");
 
     // ================= CÁC THẺ THỐNG KÊ =================
@@ -692,13 +692,18 @@ public class DashboardPanel extends JPanel {
         class PillButton extends JButton {
             public PillButton(String text, Color baseColor, Color hoverColor, Color foreground) {
                 super(text);
-                setFont(new Font("Segoe UI", Font.BOLD, 12));
+                setUI(new javax.swing.plaf.basic.BasicButtonUI());
+                setFont(new Font("Segoe UI", Font.BOLD, 13));
                 setForeground(foreground);
+                setBackground(baseColor);
+                setOpaque(true);
                 setFocusPainted(false);
-                setContentAreaFilled(false);
+                setContentAreaFilled(true);
+                setBorderPainted(false);
                 setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(baseColor, 1, true),
-                        new EmptyBorder(6, 20, 6, 20)));
+                        BorderFactory.createLineBorder(baseColor.darker(), 1, true),
+                        new EmptyBorder(8, 22, 8, 22)));
+                setPreferredSize(new Dimension(88, 38));
                 
                 addMouseListener(new java.awt.event.MouseAdapter() {
                     @Override
@@ -711,19 +716,20 @@ public class DashboardPanel extends JPanel {
                     }
                     @Override
                     public void mouseExited(java.awt.event.MouseEvent e) {
-                        setContentAreaFilled(false);
+                        setContentAreaFilled(true);
+                        setBackground(baseColor);
                         setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(baseColor, 1, true),
-                                new EmptyBorder(6, 20, 6, 20)));
+                                BorderFactory.createLineBorder(baseColor.darker(), 1, true),
+                                new EmptyBorder(8, 22, 8, 22)));
                     }
                 });
             }
         }
 
-        PillButton btnPrint = new PillButton("In", BORDER_LIGHT, new Color(245, 248, 253), MUTED);
+        PillButton btnPrint = new PillButton("In", new Color(7, 65, 150), new Color(4, 45, 105), Color.WHITE);
         btnPrint.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        PillButton btnPrintPdf = new PillButton("In PDF", BLUE, BLUE.darker(), Color.WHITE);
+        PillButton btnPrintPdf = new PillButton("In PDF", BLUE, new Color(6, 63, 135), Color.WHITE);
         btnPrintPdf.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         buttonGroup.add(btnPrint);
@@ -742,7 +748,8 @@ public class DashboardPanel extends JPanel {
         };
 
         JTable table = new JTable(patientTableModel);
-        PdfTableExport.install(table, "Bệnh nhân gần đây");
+        PdfTableExport.install(table, "Bệnh nhân gần đây", false);
+        PdfTableExport.bindButtons(table, "Bệnh nhân gần đây", btnPrint, btnPrintPdf);
         table.setRowHeight(36);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setForeground(TEXT_DARK);

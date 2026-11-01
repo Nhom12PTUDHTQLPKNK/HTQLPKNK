@@ -10,13 +10,13 @@ import views.MedicalRecordPanel;
 
 public class ExaminationProcessPanel extends JPanel {
 
-    private final Color BLUE = new Color(0, 126, 255);
+    private final Color BLUE = new Color(11, 95, 204);
     private final Color NAVY = new Color(15, 29, 69);
-    private final Color PINK = new Color(239, 63, 131);
+    private final Color PINK = new Color(174, 35, 86);
     private final Color BG = new Color(243, 248, 253);
     private final Color BORDER = new Color(224, 233, 243);
     private final Color TEXT = new Color(35, 55, 90);
-    private final Color MUTED = new Color(120, 140, 170);
+    private final Color MUTED = new Color(74, 88, 105);
 
     private CardLayout cardLayout;
     private JPanel cardPanel;

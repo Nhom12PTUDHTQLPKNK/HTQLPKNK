@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 public class StandardToothChartPanel extends JPanel {
 
     // ================= MÀU SẮC =================
-    private static final Color BLUE = new Color(0, 126, 255);
+    private static final Color BLUE = new Color(11, 95, 204);
     private static final Color NAVY = new Color(15, 29, 69);
     private static final Color BG = new Color(243, 248, 253);
     private static final Color BORDER = new Color(210, 220, 235);

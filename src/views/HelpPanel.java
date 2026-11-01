@@ -9,7 +9,7 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 
 public class HelpPanel extends JPanel {
-    private static final Color BLUE = new Color(0, 126, 255);
+    private static final Color BLUE = new Color(11, 95, 204);
     private static final Color NAVY = new Color(15, 29, 69);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color CARD_BG = Color.WHITE;

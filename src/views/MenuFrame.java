@@ -3,6 +3,7 @@ package views;
 import Audit.AuditLog;
 import controllers.AuthController;
 import models.entity.Account;
+import security.AccessControl;
 
 
 import javax.swing.*;
@@ -18,7 +19,7 @@ import com.google.zxing.WriterException;
 public class MenuFrame extends JFrame {
 
     // màu sắc giao diện
-    private static final Color BLUE = new Color(0, 126, 255);
+    private static final Color BLUE = new Color(11, 95, 204);
     private static final Color PINK_ACCENT = new Color(239, 63, 131);
     private static final Color BG_CANVAS = new Color(243, 248, 253);
     private static final Color TEXT_DARK = new Color(15, 29, 69);
@@ -83,7 +84,7 @@ public class MenuFrame extends JFrame {
         setTitle("SMILE DENTAL MANAGEMENT SYSTEM - HỆ THỐNG QUẢN LÝ PHÒNG KHÁM");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(980, 650));
-        setSize(1400, 900);
+        setSize(1600, 900);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         getContentPane().setBackground(BG_CANVAS);
@@ -264,63 +265,6 @@ public class MenuFrame extends JFrame {
         mainContentPanel = new JPanel(cardLayout);
         mainContentPanel.setBackground(BG_CANVAS);
 
-       // hệ thống
-        dashboardPanel = new DashboardPanel();
-        mainContentPanel.add(dashboardPanel, CARD_DASHBOARD);
-        mainContentPanel.add(new ChangePasswordPanel(displayName), CARD_CHANGE_PASS);
-        mainContentPanel.add(new HelpPanel(), CARD_HELP);
-        activityLogPanel = new ActivityLogPanel();
-        mainContentPanel.add(activityLogPanel, CARD_LOGS);
-        mainContentPanel.add(new RolePermissionPanel(), CARD_ROLE_PERMISSION);
-
-       // danh mục
-        mainContentPanel.add(new ServicePanel(), CARD_SERVICES);
-        mainContentPanel.add(new PromotionPanel(), CARD_PROMOTIONS);
-        mainContentPanel.add(new CustomerPanel(), CARD_CUSTOMERS);
-        mainContentPanel.add(new EmployeePanel(), CARD_EMPLOYEES);
-        mainContentPanel.add(new MedicalRecordPanel(), CARD_MEDICAL_RECORDS);
-
-      // cập nhật
-        mainContentPanel.add(new InventoryUpdatePanel(), CARD_INVENTORY_UPDATE);
-        bookingPanel = new BookingProcessPanel();
-        mainContentPanel.add(bookingPanel, CARD_APPOINTMENT_UPDATE);
-        mainContentPanel.add(new PersonnelAccountUpdatePanel(), CARD_PERSONNEL_UPDATE);
-
-      // xử lý
-        bookingPanel = new BookingProcessPanel();
-        mainContentPanel.add(bookingPanel, CARD_BOOKING);
-        mainContentPanel.add(new SalesProcessPanel(), CARD_SALES_INVOICE);
-        mainContentPanel.add(new WorkProcessPanel(), CARD_WORK_SHIFT);
-        mainContentPanel.add(new PromotionProcessPanel(), CARD_PROMO_PROCESS);
-
-     // tìm kiếm
-        mainContentPanel.add(new CustomerSearchPanel(), CARD_SEARCH_CUSTOMER);
-        mainContentPanel.add(new AppointmentSearchPanel(), CARD_SEARCH_APPOINTMENT);
-        mainContentPanel.add(new PromotionSearchPanel(), CARD_SEARCH_PROMO);
-        mainContentPanel.add(new WorkScheduleSearchPanel(), CARD_SEARCH_SHIFT);
-        mainContentPanel.add(new InventorySearchPanel(), CARD_SEARCH_INVENTORY);
-        mainContentPanel.add(new InvoiceReceiptSearchPanel(), CARD_SEARCH_INVOICE);
-       // báo biểu
-        mainContentPanel.add(new RevenueDebtReportPanel(), CARD_REPORT_REVENUE);
-        mainContentPanel.add(new ServiceDentistReportPanel(), CARD_REPORT_SERVICE);
-        mainContentPanel.add(new InventoryMovementReportPanel(), CARD_REPORT_WAREHOUSE);
-        mainContentPanel.add(new ReportExportPanel(), CARD_REPORT_EXPORT);
-
-
-      // CARD TRẮNG ĐÂY NÈ SỬA CÁC CLASS DÁN VÔ ĐÂY
-        mainContentPanel.add(new StandardToothChartPanel(), CARD_DENTAL_CHART);
-        mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
-        mainContentPanel.add(new ExaminationProcessPanel(), CARD_EXAMINATION);
-
-        mainContentPanel.add(new TreatmentPlanPanel(), CARD_TREATMENT_PLAN);
-        mainContentPanel.add(new ElectronicPrescriptionPanel(), CARD_PRESCRIPTION);
-        mainContentPanel.add(new ReexaminationPanel(), CARD_REEXAMINATION);
-
-     // Menu chính
-        cardLayout = new CardLayout();
-        mainContentPanel = new JPanel(cardLayout);
-        mainContentPanel.setBackground(BG_CANVAS);
-
         // ================= HỆ THỐNG =================
         dashboardPanel = new DashboardPanel();
         mainContentPanel.add(dashboardPanel, CARD_DASHBOARD);
@@ -390,9 +334,9 @@ public class MenuFrame extends JFrame {
         mainContentPanel.add(new StandardMedicinePanel(), CARD_MEDICINES);
         mainContentPanel.add(new ExaminationProcessPanel(), CARD_EXAMINATION);
 
-        addBlankCard(CARD_TREATMENT_PLAN);
-        addBlankCard(CARD_PRESCRIPTION);
-        addBlankCard(CARD_REEXAMINATION);
+        mainContentPanel.add(new TreatmentPlanPanel(), CARD_TREATMENT_PLAN);
+        mainContentPanel.add(new ElectronicPrescriptionPanel(), CARD_PRESCRIPTION);
+        mainContentPanel.add(new ReexaminationPanel(), CARD_REEXAMINATION);
 
         add(mainContentPanel, BorderLayout.CENTER);
 
@@ -406,15 +350,15 @@ public class MenuFrame extends JFrame {
         this.requestFocusInWindow();
     }
 
-    private void addBlankCard(String cardName) {
-        JPanel panel = new JPanel();
-        panel.setBackground(BG_CANVAS);
-        mainContentPanel.add(panel, cardName);
-    }
-
     public void showView(String cardName) {
 
         if (cardLayout == null || mainContentPanel == null) {
+            return;
+        }
+
+        if ((CARD_ROLE_PERMISSION.equals(cardName) || CARD_PERSONNEL_UPDATE.equals(cardName))
+                && !AccessControl.isAdministrator()) {
+            JOptionPane.showMessageDialog(this, "Chỉ tài khoản admin mới được truy cập quản lý nhân sự và tài khoản.", "Không đủ quyền", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -519,7 +463,7 @@ public class MenuFrame extends JFrame {
         addItem(mnuSystem, "Bảng điều khiển", "/img/control.png", CARD_DASHBOARD, KeyEvent.VK_F5, 0);
         addItem(mnuSystem, "Đổi mật khẩu", "/img/lock.png", CARD_CHANGE_PASS, KeyEvent.VK_M, ActionEvent.CTRL_MASK);
         addItem(mnuSystem, "Nhật ký hoạt động", "/img/log.png", CARD_LOGS, KeyEvent.VK_L, ActionEvent.ALT_MASK);
-        addItem(mnuSystem, "Phân quyền & Tài khoản", "/img/phanquyen.png", CARD_ROLE_PERMISSION, KeyEvent.VK_U, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        if (AccessControl.isAdministrator()) addItem(mnuSystem, "Phân quyền & Tài khoản", "/img/phanquyen.png", CARD_ROLE_PERMISSION, KeyEvent.VK_U, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuSystem, "Trợ giúp", "/img/help.png", CARD_HELP, KeyEvent.VK_F1, ActionEvent.SHIFT_MASK);
         mnuSystem.addSeparator();
 
@@ -541,7 +485,7 @@ public class MenuFrame extends JFrame {
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
         addItem(mnuUpdate, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);
         addItem(mnuUpdate, "Tiếp nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
-        addItem(mnuUpdate, "Cập nhật nhân sự & Tài khoản", "/img/user_update.png", CARD_PERSONNEL_UPDATE, KeyEvent.VK_U, ActionEvent.CTRL_MASK);
+        if (AccessControl.isAdministrator()) addItem(mnuUpdate, "Cập nhật nhân sự & Tài khoản", "/img/user_update.png", CARD_PERSONNEL_UPDATE, KeyEvent.VK_U, ActionEvent.CTRL_MASK);
 
         // 4. Xử lý
         JMenu mnuProcess = createStyledMenu("4. Xử lý", "/img/xuly.png");

@@ -2,6 +2,7 @@ package models.dao;
 
 import Audit.AuditLog;
 import models.entity.NhanVien;
+import security.AccessControl;
 import sql.DBConnection;
 
 import java.sql.*;
@@ -47,13 +48,23 @@ public class NhanVienDAO {
     }
 
     public boolean delete(String maNhanVien) throws SQLException {
-        String sql = "DELETE FROM NhanVien WHERE maNhanVien = ?";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             PreparedStatement lookup = conn.prepareStatement("SELECT tenDN,quyen FROM TaiKhoan WHERE maNhanVien=?")) {
+            lookup.setString(1, maNhanVien);
+            try (ResultSet rs = lookup.executeQuery()) {
+                if (rs.next()) {
+                    String username = rs.getString("tenDN");
+                    if (!AccessControl.isAdministrator()) throw new SQLException("Chỉ admin mới được xóa nhân viên có tài khoản.");
+                    if (AccessControl.isCurrentAccount(username)) throw new SQLException("Không thể tự xóa tài khoản đang đăng nhập.");
+                    if (AccessControl.isProtectedAdministrator(username, rs.getString("quyen"))) throw new SQLException("Không thể xóa tài khoản admin/quản lý.");
+                }
+            }
+            try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM NhanVien WHERE maNhanVien = ?")) {
             stmt.setString(1, maNhanVien);
             boolean deleted = stmt.executeUpdate() > 0;
             if (deleted) AuditLog.event("DELETE", "Nhân viên " + maNhanVien);
             return deleted;
+            }
         }
     }
 
