@@ -16,6 +16,9 @@ USE QuanLyPhongKhamNhaKhoa;
 
 GO
 
+
+
+
 -- Xóa bảng theo đúng thứ tự từ Bảng Con (có FK) đến Bảng Cha (Độc lập)
 IF OBJECT_ID('ChiTietHoaDon', 'U') IS NOT NULL DROP TABLE ChiTietHoaDon;
 IF OBJECT_ID('PhieuThanhToan', 'U') IS NOT NULL DROP TABLE PhieuThanhToan;
@@ -333,6 +336,60 @@ CREATE TABLE PhieuThanhToan (
 );
 GO
 
+
+--24 Chi tiết khám răng  
+CREATE TABLE ChiTietKhamRang (
+    maChiTietKham INT IDENTITY(1,1) PRIMARY KEY,
+
+    maBenhAn VARCHAR(20) NOT NULL,
+    maRang INT NOT NULL,
+
+    tinhTrang NVARCHAR(100),
+    mucDo NVARCHAR(50),
+    trieuChung NVARCHAR(MAX),
+    chanDoan NVARCHAR(MAX),
+    ghiChu NVARCHAR(MAX),
+
+    CONSTRAINT FK_ChiTietKhamRang_HoSo
+        FOREIGN KEY (maBenhAn)
+        REFERENCES HoSoBenhAn(maBenhAn),
+
+    CONSTRAINT FK_ChiTietKhamRang_RANG
+        FOREIGN KEY (maRang)
+        REFERENCES RANG(MaRang),
+
+    CONSTRAINT UQ_ChiTietKhamRang
+        UNIQUE (maBenhAn, maRang)
+);
+GO
+
+
+
+-- 25 Chi tiết chỉ định 
+CREATE TABLE ChiTietChiDinh (
+    maChiDinh INT IDENTITY(1,1) PRIMARY KEY,
+
+    maBenhAn VARCHAR(20) NOT NULL,
+    maDichVu VARCHAR(20) NOT NULL,
+    maRang INT NULL,
+
+    soLuong INT NOT NULL DEFAULT 1,
+    donVi NVARCHAR(50),
+    ghiChu NVARCHAR(MAX),
+
+    CONSTRAINT FK_ChiTietChiDinh_HoSo
+        FOREIGN KEY (maBenhAn)
+        REFERENCES HoSoBenhAn(maBenhAn),
+
+    CONSTRAINT FK_ChiTietChiDinh_DichVu
+        FOREIGN KEY (maDichVu)
+        REFERENCES DichVu(maDichVu),
+
+    CONSTRAINT FK_ChiTietChiDinh_RANG
+        FOREIGN KEY (maRang)
+        REFERENCES RANG(MaRang)
+);
+GO
 -- ----------------------------------------------------------------------------
 -- PHẦN 4: CHÈN DỮ LIỆU MẪU ĐẦY ĐỦ VÀ NGUYÊN BẢN
 -- ----------------------------------------------------------------------------
@@ -570,6 +627,8 @@ INSERT INTO PhieuThanhToan (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThan
 ('PTT005', 'HD005', 'KH007', 'NV004', '2026-10-19', N'Tiền mặt', 200000.0, 0.0, N'Đã thanh toán'),
 ('PTT006', 'HD006', 'KH008', 'NV004', '2026-10-23', N'Tiền mặt', 0.0, 100000.0, N'Chưa thanh toán');
 GO
+
+
 
 
 
