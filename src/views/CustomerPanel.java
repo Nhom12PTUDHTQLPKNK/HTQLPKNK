@@ -70,91 +70,141 @@ public class CustomerPanel extends JPanel {
         }
     }
 
+// TẠO HEADER nè nghen
 
-    private void createHeader() {
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
+private void createHeader() {
 
-        JPanel titleBox = new JPanel();
-        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
-        titleBox.setOpaque(false);
+    // Tạo khung tiêu đề có màu chuyển sắc
+    JPanel headerCard = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
 
-        JPanel titleLine = new JPanel(new FlowLayout(FlowLayout.LEFT, 9, 0));
-        titleLine.setOpaque(false);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JLabel lblIcon = new JLabel();
-        ImageIcon titleIcon = loadImage("/img/rang-tiepnhan.png", 34, 34);
+            Color pinkPastel = new Color(255, 232, 243);
+            Color bluePastel = new Color(219, 234, 254);
 
-        if (titleIcon != null) {
-            lblIcon.setIcon(titleIcon);
-        } else {
-            lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 27));
+            GradientPaint gradient = new GradientPaint( 0, 0, pinkPastel,getWidth(), 0, bluePastel );
+            g2.setPaint(gradient);
+            g2.fillRoundRect( 0, 0, getWidth(), getHeight(), 18, 18 );
+            g2.setColor(BORDER_LIGHT);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18 );
+            g2.dispose();
         }
+    };
 
-        JLabel lblTitle = new JLabel("Quản Lý Danh Mục Khách Hàng");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(TEXT_DARK);
+    headerCard.setOpaque(false);
+    headerCard.setLayout(new BorderLayout(10, 0));
+    headerCard.setBorder(new EmptyBorder(12, 20, 12, 20));
+    headerCard.setPreferredSize(new Dimension(0, 115));
 
-        titleLine.add(lblIcon);
-        titleLine.add(lblTitle);
+    // TIÊU ĐỀ BÊN TRÁI
 
-        JLabel lblSub = new JLabel(
-                "Quản lý hồ sơ thông tin bệnh nhân và khách hàng nha khoa"
-        );
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
+    JPanel titleBox = new JPanel(new GridBagLayout());
+    titleBox.setOpaque(false);
 
-        titleBox.add(titleLine);
-        titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(lblSub);
+    GridBagConstraints titleGbc = new GridBagConstraints();
+    titleGbc.anchor = GridBagConstraints.WEST;
+    titleGbc.insets = new Insets(0, 0, 0, 0);
 
-        headerPanel.add(titleBox, BorderLayout.WEST);
+    // Logo
+    JLabel lblIcon = new JLabel();
+    ImageIcon titleIcon = loadImage( "/img/rang-tiepnhan.png", 72, 72);
+    lblIcon.setPreferredSize(new Dimension(72, 72));
 
-        JPanel toolbarPanel = new JPanel(
-                new FlowLayout(FlowLayout.RIGHT, 10, 0)
-        );
-        toolbarPanel.setOpaque(false);
-
-        txtSearch = new JTextField(14);
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtSearch.setPreferredSize(new Dimension(210, 36));
-        txtSearch.setToolTipText("Tìm theo mã khách hàng, tên hoặc số điện thoại");
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-                new EmptyBorder(4, 10, 4, 10)
-        ));
-
-        // Live Search
-        txtSearch.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                performSearch();
-            }
-        });
-
-        JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 75);
-        btnSearch.addActionListener(e -> performSearch());
-
-        JButton btnEdit = createStaticButton("Sửa", GREEN_ACCENT, 75);
-        btnEdit.addActionListener(e -> loadDataToFormForEdit());
-
-        JButton btnDelete = createStaticButton("Xóa", RED_ACCENT, 75);
-        btnDelete.addActionListener(e -> performDelete());
-
-        toolbarPanel.add(txtSearch);
-        toolbarPanel.add(btnSearch);
-        toolbarPanel.add(Box.createHorizontalStrut(5));
-        toolbarPanel.add(btnEdit);
-        toolbarPanel.add(btnDelete);
-
-        headerPanel.add(toolbarPanel, BorderLayout.EAST);
-
-        add(headerPanel, BorderLayout.NORTH);
+    if (titleIcon != null) {
+        lblIcon.setIcon(titleIcon);
+    } else {
+        lblIcon.setFont( new Font("Segoe UI Emoji", Font.PLAIN, 35) );
+        System.out.println( "Không tìm thấy ảnh /img/rang-tiepnhan.png"  );
     }
 
+    // Đặt logo ở cột đầu tiên, chiếm 2 hàng
+    titleGbc.gridx = 0;
+    titleGbc.gridy = 0;
+    titleGbc.gridheight = 2;
+    titleGbc.insets = new Insets(0, 0, 0, 10);
+    titleBox.add(lblIcon, titleGbc);
+
+    // Tiêu đề chính
+    JLabel lblTitle = new JLabel( "Quản Lý Danh Mục Khách Hàng");
+    lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+    lblTitle.setForeground(TEXT_DARK);
+
+    titleGbc.gridx = 1;
+    titleGbc.gridy = 0;
+    titleGbc.gridheight = 1;
+    titleGbc.insets = new Insets(0, 0, 0, 0);
+
+    titleBox.add(lblTitle, titleGbc);
+
+    // Mô tả nằm ngay dưới tiêu đề
+    JLabel lblSub = new JLabel("Quản lý hồ sơ thông tin bệnh nhân và khách hàng nha khoa");
+    lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    lblSub.setForeground(MUTED);
+
+    titleGbc.gridx = 1;
+    titleGbc.gridy = 1;
+    titleGbc.insets = new Insets(4, 0, 0, 0);
+
+    titleBox.add(lblSub, titleGbc);
+
+    // Đưa logo và chữ về sát bên trái
+    headerCard.add(titleBox, BorderLayout.WEST);
+
+    // THANH TÌM KIẾM VÀ BTN 
+    JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+
+    toolbarPanel.setOpaque(false);
+    // Ô tìm kiếm
+    txtSearch = new JTextField(14);
+    txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txtSearch.setPreferredSize(new Dimension(190, 36));
+    txtSearch.setToolTipText( "Tìm theo mã khách hàng, tên hoặc số điện thoại");
+    txtSearch.setBorder(
+            BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_LIGHT, 1),
+                    new EmptyBorder(4, 10, 4, 10)) );
+
+    txtSearch.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyReleased(KeyEvent e) {
+            performSearch();
+        }
+    });
+
+    // btn Tìm
+    JButton btnSearch = createStaticButton("Tìm", BLUE_PRIMARY, 65);
+
+    btnSearch.addActionListener(e -> performSearch());
+
+    // btn Sửa
+    JButton btnEdit = createStaticButton("Sửa", GREEN_ACCENT, 65);
+
+    btnEdit.addActionListener( e -> loadDataToFormForEdit());
+
+    // btn Xóa
+    JButton btnDelete = createStaticButton(   "Xóa", RED_ACCENT, 65 );
+
+    btnDelete.addActionListener( e -> performDelete());
+
+    toolbarPanel.add(txtSearch);
+    toolbarPanel.add(btnSearch);
+    toolbarPanel.add(btnEdit);
+    toolbarPanel.add(btnDelete);
+
+    // Đưa thanh tìm kiếm và button về bên phải
+    headerCard.add(toolbarPanel, BorderLayout.EAST);
+
+    // Thêm header vào giao diện
+    add(headerCard, BorderLayout.NORTH);
+}
 
     private void createCustomerTable() {
-
         String[] columns = {
                 "Mã KH",
                 "Họ và tên",

@@ -407,11 +407,11 @@ GO
 
 -- 1. NhanVien
 INSERT INTO NhanVien (maNhanVien, tenNhanVien, ngaySinh, sdt, chucVu, lichLamViec, trinhDo, mucLuong) VALUES
-('NV001', N'Nguyễn Minh Tuấn', '1985-03-12', '0901234001', N'Bác sĩ trưởng', N'Thứ 2 - Thứ 7', N'Thạc sĩ Răng Hàm Mặt', 30000000.0),
+('NV001', N'Nguyễn Minh Tuấn', '1985-03-12', '0901234001', N'Nha sĩ trưởng', N'Thứ 2 - Thứ 7', N'Thạc sĩ Răng Hàm Mặt', 30000000.0),
 ('NV002', N'Trần Ngọc Mai', '1990-07-21', '0901234002', N'Nha sĩ', N'Thứ 2 - Thứ 6', N'Đại học Răng Hàm Mặt', 22000000.0),
 ('NV003', N'Lê Hoàng Nam', '1988-11-05', '0901234003', N'Nha sĩ', N'Thứ 2 - Thứ 7', N'Đại học Răng Hàm Mặt', 23000000.0),
 ('NV004', N'Phạm Thu Hà', '1995-02-18', '0901234004', N'Lễ tân', N'Thứ 2 - Thứ 7', N'Cao đẳng', 10000000.0),
-('NV005', N'Võ Quốc Bảo', '1992-09-09', '0901234005', N'Điều dưỡng', N'Thứ 2 - Thứ 7', N'Cao đẳng Điều dưỡng', 12000000.0);
+('NV005', N'Võ Quốc Bảo', '1992-09-09', '0901234005', N'Y tá', N'Thứ 2 - Thứ 7', N'Cao đẳng Y tá', 12000000.0);
 
 -- 2. KhachHang
 INSERT INTO KhachHang (maKhachHang, tenKH, gioiTinh, diaChi, ngaySinh, sdt, tienSuBenh, diemTichLuy) VALUES

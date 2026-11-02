@@ -57,41 +57,135 @@ public class EmployeePanel extends JPanel {
 
     public EmployeePanel() {
         setLayout(new BorderLayout(0, 16)); setBackground(BG); setBorder(new EmptyBorder(22, 26, 22, 26));
-        // Tiêu đề có ảnh bên trái và thanh công cụ bên phải
-        JPanel head = new JPanel(new BorderLayout()); head.setOpaque(false);
-        JPanel txt = new JPanel(); 
-        txt.setOpaque(false); 
-        txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
-        txt.add(Box.createVerticalGlue()); 
-        txt.add(lbl("Quản Lý Danh Mục Nhân Viên", F.deriveFont(Font.BOLD, 24f), TEXT));
-        txt.add(lbl("Quản lý hồ sơ nha sĩ, điều dưỡng, lễ tân của phòng khám; dữ liệu lấy trực tiếp từ SQL Server", F, MUTED)); txt.add(Box.createVerticalGlue());
-        JPanel ttl = new JPanel(new BorderLayout(14, 0)); 
-        ttl.setOpaque(false); 
-        ttl.add(new JLabel(icon("rang-tiepnhan.png", 56, 56)), BorderLayout.WEST); ttl.add(txt, BorderLayout.CENTER);
-        txtSearch = new JTextField() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                if (getText().isEmpty()) {
-                    Graphics2D g2 = (Graphics2D) g.create(); 
-                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                    g2.setColor(MUTED); 
-                    g2.setFont(F); FontMetrics fm = g2.getFontMetrics();
-                    g2.drawString("Tìm theo tên hoặc số điện thoại...", getInsets().left, (getHeight() + fm.getAscent() - fm.getDescent()) / 2); g2.dispose();
-                }
-            }
-        };
-        txtSearch.setFont(F); txtSearch.setForeground(TEXT); txtSearch.setPreferredSize(new Dimension(280, 40)); border(txtSearch, LINE);
-        JButton bSearch = btn("Tìm", BLUE, Color.WHITE), bNew = btn("Thêm mới", PINK, Color.WHITE), bEdit = btn("Sửa", BLUE_SOFT, BLUE), bDel = btn("Xóa", RED_SOFT, RED);
-        JPanel tools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0)); tools.setOpaque(false);
-        tools.add(txtSearch); tools.add(bSearch); tools.add(bNew); tools.add(bEdit); tools.add(bDel);
-        head.add(ttl, BorderLayout.WEST); head.add(tools, BorderLayout.EAST);
+
+     // HEADER CARD GRADIENT HỒNG LOANGGGG
+     JPanel head = new JPanel(new BorderLayout(15, 0)) {
+
+         @Override
+         protected void paintComponent(Graphics g) {
+             Graphics2D g2 = (Graphics2D) g.create();
+
+             g2.setRenderingHint(
+                 RenderingHints.KEY_ANTIALIASING,
+                 RenderingHints.VALUE_ANTIALIAS_ON
+             );
+
+             Color pinkPastel = new Color(255, 232, 243);
+             Color bluePastel = new Color(219, 234, 254);
+             GradientPaint gradient = new GradientPaint(
+                 0, 0, pinkPastel,
+                 getWidth(), 0, bluePastel
+             );
+
+             g2.setPaint(gradient);
+             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20
+             );
+             g2.setColor(LINE);
+             g2.drawRoundRect(
+                 0, 0, getWidth() - 1, getHeight() - 1, 20, 20
+             );
+             g2.dispose();
+             super.paintComponent(g);
+         }
+     };
+
+     head.setOpaque(false);
+     head.setBorder(new EmptyBorder(20, 20, 20, 20));
+     head.setPreferredSize(new Dimension(0, 112));
+
+     // Logo và tiêu đề bên trái
+     JPanel txt = new JPanel();
+     txt.setOpaque(false);
+     txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
+
+     txt.add(Box.createVerticalGlue());
+
+     JLabel title = lbl(
+         "Quản Lý Danh Mục Nhân Viên",
+         F.deriveFont(Font.BOLD, 24f),
+         TEXT
+     );
+  
+     JLabel subtitle = lbl(
+         "Quản lý hồ sơ nha sĩ, y tá, lễ tân của phòng khám",F,MUTED);
+
+     txt.add(title);
+     txt.add(Box.createVerticalStrut(5));
+     txt.add(subtitle);
+
+     txt.add(Box.createVerticalGlue());
+
+     JPanel ttl = new JPanel(new BorderLayout(14, 0));
+     ttl.setOpaque(false);
+
+     JLabel logo = new JLabel(icon("rang-tiepnhan.png", 56, 56));
+     ttl.add(logo, BorderLayout.WEST);
+     ttl.add(txt, BorderLayout.CENTER);
+
+     // Ô tìm kiếm, giữ nguyên chức năng
+     txtSearch = new JTextField() {
+         @Override
+         protected void paintComponent(Graphics g) {
+             super.paintComponent(g);
+
+             if (getText().isEmpty()) {
+                 Graphics2D g2 = (Graphics2D) g.create();
+
+                 g2.setRenderingHint(
+                     RenderingHints.KEY_TEXT_ANTIALIASING,
+                     RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+                 );
+
+                 g2.setColor(MUTED);
+                 g2.setFont(F);
+
+                 FontMetrics fm = g2.getFontMetrics();
+
+                 g2.drawString(
+                     "Tìm theo tên hoặc số điện thoại...",
+                     getInsets().left,
+                     (getHeight() + fm.getAscent() - fm.getDescent()) / 2
+                 );
+
+                 g2.dispose();
+             }
+         }
+     };
+
+     txtSearch.setFont(F);
+     txtSearch.setForeground(TEXT);
+     txtSearch.setPreferredSize(new Dimension(280, 40));
+     border(txtSearch, LINE);
+
+     // Các nút giữ nguyên
+     JButton bSearch = btn("Tìm", BLUE, Color.WHITE);
+     JButton bNew = btn("Thêm mới", PINK, Color.WHITE);
+     JButton bEdit = btn("Sửa", BLUE_SOFT, BLUE);
+     JButton bDel = btn("Xóa", RED_SOFT, RED);
+
+     // Thanh công cụ bên phải
+     JPanel tools = new JPanel(
+         new FlowLayout(FlowLayout.RIGHT, 10, 0)
+     );
+
+     tools.setOpaque(false);
+     tools.add(txtSearch);
+     tools.add(bSearch);
+     tools.add(bNew);
+     tools.add(bEdit);
+     tools.add(bDel);
+
+     // Đưa hai khu vực vào header card
+     head.add(ttl, BorderLayout.CENTER);
+     head.add(tools, BorderLayout.EAST);
+
         
         // Thẻ thống kê tổng quan 
         JPanel stats = new JPanel(new GridLayout(1, 4, 14, 0)); 
         stats.setOpaque(false);
         stats.add(stat("Tổng nhân viên", PINK_DEEP, 0, "tongKH.png")); 
-        stats.add(stat("Bác sĩ / Nha sĩ", BLUE_DEEP, 1, "bacsi-nhasi.png"));
-        stats.add(stat("Lễ tân / Điều dưỡng", PINK_DEEP, 2, "letan.png")); 
+        stats.add(stat("Nha sĩ", BLUE_DEEP, 1, "bacsi-nhasi.png"));
+        stats.add(stat("Lễ tân / Y tá", PINK_DEEP, 2, "letan.png")); 
         stats.add(stat("Quỹ lương hàng tháng", BLUE_DEEP, 3, "quyluong.png"));
         JPanel north = new JPanel(); north.setOpaque(false); 
         north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
@@ -177,7 +271,12 @@ public class EmployeePanel extends JPanel {
         txtEmpName = field(box, "Họ và tên");
         box.add(fieldLabel("Chức vụ")); 
         box.add(Box.createVerticalStrut(4));
-        cbRole = new JComboBox<>(new String[]{"Bác sĩ trưởng", "Nha sĩ", "Điều dưỡng", "Y tá", "Lễ tân", "Quản lý"});
+     //Tạo danh sách chức vụ cho nhân viên
+        cbRole = new JComboBox<>(new String[]{
+            "Nha sĩ trưởng",
+            "Nha sĩ", "Y tá",
+            "Lễ tân","Quản lý"
+        });
         cbRole.setFont(F); cbRole.setBackground(Color.WHITE); 
         cbRole.setAlignmentX(Component.LEFT_ALIGNMENT); 
         cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
@@ -287,10 +386,17 @@ public class EmployeePanel extends JPanel {
     private void fill(List<NhanVien> rows, List<NhanVien> all) {
         tableModel.setRowCount(0);
         for (NhanVien n : rows) tableModel.addRow(new Object[]{n.getMaNhanVien(), n.getTenNhanVien(), n.getChucVu(), n.getTrinhDo(), n.getSdt(), sal(n)});
-        int doc = 0, sup = 0; double sum = 0;
+     // Đếm số lượng nha sĩ và nhân viên hỗ trợ
+     
+        int doc = 0, sup = 0;
+        double sum = 0;
         for (NhanVien n : all) {
             String r = n.getChucVu() == null ? "" : n.getChucVu().toLowerCase();
-            if (r.contains("bác sĩ") || r.contains("nha sĩ")) doc++; else if (r.contains("lễ tân") || r.contains("điều dưỡng") || r.contains("y tá")) sup++;
+            if (r.contains("nha sĩ") || r.contains("bác sĩ")) {
+                doc++;
+            } else if (r.contains("lễ tân") || r.contains("y tá")) {
+                sup++;
+            }
             sum += sal(n);
         }
         statVals[0].setText(String.valueOf(all.size())); statVals[1].setText(String.valueOf(doc)); statVals[2].setText(String.valueOf(sup)); statVals[3].setText(money(sum) + " đ");
@@ -463,10 +569,15 @@ public class EmployeePanel extends JPanel {
     // Màu huy hiệu theo cột 
     private static Color[] badgeColors(int col, String t) {
         String s = t.toLowerCase();
+        
+     // Màu huy hiệu cho chức vụ nha sĩ, y tá và lễ tân
         if (col == 2) {
-            if (s.contains("bác sĩ") || s.contains("nha sĩ")) return new Color[]{BLUE, BLUE_SOFT};
-            if (s.contains("điều dưỡng") || s.contains("y tá")) return new Color[]{GREEN, GREEN_SOFT};
-            if (s.contains("lễ tân")) return new Color[]{ORANGE, ORANGE_SOFT};
+            if (s.contains("bác sĩ") || s.contains("nha sĩ"))
+                return new Color[]{BLUE, BLUE_SOFT};
+            if (s.contains("y tá") || s.contains("điều dưỡng"))
+                return new Color[]{GREEN, GREEN_SOFT};
+            if (s.contains("lễ tân"))
+                return new Color[]{ORANGE, ORANGE_SOFT};
             return new Color[]{PINK, PINK_SOFT};
         }
         if (s.contains("thạc sĩ") || s.contains("tiến sĩ")) return new Color[]{PINK, PINK_SOFT};
