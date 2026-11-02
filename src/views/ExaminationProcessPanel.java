@@ -1,5 +1,6 @@
 package views;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -9,11 +10,15 @@ import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
@@ -48,6 +53,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
@@ -129,18 +135,78 @@ public class ExaminationProcessPanel extends JPanel {
         showReception();
         loadReceptionData();
     }
+    
+    private ImageIcon loadMenuIcon(String path) {
+        java.net.URL url = getClass().getResource(path);
+
+        if (url == null) {
+            System.err.println("Không tìm thấy icon: " + path);
+            return null;
+        }
+
+        ImageIcon icon = new ImageIcon(url);
+
+        Image img = icon.getImage().getScaledInstance(
+            20, 20, Image.SCALE_SMOOTH
+        );
+
+        return new ImageIcon(img);
+    }
 
     private JPanel createMenu() {
-        JPanel menu = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        menu.setBackground(Color.WHITE);
-        menu.setBorder(new MatteBorder(0, 0, 1, 0, BORDER));
 
-        btnReception = createButton("☷  Danh sách tiếp nhận", PINK);
-        btnExamination = createButton("✚  Khám và chỉ định", BG);
+        // Vùng nền bên ngoài tạo khoảng cách với menu chính
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(BG);
+        wrapper.setBorder(new EmptyBorder(14, 20, 12, 20));
+
+        // Thanh tab bên trong
+        JPanel menu = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 12, 10)
+        );
+        menu.setBackground(Color.WHITE);
+        menu.setBorder(
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(3, 8, 3, 8)
+            )
+        );
+
+        menu.setPreferredSize(new Dimension(0, 60));
+
+      
+
+     // ảnh icon smile
+
+        btnReception = createButton("Danh sách tiếp nhận", PINK);
+        btnReception.setIcon(loadMenuIcon("/img/smile.png"));
+
+        btnExamination = createButton("Khám và chỉ định", BG);
         btnExamination.setForeground(NAVY);
-        btnPhieuKhamList = createButton("🗂  Danh sách phiếu khám", BG);
+        btnExamination.setIcon(loadMenuIcon("/img/smile.png"));
+
+        btnPhieuKhamList = createButton("Danh sách phiếu khám", BG);
         btnPhieuKhamList.setForeground(NAVY);
-        btnTreatmentPlan = createButton("▣  Lập kế hoạch điều trị", BG);
+        btnPhieuKhamList.setIcon(loadMenuIcon("/img/smile.png"));
+
+        btnTreatmentPlan = createButton("Lập kế hoạch điều trị", BG);
+        btnTreatmentPlan.setForeground(NAVY);
+        btnTreatmentPlan.setIcon(loadMenuIcon("/img/smile.png"));
+
+        // Căn icon bên trái chữ
+        JButton[] buttons = {
+            btnReception, btnExamination,
+            btnPhieuKhamList, btnTreatmentPlan
+        };
+
+        for (JButton btn : buttons) {
+            btn.setIconTextGap(8);
+            btn.setHorizontalAlignment(SwingConstants.LEFT);
+            btn.setHorizontalTextPosition(SwingConstants.RIGHT);
+            btn.setVerticalAlignment(SwingConstants.CENTER);
+        }
+        
+        
         btnTreatmentPlan.setForeground(NAVY);
 
         btnReception.addActionListener(e -> {
@@ -168,6 +234,9 @@ public class ExaminationProcessPanel extends JPanel {
         menu.add(btnTreatmentPlan);
         return menu;
     }
+    
+    
+    
     
     private boolean isExaminingInProgress() {
         String currentMaLH = lblPatientCode != null ? lblPatientCode.getText().trim() : "";
@@ -230,128 +299,560 @@ public class ExaminationProcessPanel extends JPanel {
         activeBtn.setForeground(Color.WHITE);
     }
     
+   
+    
+    // TAG 1
     private JPanel createReceptionPage() {
         JPanel main = new JPanel(new BorderLayout(10, 12));
         main.setBackground(BG);
         main.setBorder(new EmptyBorder(18, 20, 18, 20));
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
 
-        JPanel titlePanel = new JPanel();
-        titlePanel.setOpaque(false);
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        JLabel title = createTitle("Danh sách bệnh nhân chờ khám");
-        JLabel subtitle = new JLabel("Quản lý tiếp nhận bệnh nhân đã xác nhận lịch hẹn và chuyển sang khám bệnh");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        subtitle.setForeground(MUTED);
-        titlePanel.add(title);
-        titlePanel.add(Box.createVerticalStrut(5));
-        titlePanel.add(subtitle);
-        header.add(titlePanel, BorderLayout.WEST);
 
-        JPanel filter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-        filter.setOpaque(false);
-        JTextField txtDate = new JTextField(10);
-        JTextField txtSearch = new JTextField(18);
-        styleTextField(txtDate);
-        styleTextField(txtSearch);
-        txtSearch.setToolTipText("Tìm mã BN, tên hoặc SĐT");
-        JButton btnSearch = createButton("⌕ Tìm kiếm", BLUE);
-        JButton btnReload = createButton("Tải lại", MUTED);
-        
-        btnReload.addActionListener(e -> {
-            txtSearch.setText("");
-            txtDate.setText("");
-            loadReceptionData();
-        });
-        
-        btnSearch.addActionListener(e -> {
-            performReceptionSearch(txtSearch.getText().trim(), txtDate.getText().trim());
-        });
+     // card ngang-- ds tiếp nhận 
 
-        filter.add(new JLabel("Ngày khám:"));
-        filter.add(txtDate);
-        filter.add(new JLabel("Từ khóa:"));
-        filter.add(txtSearch);
-        filter.add(btnSearch);
-        filter.add(btnReload);
-        header.add(filter, BorderLayout.EAST);
-        main.add(header, BorderLayout.NORTH);
+     JPanel headerCard = new JPanel(new BorderLayout(20, 0)) {
+         @Override
+         protected void paintComponent(Graphics g) {
+             super.paintComponent(g);
 
-        JPanel tableCard = createCard();
-        tableCard.setLayout(new BorderLayout(0, 12));
-        tableCard.setBorder(new EmptyBorder(15, 15, 12, 15));
+             Graphics2D g2 = (Graphics2D) g.create();
+             g2.setRenderingHint(
+                 RenderingHints.KEY_ANTIALIASING,
+                 RenderingHints.VALUE_ANTIALIAS_ON
+             );
 
-        JPanel status = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        status.setOpaque(false);
-        JButton btnChoKham = createButton("Chờ khám", PINK);
-        JButton btnDangKham = createButton("Đang khám", BLUE);
-        JButton btnDaKham = createButton("Đã khám", MUTED);
-        status.add(btnChoKham);
-        status.add(btnDangKham);
-        status.add(btnDaKham);
-        
-        btnChoKham.addActionListener(e -> loadReceptionDataByStatus("Đã xác nhận"));
-        btnDangKham.addActionListener(e -> loadReceptionDataByStatus("Đang khám"));
-        btnDaKham.addActionListener(e -> loadReceptionDataByStatus("Hoàn thành"));
+             // Nền hồng pastel
+             GradientPaint gradient = new GradientPaint(
+                 0, 0, new Color(255, 248, 252),
+                 getWidth(), getHeight(), new Color(255, 228, 241)
+             );
 
-        String[] columns = {
-            "STT", "Mã LH", "Họ và tên", "Tuổi", "Giới tính", 
-            "SĐT", "Ngày hẹn", "Giờ khám", "Dịch vụ dự kiến", 
-            "Bác sĩ phụ trách", "Trạng thái", "Thao tác"
-        };
+             g2.setPaint(gradient);
+             g2.fillRoundRect(
+                 0, 0, getWidth(), getHeight(), 22, 22
+             );
 
-        receptionModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return column == 11; }
-        };
+             // Viền hồng nhạt
+             g2.setColor(new Color(247, 190, 218));
+             g2.setStroke(new BasicStroke(1.2f));
+             g2.drawRoundRect(
+                 0, 0, getWidth() - 1, getHeight() - 1, 22, 22
+             );
 
-        tblReception = new JTable(receptionModel);
-        styleTable(tblReception);
-        tblReception.setRowHeight(43);
-        tblReception.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+             g2.dispose();
+         }
+     };
 
-        tblReception.getColumnModel().getColumn(11).setCellRenderer(new ActionRenderer("Khám bệnh"));
-        tblReception.getColumnModel().getColumn(11).setCellEditor(new ActionEditor(tblReception, row -> {
-            processTransferToExamination(row);
-        }, "Khám bệnh"));
+     headerCard.setOpaque(false);
+     headerCard.setBorder(new EmptyBorder(15, 18, 15, 18));
+     headerCard.setPreferredSize(new Dimension(0, 125));
 
-        int[] widths = {40, 75, 140, 50, 75, 90, 85, 55, 130, 110, 95, 85};
-        for (int i = 0; i < widths.length; i++) {
-            tblReception.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-        }
+     // ảnh list
 
-        JScrollPane scroll = new JScrollPane(tblReception);
-        scroll.setBorder(BorderFactory.createLineBorder(BORDER));
-        scroll.getViewport().setBackground(Color.WHITE);
-        tableCard.add(scroll, BorderLayout.CENTER);
+     JPanel leftPanel = new JPanel(new BorderLayout(15, 0));
+     leftPanel.setOpaque(false);
 
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setOpaque(false);
-        
-        lblTotalPatients = new JLabel("Tổng số bệnh nhân: 0");
-        lblTotalPatients.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblTotalPatients.setForeground(MUTED);
+     // Ảnh minh họa
+     JLabel lblIllustration = new JLabel();
+     lblIllustration.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JButton btnStart = createButton("Chuyển sang Khám bệnh →", PINK);
-        btnStart.addActionListener(e -> {
-            int row = tblReception.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân trong danh sách!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            int modelRow = tblReception.convertRowIndexToModel(row);
-            processTransferToExamination(modelRow);
-        });
+     java.net.URL imageURL =
+         getClass().getResource("/img/list.png");
 
-        footer.add(lblTotalPatients, BorderLayout.WEST);
-        footer.add(btnStart, BorderLayout.EAST);
-        tableCard.add(footer, BorderLayout.SOUTH);
-        main.add(tableCard, BorderLayout.CENTER);
+     if (imageURL != null) {
+         ImageIcon original = new ImageIcon(imageURL);
+
+         Image scaled = original.getImage().getScaledInstance(
+             115, 95, Image.SCALE_SMOOTH
+         );
+
+         lblIllustration.setIcon(new ImageIcon(scaled));
+     } else {
+         System.out.println("Không tìm thấy ảnh /img/list.png");
+     }
+
+     lblIllustration.setPreferredSize(new Dimension(125, 95));
+
+     // Đường phân cách
+     JPanel separator = new JPanel();
+     separator.setBackground(new Color(235, 135, 184));
+     separator.setPreferredSize(new Dimension(2, 90));
+
+     // Tiêu đề
+     JPanel titlePanel = new JPanel();
+     titlePanel.setOpaque(false);
+     titlePanel.setLayout(
+         new BoxLayout(titlePanel, BoxLayout.Y_AXIS)
+     );
+
+     JLabel title = createTitle("Danh sách bệnh nhân chờ khám");
+     title.setFont(new Font("Segoe UI", Font.BOLD, 27));
+     title.setForeground(NAVY);
+
+     JLabel subtitle = new JLabel(
+         "Quản lý tiếp nhận bệnh nhân đã xác nhận lịch hẹn và chuyển sang khám bệnh"
+     );
+     subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+     subtitle.setForeground(new Color(74, 88, 105));
+
+     titlePanel.add(Box.createVerticalGlue());
+     titlePanel.add(title);
+     titlePanel.add(Box.createVerticalStrut(8));
+     titlePanel.add(subtitle);
+     titlePanel.add(Box.createVerticalGlue());
+
+     leftPanel.add(lblIllustration, BorderLayout.WEST);
+     leftPanel.add(separator, BorderLayout.CENTER);
+     leftPanel.add(titlePanel, BorderLayout.EAST);
+
+     headerCard.add(leftPanel, BorderLayout.WEST);
+
+     //bên phải 
+
+     JPanel filter = new JPanel(
+         new FlowLayout(FlowLayout.RIGHT, 10, 0)
+     );
+     filter.setOpaque(false);
+
+     JLabel lblDate = new JLabel("Ngày khám:");
+     JLabel lblKeyword = new JLabel("Từ khóa:");
+
+     Font filterFont = new Font("Segoe UI", Font.BOLD, 16);
+
+     lblDate.setFont(filterFont);
+     lblKeyword.setFont(filterFont);
+     lblDate.setForeground(NAVY);
+     lblKeyword.setForeground(NAVY);
+
+     JTextField txtDate = new JTextField(10);
+     JTextField txtSearch = new JTextField(18);
+
+     styleTextField(txtDate);
+     styleTextField(txtSearch);
+
+     txtDate.setPreferredSize(new Dimension(145, 42));
+     txtSearch.setPreferredSize(new Dimension(230, 42));
+
+     txtSearch.setToolTipText("Tìm mã BN, tên hoặc SĐT");
+
+     // Nút tìm kiếm
+     JButton btnSearch = createButton("Tìm kiếm", BLUE);
+     btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 14));
+     btnSearch.setPreferredSize(new Dimension(110, 42));
+
+     // Nút tải lại
+     JButton btnReload = createButton("Tải lại", MUTED);
+     btnReload.setFont(new Font("Segoe UI", Font.BOLD, 14));
+     btnReload.setPreferredSize(new Dimension(95, 42));
+
+     // Sự kiện tìm kiếm
+     btnSearch.addActionListener(e -> {
+         performReceptionSearch(
+             txtSearch.getText().trim(),
+             txtDate.getText().trim()
+         );
+     });
+
+     // Sự kiện tải lại
+     btnReload.addActionListener(e -> {
+         txtSearch.setText("");
+         txtDate.setText("");
+         loadReceptionData();
+     });
+
+     filter.add(lblDate);
+     filter.add(txtDate);
+     filter.add(lblKeyword);
+     filter.add(txtSearch);
+     filter.add(btnSearch);
+     filter.add(btnReload);
+
+     headerCard.add(filter, BorderLayout.EAST);
+
+     main.add(headerCard, BorderLayout.NORTH);
+
+     
+// bảng ds tiếp nhận của tag1 
+
+
+  JPanel tableCard = createCard();
+  tableCard.setLayout(new BorderLayout(0, 15));
+  tableCard.setBorder(BorderFactory.createCompoundBorder(
+      BorderFactory.createLineBorder(new Color(230, 237, 247)),
+      new EmptyBorder(18, 18, 15, 18)
+  ));
+
+  // header card
+
+  JPanel cardHeader = new JPanel(new BorderLayout());
+  cardHeader.setOpaque(false);
+
+  // Tiêu đề bên trái
+  JPanel headingPanel = new JPanel(
+      new FlowLayout(FlowLayout.LEFT, 10, 0)
+  );
+  headingPanel.setOpaque(false);
+
+  JLabel iconPatient = new JLabel("♧");
+  iconPatient.setFont(new Font("Segoe UI", Font.BOLD, 25));
+  iconPatient.setForeground(PINK);
+  iconPatient.setPreferredSize(new Dimension(40, 38));
+  iconPatient.setHorizontalAlignment(SwingConstants.CENTER);
+  iconPatient.setOpaque(true);
+  iconPatient.setBackground(new Color(255, 237, 245));
+
+  JLabel lblHeading = new JLabel("Danh sách bệnh nhân");
+  lblHeading.setFont(new Font("Segoe UI", Font.BOLD, 21));
+  lblHeading.setForeground(NAVY);
+
+  headingPanel.add(iconPatient);
+  headingPanel.add(lblHeading);
+
+  // Bộ lọc trạng thái bên phải
+  JPanel status = new JPanel(
+      new FlowLayout(FlowLayout.RIGHT, 8, 0)
+  );
+  status.setOpaque(false);
+
+  JButton btnChoKham = createButton("Chờ khám", PINK);
+  JButton btnDangKham = createButton("Đang khám", BLUE);
+  JButton btnDaKham = createButton("Đã khám", MUTED);
+
+  btnChoKham.setFont(new Font("Segoe UI", Font.BOLD, 12));
+  btnDangKham.setFont(new Font("Segoe UI", Font.BOLD, 12));
+  btnDaKham.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
+  status.add(btnChoKham);
+  status.add(btnDangKham);
+  status.add(btnDaKham);
+
+  btnChoKham.addActionListener(e ->
+      loadReceptionDataByStatus("Đã xác nhận")
+  );
+
+  btnDangKham.addActionListener(e ->
+      loadReceptionDataByStatus("Đang khám")
+  );
+
+  btnDaKham.addActionListener(e ->
+      loadReceptionDataByStatus("Hoàn thành")
+  );
+
+  cardHeader.add(headingPanel, BorderLayout.WEST);
+  cardHeader.add(status, BorderLayout.EAST);
+
+  // Tổng số bệnh nhân
+  JPanel headingContainer = new JPanel(new BorderLayout(10, 0));
+  headingContainer.setOpaque(false);
+
+  headingContainer.add(cardHeader, BorderLayout.CENTER);
+
+  lblTotalPatients = new JLabel("Tổng: 0 bệnh nhân");
+  lblTotalPatients.setFont(new Font("Segoe UI", Font.BOLD, 13));
+  lblTotalPatients.setForeground(PINK);
+  lblTotalPatients.setOpaque(true);
+  lblTotalPatients.setBackground(new Color(255, 235, 244));
+  lblTotalPatients.setBorder(new EmptyBorder(8, 14, 8, 14));
+
+  JPanel totalPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 8));
+  totalPanel.setOpaque(false);
+  totalPanel.add(lblTotalPatients);
+
+  JPanel topPanel = new JPanel(new BorderLayout(0, 12));
+  topPanel.setOpaque(false);
+  topPanel.add(headingContainer, BorderLayout.NORTH);
+  topPanel.add(totalPanel, BorderLayout.CENTER);
+
+  tableCard.add(topPanel, BorderLayout.NORTH);
+
+  // ================= CẤU TRÚC BẢNG =================
+
+  String[] columns = {
+      "STT", "Mã LH", "Họ và tên", "Tuổi", "Giới tính",
+      "SĐT", "Ngày hẹn", "Giờ khám", "Dịch vụ dự kiến",
+      "Bác sĩ phụ trách", "Trạng thái", "Thao tác"
+  };
+
+  receptionModel = new DefaultTableModel(columns, 0) {
+      @Override
+      public boolean isCellEditable(int row, int column) {
+          return column == 11;
+      }
+  };
+
+  tblReception = new JTable(receptionModel);
+
+  styleTable(tblReception);
+
+  tblReception.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+  tblReception.setForeground(NAVY);
+  tblReception.setRowHeight(49);
+  tblReception.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+  tblReception.setSelectionBackground(new Color(255, 232, 243));
+  tblReception.setSelectionForeground(NAVY);
+  tblReception.setShowVerticalLines(false);
+  tblReception.setShowHorizontalLines(true);
+  tblReception.setGridColor(new Color(232, 237, 245));
+  tblReception.setIntercellSpacing(new Dimension(0, 1));
+  tblReception.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+  // ================= HEADER BẢNG =================
+
+  JTableHeader tableHeader = tblReception.getTableHeader();
+
+  tableHeader.setPreferredSize(new Dimension(0, 45));
+  tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
+  tableHeader.setBackground(new Color(35, 65, 115));
+  tableHeader.setForeground(Color.WHITE);
+  tableHeader.setReorderingAllowed(false);
+  tableHeader.setBorder(
+      BorderFactory.createMatteBorder(
+          0, 0, 1, 0, new Color(220, 230, 245)
+      )
+  );
+
+  // Renderer header
+  DefaultTableCellRenderer headerRenderer =
+      new DefaultTableCellRenderer() {
+
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable table, Object value,
+          boolean isSelected, boolean hasFocus,
+          int row, int column
+      ) {
+          JLabel label = (JLabel) super.getTableCellRendererComponent(
+              table, value, isSelected, hasFocus, row, column
+          );
+
+          label.setBackground(new Color(35, 65, 115));
+          label.setForeground(Color.WHITE);
+          label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+          label.setHorizontalAlignment(SwingConstants.LEFT);
+          label.setBorder(new EmptyBorder(0, 8, 0, 5));
+
+          return label;
+      }
+  };
+
+  for (int i = 0; i < tblReception.getColumnCount(); i++) {
+      tblReception.getColumnModel()
+          .getColumn(i).setHeaderRenderer(headerRenderer);
+  }
+
+  // ================= ĐỘ RỘNG CỘT =================
+
+  int[] widths = {
+      55, 90, 190, 65, 90, 120,
+      120, 95, 180, 180, 135, 145
+  };
+
+  for (int i = 0; i < widths.length; i++) {
+      tblReception.getColumnModel()
+          .getColumn(i).setPreferredWidth(widths[i]);
+  }
+
+  // ================= MÀU NỀN XEN KẼ =================
+
+  DefaultTableCellRenderer rowRenderer =
+      new DefaultTableCellRenderer() {
+
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable table, Object value,
+          boolean isSelected, boolean hasFocus,
+          int row, int column
+      ) {
+          JLabel label = (JLabel) super.getTableCellRendererComponent(
+              table, value, isSelected, hasFocus, row, column
+          );
+
+          label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+          label.setForeground(NAVY);
+          label.setBorder(new EmptyBorder(0, 8, 0, 5));
+
+          if (!isSelected) {
+              label.setBackground(
+                  row % 2 == 0
+                      ? Color.WHITE
+                      : new Color(242, 247, 255)
+              );
+          }
+
+          return label;
+      }
+  };
+
+  for (int i = 0; i < tblReception.getColumnCount(); i++) {
+      if (i != 10 && i != 11) {
+          tblReception.getColumnModel()
+              .getColumn(i).setCellRenderer(rowRenderer);
+      }
+  }
+
+  // ================= BADGE GIỚI TÍNH =================
+
+  DefaultTableCellRenderer genderRenderer =
+      new DefaultTableCellRenderer() {
+
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable table, Object value,
+          boolean isSelected, boolean hasFocus,
+          int row, int column
+      ) {
+          JLabel label = (JLabel) super.getTableCellRendererComponent(
+              table, value, isSelected, hasFocus, row, column
+          );
+
+          label.setHorizontalAlignment(SwingConstants.CENTER);
+          label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+          label.setOpaque(true);
+
+          String gender = value == null ? "" : value.toString();
+
+          if (!isSelected) {
+              if (gender.equalsIgnoreCase("Nữ")) {
+                  label.setBackground(new Color(255, 232, 243));
+                  label.setForeground(new Color(190, 40, 105));
+              } else {
+                  label.setBackground(new Color(229, 241, 255));
+                  label.setForeground(new Color(25, 105, 200));
+              }
+          }
+
+          label.setBorder(new EmptyBorder(5, 5, 5, 5));
+          return label;
+      }
+  };
+
+  tblReception.getColumnModel()
+      .getColumn(4).setCellRenderer(genderRenderer);
+
+  // ================= BADGE TRẠNG THÁI =================
+
+  DefaultTableCellRenderer statusRenderer =
+      new DefaultTableCellRenderer() {
+
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable table, Object value,
+          boolean isSelected, boolean hasFocus,
+          int row, int column
+      ) {
+          JLabel label = (JLabel) super.getTableCellRendererComponent(
+              table, value, isSelected, hasFocus, row, column
+          );
+
+          label.setHorizontalAlignment(SwingConstants.CENTER);
+          label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+          label.setOpaque(true);
+
+          String state = value == null ? "" : value.toString();
+
+          if (!isSelected) {
+              if (state.equalsIgnoreCase("Đã xác nhận")) {
+                  label.setBackground(new Color(224, 248, 232));
+                  label.setForeground(new Color(25, 145, 75));
+              } else if (state.equalsIgnoreCase("Đang khám")) {
+                  label.setBackground(new Color(225, 240, 255));
+                  label.setForeground(new Color(25, 105, 200));
+              } else if (state.equalsIgnoreCase("Hoàn thành")) {
+                  label.setBackground(new Color(235, 245, 230));
+                  label.setForeground(new Color(75, 135, 55));
+              } else {
+                  label.setBackground(new Color(245, 245, 245));
+                  label.setForeground(MUTED);
+              }
+          }
+
+          label.setBorder(new EmptyBorder(5, 4, 5, 4));
+          return label;
+      }
+  };
+
+  tblReception.getColumnModel()
+      .getColumn(10).setCellRenderer(statusRenderer);
+
+  // ================= NÚT KHÁM BỆNH =================
+
+  tblReception.getColumnModel()
+      .getColumn(11).setCellRenderer(
+          new ActionRenderer("Khám bệnh")
+      );
+
+  tblReception.getColumnModel()
+      .getColumn(11).setCellEditor(
+          new ActionEditor(tblReception, row -> {
+              processTransferToExamination(row);
+          }, "Khám bệnh")
+      );
+
+  // ================= SCROLL BẢNG =================
+
+  JScrollPane scroll = new JScrollPane(tblReception);
+  scroll.setBorder(BorderFactory.createLineBorder(
+      new Color(226, 234, 245)
+  ));
+  scroll.getViewport().setBackground(Color.WHITE);
+  scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+  tableCard.add(scroll, BorderLayout.CENTER);
+
+  // ================= FOOTER =================
+
+  JPanel footer = new JPanel(new BorderLayout());
+  footer.setOpaque(false);
+  footer.setBorder(new EmptyBorder(5, 0, 0, 0));
+
+  // Tổng số bệnh nhân
+  lblTotalPatients.setText("Tổng: 0 bệnh nhân");
+
+  JButton btnStart = createButton(
+      "Chuyển sang Khám bệnh  →", PINK
+  );
+
+  btnStart.setFont(new Font("Segoe UI", Font.BOLD, 14));
+  btnStart.setPreferredSize(new Dimension(235, 45));
+
+  btnStart.addActionListener(e -> {
+      int row = tblReception.getSelectedRow();
+
+      if (row < 0) {
+          JOptionPane.showMessageDialog(
+              this,
+              "Vui lòng chọn bệnh nhân trong danh sách!",
+              "Thông báo",
+              JOptionPane.WARNING_MESSAGE
+          );
+          return;
+      }
+
+      int modelRow = tblReception.convertRowIndexToModel(row);
+      processTransferToExamination(modelRow);
+  });
+
+  footer.add(lblTotalPatients, BorderLayout.WEST);
+  footer.add(btnStart, BorderLayout.EAST);
+
+  tableCard.add(footer, BorderLayout.SOUTH);
+
+  main.add(tableCard, BorderLayout.CENTER);
+
 
         return main;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    // TAG 3
     private JPanel createPhieuKhamCardPage() {
         JPanel main = new JPanel(new BorderLayout(10, 12));
         main.setBackground(BG);
@@ -498,6 +999,8 @@ public class ExaminationProcessPanel extends JPanel {
         cardContainer.revalidate();
         cardContainer.repaint();
     }
+    
+    
 
     private JPanel createPatientCard(
             String maLichHen, String hoTen, String sdt, String ngayKhám, String hKham,
@@ -697,6 +1200,12 @@ public class ExaminationProcessPanel extends JPanel {
         }
     }
     
+    
+    
+    
+    // TAG2 
+    
+    //SƠ ĐỒ RĂNG
     private JPanel createExaminationPage() {
         JPanel main = new JPanel(new BorderLayout(10, 12));
         main.setBackground(BG);
@@ -730,51 +1239,195 @@ public class ExaminationProcessPanel extends JPanel {
         return main;
     }
 
-    private JPanel createPatientHeader() {
-        JPanel panel = createCard();
-        panel.setLayout(new BorderLayout(15, 0));
-        panel.setBorder(new EmptyBorder(12, 30, 12, 30));
+   
+    
 
-        lblPatientCode = createValue("--");
-        lblPatientName = createValue("--");
-        lblAge = createValue("--");
-        lblGender = createValue("--");
-        lblPhone = createValue("--");
-        lblDate = createValue("--");
-        lblTime = createValue("--");
+private JPanel createPatientHeader() {
 
-        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 40, 0));
-        infoPanel.setOpaque(false);
+    // ================= CARD THÔNG TIN BỆNH NHÂN =================
 
-        infoPanel.add(infoItem("Mã lịch hẹn", lblPatientCode));
-        infoPanel.add(infoItem("Họ tên", lblPatientName));
-        infoPanel.add(infoItem("Tuổi", lblAge));
-        infoPanel.add(infoItem("Giới tính", lblGender));
-        infoPanel.add(infoItem("Số điện thoại", lblPhone));
-        infoPanel.add(infoItem("Ngày khám", lblDate));
-        infoPanel.add(infoItem("Giờ khám", lblTime));
+    JPanel panel = new JPanel(new BorderLayout(20, 0)) {
 
-        JPanel rightActionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        rightActionPanel.setOpaque(false);
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
 
-        JButton btnReloadExam = createButton("Tải lại", MUTED);
-        btnReloadExam.setPreferredSize(new Dimension(80, 34));
-        btnReloadExam.addActionListener(e -> {
-            String maLichHen = lblPatientCode.getText().trim();
-            if (!maLichHen.equals("--") && !maLichHen.isEmpty()) {
-                loadExistingExaminationData(maLichHen);
-                JOptionPane.showMessageDialog(this, "Đã làm mới dữ liệu khám của bệnh nhân!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Chưa chọn bệnh nhân nào để tải lại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            }
-        });
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
 
-        rightActionPanel.add(btnReloadExam);
+            // Nền xanh dương pastel trơn
+            g2.setColor(new Color(232, 243, 255));
+            g2.fillRoundRect(
+                0, 0, getWidth(), getHeight(), 22, 22
+            );
 
-        panel.add(infoPanel, BorderLayout.CENTER);
-        panel.add(rightActionPanel, BorderLayout.EAST);
-        return panel;
+            // Viền xanh dương
+            g2.setColor(new Color(125, 190, 255));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(
+                1, 1, getWidth() - 3, getHeight() - 3, 22, 22
+            );
+
+            g2.dispose();
+        }
+    };
+
+    panel.setOpaque(false);
+    panel.setBorder(new EmptyBorder(8, 20, 8, 20));
+    panel.setPreferredSize(new Dimension(0, 110));
+    panel.setMinimumSize(new Dimension(500, 100));
+    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+
+    // ================= KHỞI TẠO DỮ LIỆU =================
+
+    lblPatientCode = createValue("--");
+    lblPatientName = createValue("--");
+    lblAge = createValue("--");
+    lblGender = createValue("--");
+    lblPhone = createValue("--");
+    lblDate = createValue("--");
+    lblTime = createValue("--");
+
+ // ================= ICON BÊN TRÁI =================
+
+    JPanel iconPanel = new JPanel(new GridBagLayout());
+    iconPanel.setOpaque(false);
+    iconPanel.setPreferredSize(new Dimension(130, 85));
+    
+
+    try {
+        java.net.URL imageURL = getClass().getResource("/img/kham.png");
+
+        if (imageURL != null) {
+
+            ImageIcon originalIcon = new ImageIcon(imageURL);
+
+            Image scaledImage = originalIcon.getImage().getScaledInstance(
+                85,
+                85,
+                Image.SCALE_SMOOTH
+            );
+
+            JLabel lblIcon = new JLabel(new ImageIcon(scaledImage));
+
+            iconPanel.add(lblIcon);
+
+        } else {
+            System.out.println(
+                "Không tìm thấy ảnh: /img/kham.png"
+            );
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+
+    // Đường phân cách icon
+    JPanel separator = new JPanel();
+    separator.setBackground(new Color(115, 185, 245));
+    separator.setPreferredSize(new Dimension(2, 85));
+
+    JPanel leftPanel = new JPanel(new BorderLayout(18, 0));
+    leftPanel.setOpaque(false);
+    leftPanel.add(iconPanel, BorderLayout.CENTER);
+    leftPanel.add(separator, BorderLayout.EAST);
+    leftPanel.setPreferredSize(new Dimension(150, 85));
+
+    panel.add(leftPanel, BorderLayout.WEST);
+
+    // ================= 7 THÔNG TIN NẰM NGANG =================
+
+    JPanel infoPanel = new JPanel(
+        new GridLayout(1, 7, 22, 0)
+    );
+    infoPanel.setOpaque(false);
+
+    infoPanel.add(infoItem("Mã lịch hẹn", lblPatientCode));
+    infoPanel.add(infoItem("Họ tên", lblPatientName));
+    infoPanel.add(infoItem("Tuổi", lblAge));
+    infoPanel.add(infoItem("Giới tính", lblGender));
+    infoPanel.add(infoItem("Số điện thoại", lblPhone));
+    infoPanel.add(infoItem("Ngày khám", lblDate));
+    infoPanel.add(infoItem("Giờ khám", lblTime));
+
+    panel.add(infoPanel, BorderLayout.CENTER);
+
+    // ================= NÚT TẢI LẠI BÊN PHẢI =================
+
+    JPanel rightPanel = new JPanel(new GridBagLayout());
+    rightPanel.setOpaque(false);
+    rightPanel.setPreferredSize(new Dimension(130, 85));
+
+    JButton btnReloadExam = new JButton("Tải lại");
+
+    btnReloadExam.setFont(
+        new Font("Segoe UI", Font.BOLD, 17)
+    );
+
+    btnReloadExam.setForeground(Color.WHITE);
+    btnReloadExam.setBackground(new Color(75, 98, 125));
+    btnReloadExam.setPreferredSize(new Dimension(140, 40));
+    btnReloadExam.setFocusPainted(false);
+    btnReloadExam.setBorderPainted(false);
+    btnReloadExam.setOpaque(true);
+    btnReloadExam.setCursor(
+        new Cursor(Cursor.HAND_CURSOR)
+    );
+
+    // Hiệu ứng hover, tự trở về màu ban đầu
+    btnReloadExam.addMouseListener(
+        new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btnReloadExam.setBackground(
+                    new Color(45, 65, 90)
+                );
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btnReloadExam.setBackground(
+                    new Color(75, 98, 125)
+                );
+            }
+        }
+    );
+
+    btnReloadExam.addActionListener(e -> {
+
+        String maLichHen = lblPatientCode.getText().trim();
+
+        if (!maLichHen.equals("--") && !maLichHen.isEmpty()) {
+
+            loadExistingExaminationData(maLichHen);
+
+            JOptionPane.showMessageDialog(
+                this,
+                "Đã làm mới dữ liệu khám của bệnh nhân!"
+            );
+
+        } else {
+
+            JOptionPane.showMessageDialog(
+                this,
+                "Chưa chọn bệnh nhân nào để tải lại!",
+                "Thông báo",
+                JOptionPane.WARNING_MESSAGE
+            );
+        }
+    });
+
+    rightPanel.add(btnReloadExam);
+    panel.add(rightPanel, BorderLayout.EAST);
+
+    return panel;
+}
+
+
 
     private JPanel infoItem(String title, JLabel value) {
         JPanel item = new JPanel(new GridLayout(2, 1, 0, 5));
@@ -799,6 +1452,8 @@ public class ExaminationProcessPanel extends JPanel {
         return label;
     }
 
+    
+    //CARD 2 TAG 2
     private JPanel createToothForm() {
         JPanel panel = createCard();
         panel.setLayout(new BorderLayout(8, 10));
@@ -1082,6 +1737,8 @@ public class ExaminationProcessPanel extends JPanel {
 
         return panel;
     }
+    
+    
 
     private JPanel createRightPanel() {
         JPanel panel = createCard();
@@ -1460,6 +2117,10 @@ public class ExaminationProcessPanel extends JPanel {
         if (txtNote != null) txtNote.setText("");
     }
 
+    
+    
+    
+    
     private void addIndication() {
         Color PINK_BG = new Color(255, 240, 245);
         Color LIGHT_BLUE = new Color(231, 241, 255);
