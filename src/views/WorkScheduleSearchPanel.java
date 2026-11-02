@@ -8,8 +8,10 @@ public class WorkScheduleSearchPanel extends SqlSearchPanel {
                 "SELECT L.maLichLamViec, N.maNhanVien, N.tenNhanVien, N.chucVu, "
                 + "CONVERT(VARCHAR(10), L.ngayLamViec, 103) AS ngayLamViec, "
                 + "COALESCE(L.gioBatDau, '') + CASE WHEN L.gioKetThuc IS NULL THEN '' ELSE ' - ' + L.gioKetThuc END AS caLam, "
-                + "L.trangThai FROM LichLamViec L "
+                + "L.trangThai, CAST(L.ngayLamViec AS DATE) AS ngayLamViecFilter FROM LichLamViec L "
                 + "LEFT JOIN NhanVien N ON L.maNhanVien = N.maNhanVien",
-                "Tra cứu lịch làm việc", "maLichLamViec", "maNhanVien", "tenNhanVien", "chucVu", "trangThai");
+                "Tra cứu lịch làm việc",
+                new String[]{"maLichLamViec", "maNhanVien"},
+                "ngayLamViecFilter");
     }
 }

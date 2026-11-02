@@ -12,8 +12,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import org.jdatepicker.impl.DateComponentFormatter;
+import org.jdatepicker.impl.JDatePanelImpl;
+import org.jdatepicker.impl.JDatePickerImpl;
+import org.jdatepicker.impl.UtilDateModel;
 
 /** Shared SQL-backed lookup UI styled after the customer and appointment lookups. */
 public class SqlSearchPanel extends JPanel {
@@ -30,12 +39,21 @@ public class SqlSearchPanel extends JPanel {
     private final JTextField txtSearch;
     private final JLabel lblStatus;
     private final JButton btnSearch;
+    private final String dateFilterColumn;
+    private final JDatePickerImpl datePicker;
     private SwingWorker<List<Object[]>, Void> currentLoad;
 
     public SqlSearchPanel(String title, String subtitle, String[] columns,
                           String query, String exportTitle, String... searchColumns) {
+        this(title, subtitle, columns, query, exportTitle, searchColumns, null);
+    }
+
+    public SqlSearchPanel(String title, String subtitle, String[] columns,
+                          String query, String exportTitle, String[] searchColumns,
+                          String dateFilterColumn) {
         this.query = query;
         this.searchColumns = searchColumns.clone();
+        this.dateFilterColumn = dateFilterColumn;
         setLayout(new BorderLayout(0, 15));
         setBackground(BG_CANVAS);
         setBorder(new EmptyBorder(20, 30, 20, 30));
@@ -58,7 +76,20 @@ public class SqlSearchPanel extends JPanel {
 
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         toolbar.setOpaque(false);
-        JLabel searchLabel = new JLabel("Tìm kiếm:");
+        if (dateFilterColumn != null) {
+            UtilDateModel dateModel = new UtilDateModel();
+            datePicker = new JDatePickerImpl(
+                    new JDatePanelImpl(dateModel, new Properties()), new DateComponentFormatter());
+            datePicker.setPreferredSize(new Dimension(150, 36));
+            JLabel dateLabel = new JLabel("Ngày trực:");
+            dateLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            dateLabel.setForeground(TEXT_DARK);
+            toolbar.add(dateLabel);
+            toolbar.add(datePicker);
+        } else {
+            datePicker = null;
+        }
+        JLabel searchLabel = new JLabel(dateFilterColumn == null ? "Tìm kiếm:" : "Mã lịch / mã NV:");
         searchLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         searchLabel.setForeground(TEXT_DARK);
         txtSearch = new JTextField(18);
@@ -69,12 +100,13 @@ public class SqlSearchPanel extends JPanel {
                 new EmptyBorder(4, 10, 4, 10)));
         btnSearch = createButton("Tra Cứu", BLUE_PRIMARY);
         JButton btnReload = createButton("Tải lại", new Color(74, 85, 96));
-        btnSearch.addActionListener(e -> reload(txtSearch.getText().trim()));
+        btnSearch.addActionListener(e -> reloadFromControls());
         btnReload.addActionListener(e -> {
             txtSearch.setText("");
+            if (datePicker != null) datePicker.getModel().setSelected(false);
             reload("");
         });
-        txtSearch.addActionListener(e -> reload(txtSearch.getText().trim()));
+        txtSearch.addActionListener(e -> reloadFromControls());
         toolbar.add(searchLabel);
         toolbar.add(txtSearch);
         toolbar.add(btnSearch);
@@ -103,6 +135,20 @@ public class SqlSearchPanel extends JPanel {
     }
 
     public final void reload(String keyword) {
+        reload(keyword, null);
+    }
+
+    private void reloadFromControls() {
+        LocalDate selectedDate = null;
+        if (datePicker != null && datePicker.getModel().isSelected()) {
+            Date value = (Date) datePicker.getModel().getValue();
+            if (value != null) selectedDate = Instant.ofEpochMilli(value.getTime())
+                    .atZone(ZoneId.systemDefault()).toLocalDate();
+        }
+        reload(txtSearch.getText().trim(), selectedDate);
+    }
+
+    private void reload(String keyword, LocalDate selectedDate) {
         final String search = keyword == null ? "" : keyword.trim();
         if (currentLoad != null) currentLoad.cancel(true);
         btnSearch.setEnabled(false);
@@ -116,6 +162,10 @@ public class SqlSearchPanel extends JPanel {
                     sql.append(" OR CAST(lookupData.[").append(column)
                             .append("] AS NVARCHAR(4000)) LIKE ?");
                 }
+                sql.append(")");
+                if (selectedDate != null && dateFilterColumn != null) {
+                    sql.append(" AND CAST(lookupData.[").append(dateFilterColumn).append("] AS DATE) = ?");
+                }
                 sql.append(" ORDER BY 1");
                 List<Object[]> rows = new ArrayList<>();
                 try (Connection connection = DBConnection.getConnection();
@@ -123,6 +173,9 @@ public class SqlSearchPanel extends JPanel {
                     statement.setString(1, search);
                     for (int i = 0; i < searchColumns.length; i++) {
                         statement.setString(i + 2, "%" + search + "%");
+                    }
+                    if (selectedDate != null && dateFilterColumn != null) {
+                        statement.setDate(searchColumns.length + 2, java.sql.Date.valueOf(selectedDate));
                     }
                     try (ResultSet result = statement.executeQuery()) {
                         int columnCount = tableModel.getColumnCount();
