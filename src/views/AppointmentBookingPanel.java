@@ -3,10 +3,16 @@ package views;
 import controllers.AuditLog;
 import sql.DBConnection;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -17,11 +23,19 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -98,6 +112,19 @@ public class AppointmentBookingPanel extends JPanel {
         }
     }
 
+    // dữ liệu một hồ sơ lịch hẹn dùng để in PDF
+    private static class AppointmentRecord {
+        String id;
+        String custId;
+        String custName;
+        String phone;
+        String service;
+        String doctor;
+        LocalDate date;
+        String time;
+        String status;
+    }
+
     // dữ liệu form
 
     private JTextField txtAppId;
@@ -150,6 +177,9 @@ public class AppointmentBookingPanel extends JPanel {
 
     private Set<String> busyTimes = new HashSet<String>();
 
+    // tên lễ tân đang đăng nhập, sẽ in ở góc dưới bên trái của file PDF
+    private String receptionistName = "";
+
     // CONSTRUCTOR 
 
     public AppointmentBookingPanel() {
@@ -169,6 +199,11 @@ public class AppointmentBookingPanel extends JPanel {
         add(content, BorderLayout.CENTER);
 
         refreshData();
+    }
+
+    // gọi hàm này sau khi tạo panel để truyền tên lễ tân đang đăng nhập vào
+    public void setReceptionistName(String name) {
+        this.receptionistName = name == null ? "" : name.trim();
     }
 
     // refresh dl
@@ -355,11 +390,69 @@ public class AppointmentBookingPanel extends JPanel {
 
         // Nhóm dịch vụ và lịch hẹn
         JPanel appointmentGroup = createGroupPanel("Thông tin dịch vụ và lịch hẹn");
+     // ComboBox dịch vụ: vừa chọn danh sách, vừa nhập tự do
         cbService = new JComboBox<ServiceItem>();
+
+        
+     // Nhấn vào bất kỳ vị trí nào trong ComboBox cũng xổ danh sách
+        cbService.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (!cbService.isPopupVisible()) {
+                    cbService.showPopup();
+                }
+            }
+        });
+
+        cbService.setEditable(true);
+        cbService.setMaximumRowCount(8);
+        cbService.setEditable(true);
+        cbService.setMaximumRowCount(8);
+
+        // Luôn hiển thị nút mũi tên xổ xuống
+        cbService.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                JButton button = new JButton("▼");
+
+                button.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                button.setForeground(BLUE_PRIMARY);
+                button.setBackground(new Color(232, 241, 255));
+                button.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+                button.setFocusPainted(false);
+                button.setContentAreaFilled(true);
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                return button;
+            }
+        });
+
+        cbService.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbService.setBackground(Color.WHITE);
+        cbService.setForeground(TEXT_DARK);
+
+        cbService.setPreferredSize(new Dimension(360, 36));
+        cbService.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+
+        // Phần nhập tên dịch vụ
+        JTextField serviceEditor =
+                (JTextField) cbService.getEditor().getEditorComponent();
+        serviceEditor.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (!cbService.isPopupVisible()) {
+                    cbService.showPopup();
+                }
+            }
+        });
+        serviceEditor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        serviceEditor.setForeground(TEXT_DARK);
+        serviceEditor.setBackground(Color.WHITE);
+        serviceEditor.setBorder(new EmptyBorder(4, 6, 4, 6));
+
         cbDoctor = new JComboBox<DoctorItem>();
         cbTime = new JComboBox<String>();
 
-        styleCombo(cbService);
         styleCombo(cbDoctor);
         styleCombo(cbTime);
 
@@ -599,7 +692,19 @@ public class AppointmentBookingPanel extends JPanel {
             );
         });
 
-        titlePanel.add(btnReload, BorderLayout.EAST);
+        // Nút in hồ sơ lịch hẹn đang chọn ra file PDF
+        JButton btnPrintPdf = createOutlineButton("In PDF");
+        btnPrintPdf.setPreferredSize(new Dimension(100, 34));
+        btnPrintPdf.setToolTipText("Chọn một lịch hẹn trong bảng rồi bấm để xuất PDF");
+        btnPrintPdf.addActionListener(e -> exportSelectedToPdf());
+
+        // Gom 2 nút (In PDF + Tải lại) vào một khung bên phải
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionPanel.setOpaque(false);
+        actionPanel.add(btnPrintPdf);
+        actionPanel.add(btnReload);
+
+        titlePanel.add(actionPanel, BorderLayout.EAST);
         topPanel.add(titlePanel);
         topPanel.add(Box.createVerticalStrut(12));
 
@@ -721,6 +826,9 @@ public class AppointmentBookingPanel extends JPanel {
                 }
             }
         };
+
+        // Chỉ cho chọn 1 hồ sơ mỗi lần để in PDF
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         sorter = new TableRowSorter<DefaultTableModel>(
                 modelDayTable);
@@ -1964,7 +2072,10 @@ public class AppointmentBookingPanel extends JPanel {
     private void performSave() {
         String phone = txtPhone.getText().trim();
         String name = txtCustName.getText().trim();
-        ServiceItem service =(ServiceItem) cbService.getSelectedItem();
+        Object selectedService = cbService.getEditor().getItem();
+
+        String serviceName = selectedService == null? "": selectedService.toString().trim();
+
         DoctorItem doctor = (DoctorItem) cbDoctor.getSelectedItem();
         String time = cbTime.getSelectedItem() == null? null: cbTime.getSelectedItem().toString();
         LocalDate date = getSelectedDate();
@@ -1978,9 +2089,8 @@ public class AppointmentBookingPanel extends JPanel {
             return;
         }
 
-        if (service == null || doctor == null) {
-            showWarning("Chưa có dịch vụ hoặc nha sĩ. " + "Vui lòng kiểm tra dữ liệu trong hệ thống!");
-
+        if (serviceName.isEmpty() || doctor == null) {
+            showWarning("Vui lòng nhập dịch vụ khám và chọn nha sĩ phụ trách!");
             return;
         }
         if (date.isBefore(LocalDate.now())) {
@@ -2104,7 +2214,7 @@ public class AppointmentBookingPanel extends JPanel {
                     ps.setDate(4, sqlDate);
                     ps.setString(5, time);
                     ps.setString(6, STATUS_PENDING);
-                    ps.setString(7, service.name);
+                    ps.setString(7, serviceName);
                     ps.executeUpdate();
                 }
 
@@ -2270,6 +2380,463 @@ public class AppointmentBookingPanel extends JPanel {
         setCustomerBadge("Nhập số điện thoại để kiểm tra khách hàng",TEXT_GRAY,READONLY_BG);
         refreshPreviewIds();
         refreshAvailability();
+    }
+
+    // ====================== XUẤT HỒ SƠ LỊCH HẸN RA PDF ======================
+
+    // xử lý khi bấm nút "In PDF": lấy hồ sơ đang chọn -> hỏi nơi lưu -> xuất file
+    private void exportSelectedToPdf() {
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) {
+            showWarning("Vui lòng chọn một hồ sơ lịch hẹn trong bảng trước khi in PDF!");
+            return;
+        }
+
+        // đổi chỉ số dòng trên giao diện sang chỉ số dòng trong model (do có sorter/filter)
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        String appId = String.valueOf(modelDayTable.getValueAt(modelRow, 0));
+
+        AppointmentRecord record = loadAppointmentRecord(appId);
+        if (record == null) {
+            showWarning("Không tìm thấy hồ sơ " + appId + " trong hệ thống!");
+            return;
+        }
+
+        // hộp thoại chọn nơi lưu file
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu phiếu hẹn khám");
+        chooser.setFileFilter(new FileNameExtensionFilter("Tệp PDF (*.pdf)", "pdf"));
+        chooser.setSelectedFile(new File("PhieuHen_" + appId + ".pdf"));
+
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = chooser.getSelectedFile();
+        if (!file.getName().toLowerCase().endsWith(".pdf")) {
+            file = new File(file.getParentFile(), file.getName() + ".pdf");
+        }
+
+        // hỏi xác nhận nếu file đã tồn tại
+        if (file.exists()) {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Tệp \"" + file.getName() + "\" đã tồn tại. Bạn có muốn ghi đè không?",
+                    "Xác nhận ghi đè",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+
+        try {
+            writePdf(renderAppointmentPage(record), file);
+        } catch (Exception ex) {
+            showError("Không thể xuất file PDF!\n" + ex.getMessage());
+            return;
+        }
+
+        // ghi nhật ký (lỗi ghi nhật ký không ảnh hưởng việc xuất file)
+        try {
+            AuditLog.event("EXPORT", "In phiếu hẹn PDF - mã " + record.id);
+        } catch (Exception ignored) {
+            // Không ảnh hưởng việc xuất PDF
+        }
+
+        int open = JOptionPane.showConfirmDialog(
+                this,
+                "Đã xuất PDF thành công!\nBạn có muốn mở tệp ngay không?",
+                "Thông báo",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE
+        );
+        if (open == JOptionPane.YES_OPTION) {
+            try {
+                Desktop.getDesktop().open(file);
+            } catch (Exception ex) {
+                showWarning("Không thể mở tệp tự động. Tệp được lưu tại:\n" + file.getAbsolutePath());
+            }
+        }
+    }
+
+    // đọc đầy đủ thông tin 1 hồ sơ lịch hẹn từ SQL
+    private AppointmentRecord loadAppointmentRecord(String appId) {
+        String sql =
+                "SELECT LH.maLichHen, LH.ngayHen, LH.gioKham, LH.trangThai, LH.ghiChu, "
+                        + "KH.maKhachHang, KH.tenKH, KH.sdt, NV.tenNhanVien "
+                        + "FROM LichHen LH "
+                        + "LEFT JOIN KhachHang KH ON LH.maKhachHang = KH.maKhachHang "
+                        + "LEFT JOIN NhanVien NV ON LH.maNhanVien = NV.maNhanVien "
+                        + "WHERE LH.maLichHen = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, appId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    AppointmentRecord r = new AppointmentRecord();
+                    r.id = rs.getString("maLichHen");
+                    r.custId = rs.getString("maKhachHang");
+                    r.custName = rs.getString("tenKH");
+                    r.phone = rs.getString("sdt");
+                    r.service = rs.getString("ghiChu");
+                    r.doctor = rs.getString("tenNhanVien");
+                    java.sql.Date d = rs.getDate("ngayHen");
+                    r.date = d == null ? null : d.toLocalDate();
+                    r.time = formatTime(rs.getString("gioKham"));
+                    r.status = rs.getString("trangThai");
+                    return r;
+                }
+            }
+
+        } catch (SQLException e) {
+            showError("Không thể đọc hồ sơ lịch hẹn!\n" + e.getMessage());
+        }
+        return null;
+    }
+
+    // đổi null thành "---" để không in chữ "null" ra PDF
+    private String pdfValue(String s) {
+        return (s == null || s.trim().isEmpty()) ? "---" : s.trim();
+    }
+
+    // tạo font cho PDF với cỡ chữ số thực
+    private Font pdfFont(int style, float size) {
+        return new Font("Segoe UI", style, 12).deriveFont(size);
+    }
+
+    // cắt bớt chữ nếu dài hơn khung, thêm dấu ...
+    private String fitText(String s, FontMetrics fm, int maxWidth) {
+        if (s == null) {
+            return "";
+        }
+        if (fm.stringWidth(s) <= maxWidth) {
+            return s;
+        }
+        String ellipsis = "…";
+        while (s.length() > 1 && fm.stringWidth(s + ellipsis) > maxWidth) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return s + ellipsis;
+    }
+
+    // vẽ chữ căn giữa theo trục x
+    private void drawCenteredText(Graphics2D g, String text, float centerX, float baselineY, Font font, Color color) {
+        g.setFont(font);
+        g.setColor(color);
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(text, centerX - fm.stringWidth(text) / 2f, baselineY);
+    }
+
+    // vẽ khung thông tin (nhiều dòng nhãn - giá trị), trả về toạ độ y phía dưới khung
+    private int drawInfoBox(Graphics2D g, int x, int y, int w, String[][] rows) {
+        final int rowH = 30;
+        final int pad = 6;
+        int h = rows.length * rowH + pad * 2;
+
+        // nền + viền khung
+        g.setColor(new Color(244, 248, 254));
+        g.fillRoundRect(x, y, w, h, 14, 14);
+        g.setColor(new Color(205, 222, 245));
+        g.setStroke(new BasicStroke(0.8f));
+        g.drawRoundRect(x, y, w, h, 14, 14);
+
+        // nét đứt để ngăn cách các dòng
+        Stroke dashed = new BasicStroke(0.7f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10f, new float[]{2f, 2f}, 0f);
+
+        for (int i = 0; i < rows.length; i++) {
+            int rowTop = y + pad + i * rowH;
+            int baseline = rowTop + 19;
+
+            // nhãn bên trái
+            g.setFont(pdfFont(Font.PLAIN, 11f));
+            g.setColor(new Color(110, 128, 152));
+            g.drawString(rows[i][0], x + 18, baseline);
+
+            // giá trị bên phải
+            if ("Trạng thái".equals(rows[i][0])) {
+                drawStatusBadge(g, rows[i][1], x + 170, rowTop + 5);
+            } else {
+                g.setFont(pdfFont(Font.BOLD, 12.5f));
+                g.setColor(new Color(30, 50, 85));
+                g.drawString(fitText(rows[i][1], g.getFontMetrics(), w - 170 - 18), x + 170, baseline);
+            }
+
+            if (i < rows.length - 1) {
+                g.setColor(new Color(214, 226, 243));
+                g.setStroke(dashed);
+                g.drawLine(x + 14, rowTop + rowH, x + w - 14, rowTop + rowH);
+                g.setStroke(new BasicStroke(0.8f));
+            }
+        }
+        return y + h;
+    }
+
+    // vẽ nhãn trạng thái dạng viên thuốc có màu theo trạng thái
+    private void drawStatusBadge(Graphics2D g, String status, int x, int y) {
+        Color fg = new Color(90, 105, 130);
+        Color bg = new Color(236, 240, 246);
+        String s = status == null ? "" : status.trim();
+
+        if ("Chờ xác nhận".equalsIgnoreCase(s)) {
+            fg = new Color(160, 110, 10);
+            bg = new Color(255, 240, 210);
+        } else if ("Đã xác nhận".equalsIgnoreCase(s)) {
+            fg = new Color(30, 95, 200);
+            bg = new Color(214, 229, 252);
+        } else if ("Hoàn thành".equalsIgnoreCase(s)) {
+            fg = new Color(25, 130, 85);
+            bg = new Color(212, 242, 227);
+        } else if ("Đã hủy".equalsIgnoreCase(s)) {
+            fg = new Color(200, 60, 70);
+            bg = new Color(255, 225, 228);
+        }
+
+        g.setFont(pdfFont(Font.BOLD, 11f));
+        FontMetrics fm = g.getFontMetrics();
+        int w = fm.stringWidth(s) + 24;
+
+        g.setColor(bg);
+        g.fillRoundRect(x, y, w, 20, 20, 20);
+        g.setColor(fg);
+        g.drawString(s, x + 12, y + 14);
+    }
+
+    // vẽ cả trang A4 (595 x 842 điểm) ra ảnh độ phân giải cao (200 dpi)
+    private BufferedImage renderAppointmentPage(AppointmentRecord r) {
+        final int pxW = 1654;
+        final int pxH = 2339;
+
+        // bảng màu chủ đạo xanh - trắng
+        final Color blueDeep = new Color(18, 88, 190);
+        final Color blueMain = new Color(45, 112, 220);
+        final Color blueSoft = new Color(232, 241, 255);
+
+        BufferedImage img = new BufferedImage(pxW, pxH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+        // nền trắng
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, pxW, pxH);
+
+        // từ đây vẽ theo toạ độ điểm (pt) của trang A4
+        g.scale(pxW / 595.0, pxH / 842.0);
+
+        // ---------- BANNER XANH Ở TRÊN ----------
+        g.setPaint(new GradientPaint(0, 0, blueDeep, 595, 0, new Color(70, 140, 240)));
+        g.fillRect(0, 0, 595, 120);
+
+        // vài vòng tròn mờ trang trí ở góc phải banner
+        g.setClip(0, 0, 595, 120);
+        g.setColor(new Color(255, 255, 255, 28));
+        g.fillOval(440, -70, 230, 230);
+        g.setColor(new Color(255, 255, 255, 22));
+        g.fillOval(360, 50, 120, 120);
+        g.setClip(null);
+
+        // vòng tròn trắng chứa logo
+        g.setColor(Color.WHITE);
+        g.fillOval(40, 28, 64, 64);
+
+        java.net.URL logoUrl = getClass().getResource("/img/logo5.png");
+        if (logoUrl != null) {
+            Image logo = new ImageIcon(logoUrl).getImage();
+            g.drawImage(logo, 46, 34, 52, 52, null);
+        } else {
+            // không có logo thì vẽ dấu cộng xanh thay thế
+            g.setColor(blueMain);
+            g.fillRoundRect(64, 42, 16, 36, 4, 4);
+            g.fillRoundRect(54, 52, 36, 16, 4, 4);
+        }
+
+        // tên phòng khám
+        g.setFont(pdfFont(Font.BOLD, 28f));
+        g.setColor(Color.WHITE);
+        g.drawString("SMILE DENTAL", 120, 64);
+        g.setFont(pdfFont(Font.PLAIN, 12f));
+        g.setColor(new Color(220, 234, 255));
+        g.drawString("PHÒNG KHÁM NHA KHOA", 121, 86);
+
+        // ---------- TIÊU ĐỀ PHIẾU ----------
+        drawCenteredText(g, "PHIẾU HẸN KHÁM", 297.5f, 165, pdfFont(Font.BOLD, 25f), blueDeep);
+
+        // viên thuốc hiển thị mã lịch hẹn
+        g.setFont(pdfFont(Font.BOLD, 13f));
+        FontMetrics pillFm = g.getFontMetrics();
+        String pillText = "Mã lịch hẹn: " + pdfValue(r.id);
+        int pillW = pillFm.stringWidth(pillText) + 36;
+        int pillX = (595 - pillW) / 2;
+        g.setColor(blueSoft);
+        g.fillRoundRect(pillX, 178, pillW, 26, 26, 26);
+        g.setColor(new Color(190, 211, 243));
+        g.setStroke(new BasicStroke(0.8f));
+        g.drawRoundRect(pillX, 178, pillW, 26, 26, 26);
+        g.setColor(blueMain);
+        g.drawString(pillText, pillX + 18, 196);
+
+        // ---------- THÔNG TIN KHÁCH HÀNG ----------
+        g.setColor(blueMain);
+        g.fillRoundRect(40, 236, 4, 18, 4, 4);
+        g.setFont(pdfFont(Font.BOLD, 13f));
+        g.setColor(blueDeep);
+        g.drawString("THÔNG TIN KHÁCH HÀNG", 52, 250);
+
+        int bottom1 = drawInfoBox(g, 40, 262, 515, new String[][]{
+                {"Mã khách hàng", pdfValue(r.custId)},
+                {"Họ và tên", pdfValue(r.custName)},
+                {"Số điện thoại", pdfValue(r.phone)}
+        });
+
+        // ---------- THÔNG TIN LỊCH HẸN ----------
+        int sec2 = bottom1 + 34;
+        g.setColor(blueMain);
+        g.fillRoundRect(40, sec2 - 14, 4, 18, 4, 4);
+        g.setFont(pdfFont(Font.BOLD, 13f));
+        g.setColor(blueDeep);
+        g.drawString("THÔNG TIN LỊCH HẸN", 52, sec2);
+
+        String dateText = r.date == null ? "---" : r.date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        drawInfoBox(g, 40, sec2 + 12, 515, new String[][]{
+                {"Mã lịch hẹn", pdfValue(r.id)},
+                {"Dịch vụ khám", pdfValue(r.service)},
+                {"Nha sĩ phụ trách", pdfValue(r.doctor)},
+                {"Ngày hẹn", dateText},
+                {"Giờ hẹn", pdfValue(r.time)},
+                {"Trạng thái", pdfValue(r.status)}
+        });
+
+        // ---------- LƯU Ý ----------
+        int noteY = sec2 + 12 + 6 * 30 + 12 + 22;
+        g.setColor(new Color(240, 247, 255));
+        g.fillRoundRect(40, noteY, 515, 30, 10, 10);
+        g.setColor(blueMain);
+        g.fillRoundRect(40, noteY, 4, 30, 4, 4);
+        g.setFont(pdfFont(Font.ITALIC, 10.5f));
+        g.setColor(new Color(70, 95, 140));
+        g.drawString("Quý khách vui lòng đến trước giờ hẹn 10 phút và mang theo phiếu này khi đến khám.", 56, noteY + 19);
+
+        // ---------- KHU VỰC KÝ TÊN ----------
+        // ngày giờ in phiếu căn phải
+        String printed = "Ngày in: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        g.setFont(pdfFont(Font.ITALIC, 10.5f));
+        g.setColor(TEXT_GRAY);
+        g.drawString(printed, 555 - g.getFontMetrics().stringWidth(printed), noteY + 62);
+
+        final float leftCx = 150f;   // tâm khối ký bên trái (lễ tân)
+        final float rightCx = 445f;  // tâm khối ký bên phải (khách hàng)
+        final float signTitleY = noteY + 92;
+
+        drawCenteredText(g, "LỄ TÂN PHỤ TRÁCH", leftCx, signTitleY, pdfFont(Font.BOLD, 12.5f), blueDeep);
+        drawCenteredText(g, "(Ký và ghi rõ họ tên)", leftCx, signTitleY + 15, pdfFont(Font.ITALIC, 10f), TEXT_GRAY);
+
+        drawCenteredText(g, "KHÁCH HÀNG", rightCx, signTitleY, pdfFont(Font.BOLD, 12.5f), blueDeep);
+        drawCenteredText(g, "(Ký và ghi rõ họ tên)", rightCx, signTitleY + 15, pdfFont(Font.ITALIC, 10f), TEXT_GRAY);
+
+        // vị trí in tên bên dưới khoảng trống để ký
+        final float nameY = signTitleY + 105;
+
+        // đường kẻ mảnh phía trên tên
+        g.setColor(new Color(190, 211, 243));
+        g.setStroke(new BasicStroke(0.8f));
+        g.drawLine((int) leftCx - 80, (int) nameY - 16, (int) leftCx + 80, (int) nameY - 16);
+        g.drawLine((int) rightCx - 80, (int) nameY - 16, (int) rightCx + 80, (int) nameY - 16);
+
+        // tên lễ tân bên trái (nếu chưa truyền vào thì để trống cho lễ tân tự ký)
+        if (!receptionistName.isEmpty()) {
+            drawCenteredText(g, receptionistName, leftCx, nameY, pdfFont(Font.BOLD, 12.5f), TEXT_DARK);
+        }
+        // tên khách hàng bên phải
+        if (r.custName != null && !r.custName.trim().isEmpty()) {
+            drawCenteredText(g, r.custName.trim(), rightCx, nameY, pdfFont(Font.BOLD, 12.5f), TEXT_DARK);
+        }
+
+        // ---------- CHÂN TRANG ----------
+        g.setPaint(new GradientPaint(0, 0, blueDeep, 595, 0, new Color(70, 140, 240)));
+        g.fillRect(0, 812, 595, 30);
+        drawCenteredText(g, "Cảm ơn quý khách đã tin tưởng Smile Dental", 297.5f, 831,
+                pdfFont(Font.PLAIN, 10.5f), Color.WHITE);
+
+        g.dispose();
+        return img;
+    }
+
+    // ghi ảnh trang vừa vẽ thành file PDF 1 trang (không cần thư viện ngoài)
+    private void writePdf(BufferedImage image, File file) throws IOException {
+        // nén ảnh sang JPEG chất lượng cao
+        ByteArrayOutputStream jpegBytes = new ByteArrayOutputStream();
+        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+        ImageWriteParam param = writer.getDefaultWriteParam();
+        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        param.setCompressionQuality(0.95f);
+
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(jpegBytes)) {
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(image, null, null), param);
+        } finally {
+            writer.dispose();
+        }
+        byte[] jpeg = jpegBytes.toByteArray();
+
+        // dựng cấu trúc PDF: 1 Catalog, 2 Pages, 3 Page, 4 Content, 5 Image
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int[] offsets = new int[6];
+
+        writeAscii(out, "%PDF-1.4\n");
+
+        offsets[1] = out.size();
+        writeAscii(out, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+        offsets[2] = out.size();
+        writeAscii(out, "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+
+        offsets[3] = out.size();
+        writeAscii(out, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+                + "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+
+        String content = "q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ\n";
+        offsets[4] = out.size();
+        writeAscii(out, "4 0 obj\n<< /Length " + content.length() + " >>\nstream\n"
+                + content + "endstream\nendobj\n");
+
+        offsets[5] = out.size();
+        writeAscii(out, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + image.getWidth()
+                + " /Height " + image.getHeight()
+                + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "
+                + jpeg.length + " >>\nstream\n");
+        out.write(jpeg);
+        writeAscii(out, "\nendstream\nendobj\n");
+
+        // bảng xref để trình đọc PDF tìm được từng đối tượng
+        int xrefPos = out.size();
+        StringBuilder xref = new StringBuilder();
+        xref.append("xref\n0 6\n0000000000 65535 f \n");
+        for (int i = 1; i <= 5; i++) {
+            xref.append(String.format("%010d 00000 n \n", offsets[i]));
+        }
+        xref.append("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n")
+                .append(xrefPos)
+                .append("\n%%EOF\n");
+        writeAscii(out, xref.toString());
+
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(out.toByteArray());
+        }
+    }
+
+    // ghi chuỗi ASCII vào luồng byte
+    private void writeAscii(ByteArrayOutputStream out, String text) throws IOException {
+        out.write(text.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
     }
 
     // tin nhắn

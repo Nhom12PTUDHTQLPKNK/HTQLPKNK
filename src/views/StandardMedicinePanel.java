@@ -171,14 +171,31 @@ public class StandardMedicinePanel extends JPanel {
         searchBox.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER), new EmptyBorder(0, 8, 0, 8)));
         searchBox.setPreferredSize(new Dimension(230, 40));
 
-        JLabel searchIcon = new JLabel("⌕");
-        searchIcon.setFont(new Font("Segoe UI", Font.PLAIN, 23));
-        searchIcon.setForeground(MUTED);
+     // Icon tìm kiếm từ thư mục img
+        java.net.URL searchImgUrl = getClass().getResource("/img/timkiem.png");
+
+        JLabel searchIcon;
+
+        if (searchImgUrl != null) {
+            ImageIcon originalIcon = new ImageIcon(searchImgUrl);
+
+            Image scaledImage = originalIcon.getImage()
+                    .getScaledInstance(22, 22, Image.SCALE_SMOOTH);
+
+            searchIcon = new JLabel(new ImageIcon(scaledImage));
+        } else {
+            searchIcon = new JLabel("⌕");
+        }
+
+        searchIcon.setHorizontalAlignment(SwingConstants.CENTER);
+        searchIcon.setPreferredSize(new Dimension(28, 28));
+        
+        
 
         searchBox.add(searchIcon, BorderLayout.WEST);
         searchBox.add(txtSearch, BorderLayout.CENTER);
 
-        JButton btnSearch = new JButton("⌕  Tìm kiếm");
+        JButton btnSearch = new JButton("  Tìm kiếm");
         btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btnSearch.setBackground(PINK); 
         btnSearch.setForeground(Color.WHITE);             
@@ -407,11 +424,18 @@ public class StandardMedicinePanel extends JPanel {
         body.add(Box.createVerticalStrut(12));
         body.add(createTabs());
 
-        JScrollPane scroll = new JScrollPane(body);
-        scroll.setBorder(null);
-        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.getVerticalScrollBar().setUnitIncrement(15);
-        scroll.getViewport().setBackground(Color.WHITE);
+        JScrollPane scroll = new JScrollPane(
+        	    body,
+        	    JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+        	    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        	);
+
+        	scroll.setBorder(null);
+        	scroll.getVerticalScrollBar().setUnitIncrement(20);
+        	scroll.getViewport().setBackground(Color.WHITE);
+        	scroll.getViewport().setOpaque(true);
+        	scroll.setWheelScrollingEnabled(true);
+        	
 
         card.add(heading, BorderLayout.NORTH);
         card.add(scroll, BorderLayout.CENTER);
@@ -472,18 +496,95 @@ public class StandardMedicinePanel extends JPanel {
     }
 
     private JTabbedPane createTabs() {
+
         JTabbedPane tabs = new JTabbedPane();
-        tabs.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabs.setForeground(NAVY);
+
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        tabs.setForeground(Color.WHITE);
+        tabs.setBackground(new Color(15, 29, 69));
+        
+        tabs.setOpaque(true);
         tabs.setBackground(Color.WHITE);
-        tabs.addTab("▦ Thông tin chung", createGeneralTab());
-        tabs.addTab("◇ Liều dùng", createDosageTab());
-        tabs.addTab("▤ Chỉ định", createIndicationTab());
-        tabs.addTab("ⓘ Lưu ý", createCautionTab());
-        tabs.setPreferredSize(new Dimension(0, 440));
+
+        tabs.addTab("Thông tin chung", createGeneralTab());
+        tabs.addTab("Liều dùng", createDosageTab());
+        tabs.addTab("Chỉ định", createIndicationTab());
+        tabs.addTab("Lưu ý", createCautionTab());
+
+        tabs.setPreferredSize(new Dimension(0, 500));
         tabs.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Tăng khoảng cách bên trong tiêu đề tab
+        tabs.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI() {
+
+            @Override
+            protected int calculateTabWidth(
+                    int placement, int index, FontMetrics metrics) {
+
+                return super.calculateTabWidth(placement, index, metrics) + 35;
+            }
+
+            @Override
+            protected Insets getTabInsets(int placement, int index) {
+                return new Insets(10, 18, 10, 18);
+            }
+        });
+        
+        tabs.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI() {
+
+            @Override
+            protected int calculateTabWidth(int placement, int index, FontMetrics metrics) {
+                return super.calculateTabWidth(placement, index, metrics) + 35;
+            }
+
+            @Override
+            protected Insets getTabInsets(int placement, int index) {
+                return new Insets(12, 18, 12, 18);
+            }
+
+            @Override
+            protected void installDefaults() {
+                super.installDefaults();
+                highlight = new Color(15, 29, 69);
+                lightHighlight = new Color(15, 29, 69);
+                shadow = new Color(15, 29, 69);
+                darkShadow = new Color(15, 29, 69);
+            }
+
+            @Override
+            protected void paintTabBackground(
+                    Graphics g, int placement, int tabIndex,
+                    int x, int y, int w, int h, boolean isSelected) {
+
+            	g.setColor(new Color(15, 29, 69));
+            	g.fillRect(x, y, w - 4, h);
+            }
+
+            @Override
+            protected void paintTabBorder(
+                    Graphics g, int placement, int tabIndex,
+                    int x, int y, int w, int h, boolean isSelected) {
+                // Không vẽ viền tab
+            }
+
+            @Override
+            protected void paintText(
+                    Graphics g, int placement, Font font,
+                    FontMetrics metrics, int tabIndex,
+                    String title, Rectangle textRect,
+                    boolean isSelected) {
+
+                g.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                g.setColor(Color.WHITE);
+
+                super.paintText(g, placement, font, metrics,
+                        tabIndex, title, textRect, isSelected);
+            }
+        });
+
         return tabs;
     }
+    
 
     private JPanel createGeneralTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
