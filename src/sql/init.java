@@ -9,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 import java.util.stream.Collectors;
 
 public class init {
@@ -43,6 +44,19 @@ public class init {
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
 
+            // The SQL script drops and recreates every table. Run it only for a
+            // first-time setup so normal application launches preserve user data.
+            try (PreparedStatement checkDatabase = conn.prepareStatement(
+                    "SELECT 1 FROM sys.databases WHERE name = ?")) {
+                checkDatabase.setString(1, "QuanLyPhongKhamNhaKhoa");
+                try (ResultSet rs = checkDatabase.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println(">>> Cơ sở dữ liệu đã tồn tại; bỏ qua khởi tạo để giữ dữ liệu hiện có.");
+                        return;
+                    }
+                }
+            }
+
             InputStream inputStream = init.class.getResourceAsStream(resourceName);
             if (inputStream == null) {
                 System.err.println("Không tìm thấy file SQL: " + resourceName);
@@ -64,6 +78,7 @@ public class init {
             }
 
             System.out.println(">>> Khởi tạo cơ sở dữ liệu SQL Server thành công!");
+            initDefaultAdmin();
 
         } catch (SQLException e) {
             System.err.println("Lỗi SQL khi khởi tạo cơ sở dữ liệu:");
@@ -72,6 +87,5 @@ public class init {
             System.err.println("Lỗi đọc file script:");
             e.printStackTrace();
         }
-        initDefaultAdmin();
     }
 }
