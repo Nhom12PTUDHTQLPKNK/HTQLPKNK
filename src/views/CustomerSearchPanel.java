@@ -5,7 +5,7 @@ import java.awt.event.HierarchyEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.PrintWriter;
+
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -49,25 +49,74 @@ public class CustomerSearchPanel extends JPanel {
         setBackground(BG);
         setBorder(new EmptyBorder(22, 26, 22, 26));
 
-        JPanel head = new JPanel(new BorderLayout());
+        // 1. HEADER DẠNG CARD NGANG (GRADIENT HỒNG <-> XANH + LOGO)
+        JPanel head = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Định nghĩa màu hồng pastel và xanh pastel
+                Color pinkPastel = new Color(255, 232, 243);
+                Color bluePastel = new Color(219, 234, 254);
+
+                // Hiệu ứng trải màu từ trái sang phải
+                GradientPaint gradient = new GradientPaint(0, 0, pinkPastel, getWidth(), 0, bluePastel);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+
+                // Viền card
+                g2.setColor(LINE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         head.setOpaque(false);
+        head.setBorder(new EmptyBorder(20, 20, 20, 20));
+        head.setLayout(new BorderLayout());
+        head.setPreferredSize(new Dimension(0, 110));
+        head.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
         JPanel ttl = new JPanel();
         ttl.setOpaque(false);
         ttl.setLayout(new BoxLayout(ttl, BoxLayout.Y_AXIS));
-        ttl.add(lbl("Tra Cứu Khách Hàng & Điểm Tích Lũy", F.deriveFont(Font.BOLD, 24f), TEXT));
-        ttl.add(lbl("Tìm theo mã, họ tên hoặc số điện thoại; dữ liệu lấy trực tiếp từ SQL Server", F, MUTED));
 
-        JButton bExport = btn("Xuất CSV", BLUE_SOFT, BLUE);
+        JLabel lblTitle = lbl("Tra Cứu Khách Hàng & Điểm Tích Lũy", F.deriveFont(Font.BOLD, 25f), TEXT);
+
+        // Tải và thu nhỏ logo cho cân đối (45x45 pixel)
+        if (imageExists("logo5.png")) {
+            lblTitle.setIcon(loadImage("logo5.png", 45, 45));
+            lblTitle.setIconTextGap(14); // Khoảng cách giữa ảnh và chữ tiêu đề
+        }
+
+        ttl.add(lblTitle);
+        ttl.add(Box.createVerticalStrut(4));
+        ttl.add(lbl("Tìm theo mã, họ tên hoặc số điện thoại; dữ liệu lấy trực tiếp từ SQL Server", F.deriveFont(15f), MUTED));
+
+        // Căn giữa tiêu đề theo chiều dọc trong card
+        JPanel headWestWrapper = new JPanel(new GridBagLayout());
+        headWestWrapper.setOpaque(false);
+        GridBagConstraints gbcWest = new GridBagConstraints();
+        gbcWest.anchor = GridBagConstraints.WEST;
+        gbcWest.weightx = 1.0;
+        headWestWrapper.add(ttl, gbcWest);
+
         JButton bRefresh = btn("Làm mới", PINK, Color.WHITE);
 
         JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         acts.setOpaque(false);
-        acts.add(bExport);
         acts.add(bRefresh);
 
-        head.add(ttl, BorderLayout.WEST);
-        head.add(acts, BorderLayout.EAST);
+        // Các nút nằm ở góc phải của Card Header, căn giữa theo chiều dọc
+        JPanel headRight = new JPanel(new GridBagLayout());
+        headRight.setOpaque(false);
+        GridBagConstraints gbcRight = new GridBagConstraints();
+        gbcRight.anchor = GridBagConstraints.EAST;
+        headRight.add(acts, gbcRight);
+
+        head.add(headWestWrapper, BorderLayout.CENTER);
+        head.add(headRight, BorderLayout.EAST);
 
         JPanel stats = new JPanel(new GridLayout(1, 4, 14, 0));
         stats.setOpaque(false);
@@ -407,7 +456,6 @@ public class CustomerSearchPanel extends JPanel {
             load();
         });
 
-        bExport.addActionListener(e -> export());
         btnAdd.addActionListener(e -> adjust(1));
         btnSub.addActionListener(e -> adjust(-1));
 
@@ -597,31 +645,6 @@ public class CustomerSearchPanel extends JPanel {
         }.execute();
     }
 
-    private void export() {
-        JFileChooser fc = new JFileChooser();
-        fc.setSelectedFile(new File("khach_hang_diem_tich_luy.csv"));
-
-        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        try (PrintWriter w = new PrintWriter(fc.getSelectedFile(), "UTF-8")) {
-            w.write('\uFEFF');
-
-            for (int r = -1; r < model.getRowCount(); r++) {
-                StringBuilder sb = new StringBuilder();
-
-                for (int c = 0; c < COLS.length; c++) {
-                    String s = r < 0 ? COLS[c] : String.valueOf(model.getValueAt(r, c));
-                    sb.append(c > 0 ? "," : "").append('"').append(s.replace("\"", "\"\"")).append('"');
-                }
-
-                w.write(sb + "\r\n");
-            }
-
-            JOptionPane.showMessageDialog(this, "Đã xuất " + model.getRowCount() + " dòng dữ liệu.", "Xuất CSV", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception e) {
-            err(e);
-        }
-    }
 
     private JButton createChip(String text, int index) {
         JButton b = new JButton(text);
@@ -671,22 +694,20 @@ public class CustomerSearchPanel extends JPanel {
         }
 
         Color[] numberColors = {
-        	    new Color(0xC2185B),
-        	    new Color(0x0D47A1),
-        	    new Color(0xC2185B),
-        	    new Color(0x8A5700)
-        	    
+                new Color(0xC2185B),
+                new Color(0x0D47A1),
+                new Color(0xC2185B),
+                new Color(0x8A5700)
+        };
 
-        	};
+        statVals[i] = lbl("0", F.deriveFont(Font.BOLD, 42f), numberColors[i]);
+        statVals[i].setAlignmentX(Component.LEFT_ALIGNMENT);
+        statVals[i].setHorizontalAlignment(SwingConstants.LEFT);
+        statVals[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
 
-        	statVals[i] = lbl("0", F.deriveFont(Font.BOLD, 42f), numberColors[i]);
-        	statVals[i].setAlignmentX(Component.LEFT_ALIGNMENT);
-        	statVals[i].setHorizontalAlignment(SwingConstants.LEFT);
-        	statVals[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-
-        	info.add(titlePanel);
-        	info.add(Box.createVerticalStrut(3));
-        	info.add(statVals[i]);
+        info.add(titlePanel);
+        info.add(Box.createVerticalStrut(3));
+        info.add(statVals[i]);
 
         c.add(icon, BorderLayout.WEST);
         c.add(info, BorderLayout.CENTER);
@@ -725,6 +746,12 @@ public class CustomerSearchPanel extends JPanel {
 
     private static Color tierText(String t) {
         return t.equals("Vàng") ? GOLD_TEXT : t.equals("Bạc") ? SILVER_TEXT : MEMBER_TEXT;
+    }
+
+    // Kiểm tra file ảnh có tồn tại không (trong resources hoặc src/img)
+    private static boolean imageExists(String name) {
+        return CustomerSearchPanel.class.getResource("/img/" + name) != null
+                || new File("src/img/" + name).exists();
     }
 
     private static ImageIcon loadImage(String name, int width, int height) {

@@ -32,7 +32,7 @@ public class ExaminationProcessPanel extends JPanel {
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
-    private JButton btnReception, btnExamination, btnPhieuKhamList;
+    private JButton btnReception, btnExamination, btnPhieuKhamList, btnTreatmentPlan;
 
     private JTable tblReception, tblIndication, tblExamined;
     private DefaultTableModel receptionModel, indicationModel, examinedModel;
@@ -66,10 +66,16 @@ public class ExaminationProcessPanel extends JPanel {
         cardPanel = new JPanel(cardLayout);
         cardPanel.setBackground(BG);
         
+        // tạo 4 card 
         cardPanel.add(createReceptionPage(), "RECEPTION");
         cardPanel.add(createExaminationPage(), "EXAMINATION");
         cardPanel.add(createPhieuKhamCardPage(), "PHIEU_KHAM_CARD");
 
+        JPanel treatmentPage = createTreatmentPlanPage();
+        cardPanel.add(treatmentPage, "TREATMENT_PLAN");
+        
+        
+        
         add(cardPanel, BorderLayout.CENTER);
         showReception();
         loadReceptionData();
@@ -89,11 +95,22 @@ public class ExaminationProcessPanel extends JPanel {
         btnReception.addActionListener(e -> showReception());
         btnExamination.addActionListener(e -> showExamination());
         btnPhieuKhamList.addActionListener(e -> showPhieuKhamList());
+        
+        btnTreatmentPlan = createButton("▣  Lập kế hoạch điều trị", BG);
+        btnTreatmentPlan.setForeground(NAVY);
+
+        btnTreatmentPlan.addActionListener(e -> showTreatmentPlan());
 
         menu.add(btnReception);
         menu.add(btnExamination);
         menu.add(btnPhieuKhamList);
+        menu.add(btnTreatmentPlan);
         return menu;
+    }
+    
+    private void showTreatmentPlan() {
+        cardLayout.show(cardPanel, "TREATMENT_PLAN");
+        setActiveMenuButton(btnTreatmentPlan);
     }
 
     private void showReception() {
@@ -120,9 +137,16 @@ public class ExaminationProcessPanel extends JPanel {
         btnExamination.setForeground(NAVY);
         btnPhieuKhamList.setBackground(BG);
         btnPhieuKhamList.setForeground(NAVY);
+        
+        btnTreatmentPlan.setBackground(BG);
+        btnTreatmentPlan.setForeground(NAVY);
+        
+        
 
-        activeBtn.setBackground(activeBtn == btnExamination ? BLUE : PINK);
-        activeBtn.setForeground(Color.WHITE);
+        activeBtn.setBackground(
+        	    activeBtn == btnExamination ? BLUE : PINK
+        	);
+        	activeBtn.setForeground(Color.WHITE);
     }
     
     // ==================== TRANG DANH SÁCH TIẾP NHẬN ====================
@@ -1648,16 +1672,27 @@ public class ExaminationProcessPanel extends JPanel {
         }
     }
 
+
+    // ==========================================================
+    // ACTION EDITOR
+    // ==========================================================
+
     private class ActionEditor extends DefaultCellEditor {
+
         private final JButton button;
         private final JTable table;
         private final java.util.function.IntConsumer action;
-        private int selectedRow;
+        private int selectedRow = -1;
 
-        ActionEditor(JTable table, java.util.function.IntConsumer action, String text) {
+        ActionEditor(JTable table,
+                     java.util.function.IntConsumer action,
+                     String text) {
+
             super(new JCheckBox());
+
             this.table = table;
             this.action = action;
+
             button = new JButton(text);
             button.setUI(new BasicButtonUI());
             button.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -1669,24 +1704,720 @@ public class ExaminationProcessPanel extends JPanel {
             button.setBorderPainted(false);
             button.setBorder(new EmptyBorder(4, 8, 4, 8));
             button.putClientProperty("JButton.buttonType", "roundRect");
+
             button.addActionListener(e -> {
                 int row = selectedRow;
                 fireEditingStopped();
+
                 if (row >= 0 && this.action != null) {
                     this.action.accept(row);
                 }
             });
         }
 
-        @Override public Component getTableCellEditorComponent(JTable table, Object value, boolean selected, int row, int column) {
-            if (table != null && row >= 0 && row < table.getRowCount()) {
+
+        @Override
+        public Component getTableCellEditorComponent(
+                JTable table,
+                Object value,
+                boolean selected,
+                int row,
+                int column) {
+
+            if (row >= 0 && row < table.getRowCount()) {
                 selectedRow = table.convertRowIndexToModel(row);
             } else {
                 selectedRow = -1;
             }
+
             return button;
         }
-
-        @Override public Object getCellEditorValue() { return button.getText(); }
     }
-}
+
+   
+
+        // ==========================================================
+        // TRANG LẬP KẾ HOẠCH ĐIỀU TRỊ
+        // ==========================================================
+
+        private JPanel createTreatmentPlanPage() {
+
+            JPanel main = new JPanel(new BorderLayout(0, 12));
+            main.setBackground(BG);
+            main.setBorder(new EmptyBorder(15, 18, 15, 18));
+
+            // ================= HEADER =================
+
+            JPanel header = new JPanel(new BorderLayout());
+            header.setOpaque(false);
+
+            JPanel titlePanel = new JPanel();
+            titlePanel.setOpaque(false);
+            titlePanel.setLayout(
+                new BoxLayout(titlePanel, BoxLayout.Y_AXIS)
+            );
+
+            JLabel title = createTitle("Lập kế hoạch điều trị");
+            title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+
+            JLabel subtitle = new JLabel(
+                "Xây dựng lộ trình, dịch vụ, chi phí và lịch điều trị cho bệnh nhân"
+            );
+            subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            subtitle.setForeground(MUTED);
+
+            titlePanel.add(title);
+            titlePanel.add(Box.createVerticalStrut(5));
+            titlePanel.add(subtitle);
+
+            JPanel actions = new JPanel(
+                new FlowLayout(FlowLayout.RIGHT, 8, 0)
+            );
+            actions.setOpaque(false);
+
+            actions.add(createButton("＋ Kế hoạch mới", PINK));
+            actions.add(createButton("▣ Lưu", BLUE));
+            actions.add(createButton("▤ In kế hoạch", Color.WHITE));
+            actions.add(createButton("↶ Quay lại", Color.WHITE));
+
+            header.add(titlePanel, BorderLayout.WEST);
+            header.add(actions, BorderLayout.EAST);
+
+            main.add(header, BorderLayout.NORTH);
+
+            // ================= BODY =================
+
+            JPanel body = new JPanel();
+            body.setBackground(BG);
+            body.setLayout(
+                new BoxLayout(body, BoxLayout.Y_AXIS)
+            );
+
+            // HÀNG 1
+
+            body.add(createPlanRow(
+                createPatientPlanCard(),
+                createPlanSummaryCard(),
+                0.64, 0.36, 150
+            ));
+
+            body.add(Box.createVerticalStrut(12));
+
+            // HÀNG 2
+
+            body.add(createPlanRow(
+                createPlanToothCard(),
+                createPlanServiceCard(),
+                0.37, 0.63, 200
+            ));
+
+            body.add(Box.createVerticalStrut(12));
+
+            // HÀNG 3
+
+            body.add(createPlanRow(
+                createPlanInformationCard(),
+                createTreatmentRouteCard(),
+                0.31, 0.69, 200
+            ));
+
+            JScrollPane scroll = new JScrollPane(body);
+            scroll.setBorder(null);
+            scroll.setBackground(BG);
+            scroll.getViewport().setBackground(BG);
+            scroll.getVerticalScrollBar().setUnitIncrement(16);
+            scroll.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+            );
+
+            main.add(scroll, BorderLayout.CENTER);
+
+            return main;
+        }
+
+        // ==========================================================
+        // CARD 1: THÔNG TIN BỆNH NHÂN
+        // ==========================================================
+
+        private JPanel createPatientPlanCard() {
+
+            JPanel card = createCard();
+            card.setLayout(new BorderLayout(15, 0));
+
+            JPanel left = new JPanel(new BorderLayout(12, 0));
+            left.setOpaque(false);
+
+            JLabel icon = new JLabel("🦷", SwingConstants.CENTER);
+            icon.setFont(
+                new Font("Segoe UI Emoji", Font.PLAIN, 35)
+            );
+            icon.setPreferredSize(new Dimension(65, 65));
+            icon.setOpaque(true);
+            icon.setBackground(new Color(255, 232, 243));
+
+            JPanel info = new JPanel();
+            info.setOpaque(false);
+            info.setLayout(
+                new BoxLayout(info, BoxLayout.Y_AXIS)
+            );
+
+            JLabel heading = createTitle("Thông tin bệnh nhân");
+            heading.setFont(
+                new Font("Segoe UI", Font.BOLD, 15)
+            );
+
+            info.add(heading);
+            info.add(Box.createVerticalStrut(7));
+            info.add(planText("Mã bệnh nhân:"));
+            info.add(planText("Họ và tên:"));
+            info.add(planText("Số điện thoại:"));
+
+            left.add(icon, BorderLayout.WEST);
+            left.add(info, BorderLayout.CENTER);
+
+            JPanel right = new JPanel(
+                new GridLayout(3, 1, 5, 5)
+            );
+            right.setOpaque(false);
+
+            right.add(planText("Tuổi:"));
+            right.add(planText("Giới tính:"));
+            right.add(planText("Ngày khám:"));
+
+            card.add(left, BorderLayout.CENTER);
+            card.add(right, BorderLayout.EAST);
+
+            return card;
+        }
+
+        // ==========================================================
+        // CARD 2: TỔNG QUAN KẾ HOẠCH
+        // ==========================================================
+
+        private JPanel createPlanSummaryCard() {
+
+            JPanel card = createCard();
+            card.setLayout(
+                new GridLayout(1, 3, 8, 0)
+            );
+
+            card.setBackground(
+                new Color(255, 241, 247)
+            );
+
+            card.add(createSummaryItem(
+                "Tổng chi phí dự kiến", "--"
+            ));
+
+            card.add(createSummaryItem(
+                "Tổng đợt", "--"
+            ));
+
+            card.add(createSummaryItem(
+                "Tổng dịch vụ", "--"
+            ));
+
+            return card;
+        }
+
+        private JPanel createSummaryItem(
+                String title,
+                String value) {
+
+            JPanel panel = new JPanel();
+            panel.setOpaque(false);
+            panel.setLayout(
+                new BoxLayout(panel, BoxLayout.Y_AXIS)
+            );
+
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+            );
+            lblTitle.setForeground(NAVY);
+            lblTitle.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+            );
+
+            JLabel lblValue = new JLabel(value);
+            lblValue.setFont(
+                new Font("Segoe UI", Font.BOLD, 21)
+            );
+            lblValue.setForeground(PINK);
+            lblValue.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+            );
+
+            panel.add(Box.createVerticalGlue());
+            panel.add(lblTitle);
+            panel.add(Box.createVerticalStrut(10));
+            panel.add(lblValue);
+            panel.add(Box.createVerticalGlue());
+
+            return panel;
+        }
+
+        // ==========================================================
+        // CARD 3: TÌNH TRẠNG RĂNG VÀ CHỈ ĐỊNH
+        // ==========================================================
+
+        private JPanel createPlanToothCard() {
+
+            JPanel card = createPlanCard(
+                "🦷  Tình trạng răng & chỉ định"
+            );
+
+            String[] columns = {
+                "Chọn",
+                "Răng",
+                "Tình trạng",
+                "Chẩn đoán",
+                "Dịch vụ chỉ định"
+            };
+
+            DefaultTableModel model = new DefaultTableModel(
+                columns, 0
+            ) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return column == 0;
+                }
+
+                @Override
+                public Class<?> getColumnClass(int column) {
+                    return column == 0
+                        ? Boolean.class : String.class;
+                }
+            };
+
+            JTable table = new JTable(model);
+            styleTable(table);
+            table.setRowHeight(35);
+
+            JScrollPane scroll = new JScrollPane(table);
+            scroll.setBorder(
+                BorderFactory.createLineBorder(BORDER)
+            );
+
+            card.add(scroll, BorderLayout.CENTER);
+
+            return card;
+        }
+
+        // ==========================================================
+        // CARD 4: KẾ HOẠCH ĐIỀU TRỊ
+        // ==========================================================
+
+        private JPanel createPlanServiceCard() {
+
+            JPanel card = createCard();
+            card.setLayout(
+                new BorderLayout(0, 10)
+            );
+
+            // HEADER
+
+            JPanel header = new JPanel(
+                new BorderLayout()
+            );
+            header.setOpaque(false);
+
+            JLabel title = createTitle(
+                "▤  Kế hoạch điều trị"
+            );
+
+            title.setFont(
+                new Font("Segoe UI", Font.BOLD, 15)
+            );
+
+            JPanel buttons = new JPanel(
+                new FlowLayout(FlowLayout.RIGHT, 5, 0)
+            );
+            buttons.setOpaque(false);
+
+            buttons.add(createButton(
+                "+ Thêm dịch vụ", PINK
+            ));
+
+            buttons.add(createButton(
+                "✎ Sửa", new Color(225, 240, 255)
+            ));
+
+            buttons.add(createButton(
+                "▣ Xóa", new Color(255, 232, 239)
+            ));
+
+            header.add(title, BorderLayout.WEST);
+            header.add(buttons, BorderLayout.EAST);
+
+            // BẢNG
+
+            String[] columns = {
+                "Đợt",
+                "Dịch vụ điều trị",
+                "Răng / Vị trí",
+                "Số lượng",
+                "Đơn giá",
+                "Thành tiền",
+                "Ngày dự kiến",
+                "Trạng thái"
+            };
+
+            DefaultTableModel model = new DefaultTableModel(
+                columns, 0
+            ) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            JTable table = new JTable(model);
+            styleTable(table);
+            table.setRowHeight(38);
+
+            JScrollPane scroll = new JScrollPane(table);
+            scroll.setBorder(
+                BorderFactory.createLineBorder(BORDER)
+            );
+
+            card.add(header, BorderLayout.NORTH);
+            card.add(scroll, BorderLayout.CENTER);
+
+            return card;
+        }
+
+        // ==========================================================
+        // CARD 5: THÔNG TIN KẾ HOẠCH
+        // ==========================================================
+
+        private JPanel createPlanInformationCard() {
+
+            JPanel card = createPlanCard(
+                "▤  Thông tin kế hoạch"
+            );
+
+            JPanel form = new JPanel(
+                new GridBagLayout()
+            );
+            form.setOpaque(false);
+
+            GridBagConstraints g = new GridBagConstraints();
+            g.insets = new Insets(7, 5, 7, 5);
+            g.fill = GridBagConstraints.HORIZONTAL;
+
+            JTextField txtPlanName = new JTextField();
+
+            JTextArea txtDescription = new JTextArea(4, 20);
+            txtDescription.setFont(
+                new Font("Segoe UI", Font.PLAIN, 12)
+            );
+            txtDescription.setLineWrap(true);
+            txtDescription.setWrapStyleWord(true);
+
+            styleTextField(txtPlanName);
+
+            JScrollPane noteScroll = new JScrollPane(
+                txtDescription
+            );
+
+            noteScroll.setBorder(
+                BorderFactory.createLineBorder(BORDER)
+            );
+
+            // TÊN KẾ HOẠCH
+
+            g.gridx = 0;
+            g.gridy = 0;
+            g.weightx = 0;
+
+            form.add(planText("Tên kế hoạch:"), g);
+
+            g.gridx = 1;
+            g.weightx = 1;
+
+            form.add(txtPlanName, g);
+
+            // MÔ TẢ / GHI CHÚ
+
+            g.gridx = 0;
+            g.gridy = 1;
+            g.weightx = 0;
+
+            form.add(planText("Mô tả / Ghi chú:"), g);
+
+            g.gridx = 1;
+            g.weightx = 1;
+            g.fill = GridBagConstraints.BOTH;
+            g.weighty = 1;
+
+            form.add(noteScroll, g);
+
+            card.add(form, BorderLayout.CENTER);
+
+            return card;
+        }
+
+        // ==========================================================
+        // CARD 6: LỘ TRÌNH ĐIỀU TRỊ
+        // ==========================================================
+
+        private JPanel createTreatmentRouteCard() {
+
+            JPanel card = createPlanCard(
+                "♧  Lộ trình điều trị"
+            );
+
+            JPanel content = new JPanel(
+                new BorderLayout(10, 0)
+            );
+            content.setOpaque(false);
+
+            JPanel steps = new JPanel(
+                new GridLayout(1, 3, 12, 0)
+            );
+            steps.setOpaque(false);
+
+            steps.add(createRouteStep(
+                "Đợt 1", "Ngày dự kiến",
+                "Dịch vụ điều trị", BLUE
+            ));
+
+            steps.add(createRouteStep(
+                "Đợt 2", "Ngày dự kiến",
+                "Dịch vụ điều trị", PINK
+            ));
+
+            steps.add(createRouteStep(
+                "Đợt 3", "Ngày dự kiến",
+                "Dịch vụ điều trị", BLUE
+            ));
+
+            // TRẠNG THÁI
+
+            JPanel status = new JPanel();
+            status.setLayout(
+                new BoxLayout(status, BoxLayout.Y_AXIS)
+            );
+
+            status.setBackground(
+                new Color(250, 252, 255)
+            );
+
+            status.setBorder(
+                BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER),
+                    new EmptyBorder(12, 12, 12, 12)
+                )
+            );
+
+            JLabel lblStatus = new JLabel(
+                "⚑  Trạng thái kế hoạch"
+            );
+
+            lblStatus.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+            );
+            lblStatus.setForeground(NAVY);
+
+            JComboBox<String> cboStatus =
+                new JComboBox<>(new String[]{
+                    "Chờ duyệt",
+                    "Đã duyệt",
+                    "Đang thực hiện",
+                    "Hoàn thành",
+                    "Đã hủy"
+                });
+
+            styleCombo(cboStatus);
+
+            JLabel lblCost = new JLabel(
+                "Tổng chi phí: --"
+            );
+
+            lblCost.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+            );
+            lblCost.setForeground(PINK);
+
+            status.add(lblStatus);
+            status.add(Box.createVerticalStrut(12));
+            status.add(cboStatus);
+            status.add(Box.createVerticalStrut(18));
+            status.add(lblCost);
+
+            content.add(steps, BorderLayout.CENTER);
+            content.add(status, BorderLayout.EAST);
+
+            card.add(content, BorderLayout.CENTER);
+
+            return card;
+        }
+
+        // ==========================================================
+        // CARD TỪNG ĐỢT ĐIỀU TRỊ
+        // ==========================================================
+
+        private JPanel createRouteStep(
+                String title,
+                String date,
+                String service,
+                Color color) {
+
+            JPanel panel = new JPanel();
+
+            panel.setLayout(
+                new BoxLayout(panel, BoxLayout.Y_AXIS)
+            );
+
+            panel.setBackground(
+                new Color(235, 244, 255)
+            );
+
+            panel.setBorder(
+                BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(
+                        new Color(205, 225, 250)
+                    ),
+                    new EmptyBorder(12, 8, 12, 8)
+                )
+            );
+
+            JLabel lblNumber = new JLabel(title);
+            lblNumber.setFont(
+                new Font("Segoe UI", Font.BOLD, 15)
+            );
+            lblNumber.setForeground(color);
+            lblNumber.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+            );
+
+            JLabel lblDate = new JLabel(date);
+            lblDate.setFont(
+                new Font("Segoe UI", Font.PLAIN, 12)
+            );
+            lblDate.setForeground(NAVY);
+            lblDate.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+            );
+
+            JLabel lblService = new JLabel(service);
+            lblService.setFont(
+                new Font("Segoe UI", Font.PLAIN, 11)
+            );
+            lblService.setForeground(TEXT);
+            lblService.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+            );
+
+            panel.add(Box.createVerticalGlue());
+            panel.add(lblNumber);
+            panel.add(Box.createVerticalStrut(12));
+            panel.add(lblDate);
+            panel.add(Box.createVerticalStrut(12));
+            panel.add(lblService);
+            panel.add(Box.createVerticalGlue());
+
+            return panel;
+        }
+
+        // ==========================================================
+        // CARD CHUNG
+        // ==========================================================
+
+        private JPanel createPlanCard(String title) {
+
+            JPanel card = createCard();
+
+            card.setLayout(
+                new BorderLayout(8, 12)
+            );
+
+            card.setBorder(
+                BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER),
+                    new EmptyBorder(12, 12, 12, 12)
+                )
+            );
+
+            JLabel lblTitle = createTitle(title);
+            lblTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 15)
+            );
+
+            card.add(lblTitle, BorderLayout.NORTH);
+
+            return card;
+        }
+
+        // ==========================================================
+        // LABEL CHUNG
+        // ==========================================================
+
+        private JLabel planText(String text) {
+
+            JLabel label = new JLabel(text);
+
+            label.setFont(
+                new Font("Segoe UI", Font.PLAIN, 12)
+            );
+
+            label.setForeground(NAVY);
+
+            return label;
+        }
+
+        // ==========================================================
+        // CHIA TỶ LỆ CARD
+        // ==========================================================
+
+        private JPanel createPlanRow(
+                JPanel left,
+                JPanel right,
+                double leftRatio,
+                double rightRatio,
+                int height) {
+
+            JPanel row = new JPanel(
+                new GridBagLayout()
+            );
+
+            row.setOpaque(false);
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            GridBagConstraints gbc = new GridBagConstraints();
+
+            gbc.gridy = 0;
+            gbc.fill = GridBagConstraints.BOTH;
+            gbc.weighty = 1;
+            gbc.insets = new Insets(0, 0, 0, 12);
+
+            // CARD TRÁI
+
+            gbc.gridx = 0;
+            gbc.weightx = leftRatio;
+            row.add(left, gbc);
+
+            // CARD PHẢI
+
+            gbc.gridx = 1;
+            gbc.weightx = rightRatio;
+            gbc.insets = new Insets(0, 0, 0, 0);
+            row.add(right, gbc);
+
+            row.setPreferredSize(
+                new Dimension(1000, height)
+            );
+
+            row.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, height)
+            );
+
+            row.setMinimumSize(
+                new Dimension(0, height)
+            );
+
+            return row;
+        }
+
+    } // KẾT THÚC CLASS ExaminationProcessPanel
