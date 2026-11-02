@@ -10,6 +10,28 @@ import java.util.List;
 
 public class LichLamViecDAO {
 
+    public String generateNextId() {
+        String sql = "SELECT TOP 1 maLichLamViec FROM LichLamViec ORDER BY maLichLamViec DESC";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                String lastId = rs.getString("maLichLamViec"); 
+                if (lastId != null && lastId.startsWith("LLV")) {
+                    try {
+                        int num = Integer.parseInt(lastId.substring(3)) + 1;
+                        return String.format("LLV%03d", num);
+                    } catch (NumberFormatException e) {
+                       
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "LLV00"; 
+    }
+
     // Thêm lịch làm việc
     public boolean insert(LichLamViec llv) throws SQLException {
         String sql = "INSERT INTO LichLamViec (maLichLamViec, maNhanVien, ngayLamViec, gioBatDau, gioKetThuc, trangThai) VALUES (?, ?, ?, ?, ?, ?)";
@@ -72,7 +94,7 @@ public class LichLamViecDAO {
         return list;
     }
 
-    // Lấy lịch làm việc theo mã nhân viên[cite: 15]
+    // Lấy lịch làm việc theo mã nhân viên
     public List<LichLamViec> getLichLamViecByNhanVien(String maNhanVien) {
         List<LichLamViec> list = new ArrayList<>();
         String sql = "SELECT * FROM LichLamViec WHERE maNhanVien = ? ORDER BY ngayLamViec DESC";
