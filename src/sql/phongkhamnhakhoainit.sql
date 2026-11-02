@@ -87,6 +87,9 @@ CREATE TABLE DichVu (
     moTa NVARCHAR(MAX)
 );
 
+ALTER TABLE DichVu
+ADD hinhAnh VARBINARY(MAX) NULL;
+
 -- 4. Bảng Vật Tư
 CREATE TABLE VatTu (
     maVatTu VARCHAR(20) PRIMARY KEY,
