@@ -83,51 +83,142 @@ public class DashboardPanel extends JPanel {
         page.setBackground(BG_CANVAS);
         page.setBorder(new EmptyBorder(20, 30, 25, 30));
 
-        // ================= HERO BANNER =================
-        JPanel hero = new JPanel(new GridBagLayout());
-        hero.setPreferredSize(new Dimension(1340, 300));
-        hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
-        hero.setBackground(Color.WHITE);
-        hero.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT),
-                new EmptyBorder(16, 20, 16, 20)));
+     // ================= HERO BANNER =================
 
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weighty = 1;
+     // Load ảnh banner
+     java.net.URL bannerURL = getClass().getResource("/img/banner5.png");
 
-        JPanel copy = new JPanel();
-        copy.setOpaque(false);
-        copy.setLayout(new BoxLayout(copy, BoxLayout.Y_AXIS));
+     Image bannerImage = null;
 
-        JLabel intro = new JLabel("Chào mừng trở lại với");
-        intro.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        intro.setForeground(TEXT_DARK);
+     if (bannerURL != null) {
+         bannerImage = new ImageIcon(bannerURL).getImage();
+     } else {
+         System.err.println("Không tìm thấy ảnh banner nha khoa!");
+     }
 
-        JLabel name = new JLabel(
-                "<html><b><font color='#007EFF'>SMILE</font>"
-                + "<font color='#EF3F83'>DENTAL</font></b></html>");
-        name.setFont(new Font("Segoe UI", Font.BOLD, 40));
+     final Image finalBannerImage = bannerImage;
 
-        JLabel tagline = new JLabel("Hệ thống quản lý phòng khám chuyên nghiệp");
-        tagline.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        tagline.setForeground(new Color(60, 82, 119));
+     // Panel nền banner
+  // Panel nền banner
+     JPanel hero = new JPanel(new GridBagLayout()) {
 
-        JLabel desc = new JLabel(
-                "<html>Quản lý lịch hẹn, doanh thu, hồ sơ bệnh án "
-                + "và vận hành phòng khám một cách hiệu quả, an toàn.</html>");
-        desc.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        desc.setForeground(MUTED);
+         @Override
+         protected void paintComponent(Graphics g) {
+             super.paintComponent(g);
 
-        copy.add(Box.createVerticalGlue());
-        copy.add(intro);
-        copy.add(Box.createVerticalStrut(2));
-        copy.add(name);
-        copy.add(Box.createVerticalStrut(2));
-        copy.add(tagline);
-        copy.add(Box.createVerticalStrut(12));
-        copy.add(desc);
-        copy.add(Box.createVerticalGlue());
+             if (finalBannerImage != null) {
+
+                 Graphics2D g2 = (Graphics2D) g.create();
+
+                 g2.setRenderingHint(
+                     RenderingHints.KEY_INTERPOLATION,
+                     RenderingHints.VALUE_INTERPOLATION_BICUBIC
+                 );
+
+                 g2.setRenderingHint(
+                     RenderingHints.KEY_RENDERING,
+                     RenderingHints.VALUE_RENDER_QUALITY
+                 );
+
+                 int panelWidth = getWidth();
+                 int panelHeight = getHeight();
+
+                 int imageWidth = finalBannerImage.getWidth(this);
+                 int imageHeight = finalBannerImage.getHeight(this);
+
+                 if (imageWidth > 0 && imageHeight > 0) {
+
+                     // Giữ tỷ lệ ảnh, phủ kín banner
+                     double scale = Math.max(
+                         (double) panelWidth / imageWidth,
+                         (double) panelHeight / imageHeight
+                     );
+
+                     int drawWidth = (int) (imageWidth * scale);
+                     int drawHeight = (int) (imageHeight * scale);
+
+                     // Căn giữa ảnh
+                     int x = (panelWidth - drawWidth) / 2;
+                     int y = (panelHeight - drawHeight) / 2;
+
+                     g2.drawImage(
+                         finalBannerImage,
+                         x, y,
+                         drawWidth, drawHeight,
+                         this
+                     );
+                 }
+
+                 g2.dispose();
+             }
+         }
+     };
+
+     // Kích thước banner
+     hero.setPreferredSize(new Dimension(1340, 300));
+     hero.setMinimumSize(new Dimension(0, 300));
+     hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+     hero.setOpaque(false);
+
+     hero.setBorder(BorderFactory.createCompoundBorder(
+         BorderFactory.createLineBorder(BORDER_LIGHT),
+         new EmptyBorder(16, 20, 16, 20)
+     ));
+
+     GridBagConstraints c = new GridBagConstraints();
+     c.fill = GridBagConstraints.BOTH;
+     c.weighty = 1;
+
+     // ================= NỘI DUNG BÊN TRÁI =================
+
+     JPanel copy = new JPanel();
+     copy.setOpaque(false);
+     copy.setLayout(new BoxLayout(copy, BoxLayout.Y_AXIS));
+
+     JLabel intro = new JLabel("Chào mừng trở lại với");
+     intro.setFont(new Font("Segoe UI", Font.BOLD, 33));
+     intro.setForeground(TEXT_DARK);
+
+     JLabel name = new JLabel(
+         "<html><b><font color='#007EFF'>SMILE</font>"
+         + "<font color='#EF3F83'>DENTAL</font></b></html>"
+     );
+
+     name.setFont(new Font("Segoe UI", Font.BOLD, 50));
+
+     JLabel tagline = new JLabel(
+         "Hệ thống quản lý phòng khám chuyên nghiệp"
+     );
+     tagline.setFont(new Font("Segoe UI", Font.BOLD, 20));
+     tagline.setForeground(new Color(60, 82, 119));
+
+     JLabel desc = new JLabel(
+         "<html>Quản lý lịch hẹn, doanh thu, hồ sơ bệnh án "
+         + "và vận hành phòng khám một cách hiệu quả, an toàn.</html>"
+     );
+     desc.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+     desc.setForeground(MUTED);
+
+     // Sắp xếp nội dung
+     copy.add(Box.createVerticalGlue());
+     copy.add(intro);
+     copy.add(Box.createVerticalStrut(2));
+     copy.add(name);
+     copy.add(Box.createVerticalStrut(2));
+     copy.add(tagline);
+     copy.add(Box.createVerticalStrut(12));
+     copy.add(desc);
+     copy.add(Box.createVerticalGlue());
+
+     // Đưa nội dung vào Hero
+     c.gridx = 0;
+     c.gridy = 0;
+     c.weightx = 1;
+     c.anchor = GridBagConstraints.WEST;
+
+     hero.add(copy, c);
+     
+     
 
         // ================= THẺ NGÀY GIỜ =================
         JPanel calendarPanel = new JPanel(new BorderLayout()) {
@@ -160,16 +251,16 @@ public class DashboardPanel extends JPanel {
         welcomeSubPanel.setLayout(new BoxLayout(welcomeSubPanel, BoxLayout.Y_AXIS));
 
         JLabel greetingLabel = new JLabel(
-                "<html><div style='white-space:nowrap;'>Hôm nay,"
+                "<html><div style='white-space:nowrap;'>Xin Chào,"
                 + "<br><font color='#EF3F83'>Quản trị viên! 👋</font>"
                 + "</div></html>");
-        greetingLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        greetingLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
         greetingLabel.setForeground(TEXT_DARK);
 
         JLabel descLabel = new JLabel(
                 "<html>Hệ thống đang hoạt động ổn định"
                 + "<br>với cơ sở dữ liệu SQL Server.</html>");
-        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         descLabel.setForeground(MUTED);
 
         welcomeSubPanel.add(greetingLabel);
@@ -233,7 +324,12 @@ public class DashboardPanel extends JPanel {
         statsRow.add(createStatCard("Lịch hẹn hôm nay", "Đang tải...", "Lịch hẹn trong ngày", PINK_ACCENT, new Color(254, 242, 246)));
         statsRow.add(createStatCard("Doanh thu tháng này", "Đang tải...", "Tiền đã thanh toán", GREEN, new Color(238, 247, 238)));
         statsRow.add(createStatCard("Cần chú ý", "Đang tải...", "Lịch hẹn chờ xác nhận", new Color(220, 120, 0), new Color(255, 248, 235)));
-
+        
+        
+        statsRow.setPreferredSize(new Dimension(1340, 140));
+        statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        
+        
         page.add(statsRow);
         page.add(Box.createVerticalStrut(20));
 
@@ -245,14 +341,17 @@ public class DashboardPanel extends JPanel {
 
         JPanel chartsRow = new JPanel(new GridLayout(1, 2, 15, 0));
         chartsRow.setOpaque(false);
+
         chartsRow.add(new RevenueBarChartPanel());
         chartsRow.add(new RevenueDonutChartPanel());
 
         JPanel notiBox = createNotiBoxStyled("Thông báo nhanh");
-        notiBox.setPreferredSize(new Dimension(310, 0));
+        notiBox.setPreferredSize(new Dimension(340, 0));
 
         chartsAndNotiRow.add(chartsRow, BorderLayout.CENTER);
         chartsAndNotiRow.add(notiBox, BorderLayout.EAST);
+        chartsAndNotiRow.setPreferredSize(new Dimension(0, 320));
+        chartsAndNotiRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 320));
 
         page.add(chartsAndNotiRow);
         page.add(Box.createVerticalStrut(20));
@@ -275,15 +374,15 @@ public class DashboardPanel extends JPanel {
                 new EmptyBorder(12, 16, 12, 16)));
 
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitle.setForeground(TEXT_DARK);
 
         JLabel lblVal = new JLabel(value);
-        lblVal.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblVal.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblVal.setForeground(textColor);
 
         JLabel lblSub = new JLabel(sub);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         lblSub.setForeground(MUTED);
 
         switch (title) {
@@ -322,7 +421,7 @@ public class DashboardPanel extends JPanel {
         card.setBorder(new EmptyBorder(6, 10, 6, 10));
 
         JLabel iconLabel = new JLabel(symbol);
-        iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 24));
+        iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 26));
         iconLabel.setForeground(PINK_ACCENT);
 
         JPanel textPanel = new JPanel();
@@ -360,7 +459,7 @@ public class DashboardPanel extends JPanel {
         card.setBorder(new EmptyBorder(6, 10, 6, 10));
 
         JLabel iconLabel = new JLabel(symbol);
-        iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 24));
+        iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 26));
         iconLabel.setForeground(PINK_ACCENT);
 
         lblTime.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -603,7 +702,7 @@ public class DashboardPanel extends JPanel {
                 new EmptyBorder(14, 16, 14, 16)));
 
         JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lbl.setForeground(TEXT_DARK);
         panel.add(lbl, BorderLayout.NORTH);
 
@@ -751,7 +850,7 @@ public class DashboardPanel extends JPanel {
         PdfTableExport.install(table, "Bệnh nhân gần đây", false);
         PdfTableExport.bindButtons(table, "Bệnh nhân gần đây", btnPrint, btnPrintPdf);
         table.setRowHeight(36);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         table.setForeground(TEXT_DARK);
         table.setGridColor(new Color(240, 244, 248));
         table.setSelectionBackground(new Color(232, 242, 255));
@@ -759,7 +858,7 @@ public class DashboardPanel extends JPanel {
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(false);
 
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 18));
         table.getTableHeader().setBackground(new Color(245, 248, 253));
         table.getTableHeader().setForeground(MUTED);
         table.getTableHeader().setPreferredSize(new Dimension(0, 32));
@@ -823,17 +922,17 @@ public class DashboardPanel extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             
             // Tiêu đề biểu đồ
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
             g2.setColor(TEXT_DARK);
             g2.drawString("DOANH THU 7 NGÀY GẦN NHẤT", 12, 22);
 
-            int left = 48, top = 40, bottom = getHeight() - 35;
+            int left = 48, top = 40, bottom = getHeight() - 40;
             int chartHeight = Math.max(30, bottom - top);
-            int chartWidth = Math.max(100, getWidth() - left - 15);
+            int chartWidth = Math.max(100, getWidth() - left - 20);
             
             int count = chartDays.size();
             if (count == 0) { 
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 20));
                 g2.setColor(MUTED);
                 g2.drawString("Đang cập nhật biểu đồ...", 15, 80);
                 g2.dispose(); 
@@ -847,7 +946,7 @@ public class DashboardPanel extends JPanel {
             }
 
             int slot = Math.max(1, chartWidth / count);
-            int barWidth = Math.max(8, Math.min(28, slot - 10));
+            int barWidth = Math.max(10, Math.min(35, slot - 8));
 
             for (int i = 0; i < count; i++) {
                 double value = chartRevenue.get(i);
@@ -888,13 +987,13 @@ public class DashboardPanel extends JPanel {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
             g2.setColor(TEXT_DARK);
             g2.drawString("CƠ CẤU DOANH THU DỊCH VỤ", 12, 22);
 
             int count = serviceNames.size();
             if (count == 0) {
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 20));
                 g2.setColor(MUTED);
                 g2.drawString("Chưa có dữ liệu dịch vụ.", 15, 90);
                 g2.dispose();
@@ -905,8 +1004,9 @@ public class DashboardPanel extends JPanel {
             for (double v : serviceRevenue) total += v;
             if (total <= 0) { g2.dispose(); return; }
 
-            int diameter = Math.min(125, Math.max(75, getHeight() - 65));
-            int cx = 20, cy = 45;
+            int diameter = Math.min(165, Math.max(100, getHeight() - 45));
+            int cx = 20, cy = 48;
+            
             double startAngle = 90;
 
             for (int i = 0; i < count; i++) {

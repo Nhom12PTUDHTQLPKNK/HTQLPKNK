@@ -180,23 +180,107 @@ public class StandardToothChartPanel extends JPanel {
         }
     }
 
-    // ================= HEADER =================
+ // ================= HEADER =================
     private JPanel createHeader() {
 
-        JPanel card = createCard();
+        JPanel card = new JPanel(new BorderLayout(15, 0)) {
 
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+                );
+
+                int w = getWidth();
+                int h = getHeight();
+
+                // Bo góc header
+                java.awt.geom.RoundRectangle2D shape =
+                    new java.awt.geom.RoundRectangle2D.Float(
+                        0, 0, w - 1, h - 1, 18, 18
+                    );
+
+                g2.setClip(shape);
+
+                // Nền trắng
+                g2.setColor(Color.WHITE);
+                g2.fillRect(0, 0, w, h);
+
+                // Phần xanh bên phải với đường cong uốn lượn
+                java.awt.geom.Path2D blueWave =
+                    new java.awt.geom.Path2D.Float();
+
+                blueWave.moveTo(w * 0.62, 0);
+                blueWave.curveTo(
+                    w * 0.72, h * 0.25,
+                    w * 0.52, h * 0.72,
+                    w * 0.68, h
+                );
+                blueWave.lineTo(w, h);
+                blueWave.lineTo(w, 0);
+                blueWave.closePath();
+
+                GradientPaint gradient = new GradientPaint(
+                    (float) (w * 0.58), 0,
+                    new Color(232, 245, 255),
+                    w, h,
+                    new Color(180, 218, 246)
+                );
+
+                g2.setPaint(gradient);
+                g2.fill(blueWave);
+
+                // Lớp sóng xanh nhạt tạo chiều sâu
+                java.awt.geom.Path2D lightWave =
+                    new java.awt.geom.Path2D.Float();
+
+                lightWave.moveTo(w * 0.76, 0);
+                lightWave.curveTo(
+                    w * 0.85, h * 0.30,
+                    w * 0.66, h * 0.70,
+                    w * 0.79, h
+                );
+                lightWave.lineTo(w, h);
+                lightWave.lineTo(w, 0);
+                lightWave.closePath();
+
+                g2.setColor(new Color(255, 255, 255, 65));
+                g2.fill(lightWave);
+
+                // Viền ngoài
+                g2.setClip(null);
+                g2.setColor(new Color(218, 232, 245));
+                g2.setStroke(new BasicStroke(1f));
+                g2.draw(shape);
+
+                g2.dispose();
+            }
+        };
+
+        card.setOpaque(false);
         card.setPreferredSize(new Dimension(0, 100));
         card.setMinimumSize(new Dimension(0, 100));
+        card.setBorder(new EmptyBorder(8, 15, 8, 15));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        // ================= NỘI DUNG BÊN TRÁI =================
+        JPanel left = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 8, 0)
+        );
         left.setOpaque(false);
 
         java.net.URL imgUrl = getClass().getResource("/img/logo2.png");
+
         JLabel icon;
 
         if (imgUrl != null) {
             ImageIcon originalIcon = new ImageIcon(imgUrl);
-            Image scaledImage = originalIcon.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+            Image scaledImage = originalIcon.getImage()
+                .getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+
             icon = new JLabel(new ImageIcon(scaledImage));
         } else {
             icon = new JLabel("🦷");
@@ -208,11 +292,13 @@ public class StandardToothChartPanel extends JPanel {
 
         JLabel title = new JLabel("Sơ đồ răng chuẩn");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(new Color(53, 121, 168));
+        title.setForeground(new Color(15, 29, 69));
 
-        JLabel subtitle = new JLabel("Dữ liệu răng chuẩn dùng chung cho toàn hệ thống - Hệ thống FDI");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setForeground(MUTED);
+        JLabel subtitle = new JLabel(
+            "Dữ liệu răng chuẩn dùng chung cho toàn hệ thống - Hệ thống FDI"
+        );
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(new Color(74, 100, 130));
 
         texts.add(title);
         texts.add(Box.createVerticalStrut(4));
@@ -225,6 +311,7 @@ public class StandardToothChartPanel extends JPanel {
 
         return card;
     }
+    
 
     // ================= FILTER CARD =================
     private JPanel createFilterCard() {
