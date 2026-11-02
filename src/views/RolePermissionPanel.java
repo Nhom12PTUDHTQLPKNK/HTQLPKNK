@@ -113,18 +113,6 @@ public class RolePermissionPanel extends JPanel {
         headerWestWrapper.add(titleBox, gbc);
 
         headerCard.add(headerWestWrapper, BorderLayout.CENTER);
-
-        // Nút thêm tài khoản mới nằm ở góc phải của Card Header
-        JButton btnAddAccount = createPrimaryButton("+ Thêm tài khoản mới", BLUE_PRIMARY);
-        btnAddAccount.addActionListener(e -> showAccountDialog(null, null, null, null, null, null, true));
-        
-        JPanel headerRight = new JPanel(new GridBagLayout());
-        headerRight.setOpaque(false);
-        GridBagConstraints gbcRight = new GridBagConstraints();
-        gbcRight.anchor = GridBagConstraints.EAST;
-        headerRight.add(btnAddAccount, gbcRight);
-
-        headerCard.add(headerRight, BorderLayout.EAST);
         
         add(headerCard, BorderLayout.NORTH);
 
@@ -202,22 +190,47 @@ public class RolePermissionPanel extends JPanel {
         txtAccountSearch.putClientProperty("JTextField.placeholderText", "Nhập mã NV, họ tên...");
         searchBox.add(txtAccountSearch, BorderLayout.CENTER);
 
-        // 3. Nút bấm tìm kiếm
-        JButton btnSearch = createStaticButton("Tìm kiếm", BLUE_PRIMARY, 100, 42);
+     // 3-Nút tìm kiếm
+        JButton btnSearch = createStaticButton(
+                "Tìm kiếm", BLUE_PRIMARY, 100, 42);
+
         btnSearch.addActionListener(e -> {
             String kw = txtAccountSearch.getText().trim();
+
             if (kw.isEmpty() || kw.equals("Nhập mã NV, họ tên...")) {
                 accountRowSorter.setRowFilter(null);
             } else {
-                accountRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + kw));
+                accountRowSorter.setRowFilter(
+                        RowFilter.regexFilter("(?i)" + kw));
             }
         });
 
+        // 4 - Nút tải lại dữ liệu
+        JButton btnReload = createStaticButton(
+                "Tải lại", new Color(34, 150, 83), 90, 42);
+
+        btnReload.addActionListener(e -> {
+            txtAccountSearch.setText("");
+            accountRowSorter.setRowFilter(null);
+            loadAccountsFromDB();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Đã tải lại danh sách tài khoản!",
+                    "Thông báo",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+
         // 4. Gom nhóm ô tìm kiếm và nút vào toolbar
-        JPanel searchGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        JPanel searchGroup = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 12, 0));
+
         searchGroup.setOpaque(false);
+
         searchGroup.add(searchBox);
         searchGroup.add(btnSearch);
+        searchGroup.add(btnReload);
+
         toolbar.add(searchGroup, BorderLayout.WEST);
 
         contentCard.add(toolbar, BorderLayout.NORTH);
@@ -337,14 +350,6 @@ public class RolePermissionPanel extends JPanel {
         cbStatus.setBackground(Color.WHITE);
         panel.add(cbStatus);
         panel.add(Box.createVerticalStrut(20));
-
-        if (!isNew) {
-            if (staffId != null) { txtId.setText(staffId); txtId.setEnabled(false); }
-            if (staffName != null) txtName.setText(staffName);
-            if (username != null && !username.equals("(Chưa cấp)")) txtUser.setText(username);
-            if (role != null) cbRole.setSelectedItem(role);
-            if (status != null) cbStatus.setSelectedItem(status);
-        }
 
         JButton btnSave = createStaticButton("Lưu thông tin", BLUE_PRIMARY, Integer.MAX_VALUE, 40);
         btnSave.addActionListener(e -> {
@@ -491,28 +496,6 @@ public class RolePermissionPanel extends JPanel {
         form.add(txt);
         form.add(Box.createVerticalStrut(12));
         return txt;
-    }
-
-    private JButton createPrimaryButton(String text, Color bg) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(170, 40));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private JButton createStaticButton(String text, Color bg, int width, int height) {

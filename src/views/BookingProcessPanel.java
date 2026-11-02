@@ -63,6 +63,7 @@ public class BookingProcessPanel extends JPanel {
     private JLabel lblDetailName, lblDetailPhone, lblDetailDate, lblDetailService, lblDetailDoctor, lblDetailStatus;
 
     private JButton btnActionPrimary, btnActionEdit, btnActionCancel, btnClear;
+    private JButton btnReturnPending;
     private String selectedAppointmentId = null;
     private List<Object[]> allAppointmentsList;
 
@@ -552,7 +553,7 @@ public class BookingProcessPanel extends JPanel {
         detailScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         detailScroll.getVerticalScrollBar().setUnitIncrement(18);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        JPanel buttonPanel = new JPanel(new GridLayout(0, 2, 10, 10));
         buttonPanel.setOpaque(false);
 
         btnActionPrimary = createButton("Xác nhận lịch hẹn", GREEN_ACCENT);
@@ -560,15 +561,20 @@ public class BookingProcessPanel extends JPanel {
         btnActionCancel = createButton("Hủy lịch hẹn", RED_ACCENT);
         btnClear = createButton("Làm mới lựa chọn", BLUE_PRIMARY);
 
+        // Nút chuyển lịch đã xác nhận về chờ xác nhận
+        btnReturnPending = createButton("Chuyển về chờ xác nhận", ORANGE_ACCENT);
+
         btnActionPrimary.addActionListener(e -> performFlowAction());
         btnActionEdit.addActionListener(e -> performEdit());
         btnActionCancel.addActionListener(e -> performDelete());
         btnClear.addActionListener(e -> clearForm());
+        btnReturnPending.addActionListener(e -> performReturnToPending());
 
         buttonPanel.add(btnActionPrimary);
         buttonPanel.add(btnActionEdit);
         buttonPanel.add(btnActionCancel);
         buttonPanel.add(btnClear);
+        buttonPanel.add(btnReturnPending);
 
         panel.add(heading, BorderLayout.NORTH);
         panel.add(detailScroll, BorderLayout.CENTER);
@@ -742,6 +748,7 @@ public class BookingProcessPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Đã xác nhận lịch hẹn!");
             }
         } else if (currentTab == 1) {
+        	performReturnToPending();
             return;
         } else {
             JOptionPane.showMessageDialog(this, "Lịch hẹn này đã kết thúc xử lý!");
@@ -753,7 +760,128 @@ public class BookingProcessPanel extends JPanel {
             loadAppointments();
         }
     }
+    
+    private void performReturnToPending() {
+        if (selectedAppointmentId == null || selectedAppointmentId.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn lịch hẹn cần chuyển!",
+                    "Thông báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
 
+        // Tạo ô nhập lý do
+        JTextArea txtReason = new JTextArea(5, 30);
+        txtReason.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtReason.setLineWrap(true);
+        txtReason.setWrapStyleWord(true);
+        txtReason.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JScrollPane scrollReason = new JScrollPane(txtReason);
+        scrollReason.setPreferredSize(new Dimension(350, 120));
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+
+        JLabel lblGuide = new JLabel(
+                "<html>Vui lòng nhập lý do chuyển lịch hẹn về trạng thái chờ xác nhận:</html>"
+        );
+        lblGuide.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        form.add(lblGuide);
+        form.add(Box.createVerticalStrut(10));
+        form.add(scrollReason);
+
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                form,
+                "Chuyển về chờ xác nhận - " + selectedAppointmentId,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (choice != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String reason = txtReason.getText().trim();
+
+        if (reason.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng nhập lý do chuyển trạng thái!",
+                    "Thiếu thông tin",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc chắn muốn chuyển lịch hẹn này về trạng thái Chờ xác nhận không?",
+                "Xác nhận thao tác",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        String ma = selectedAppointmentId;
+
+        String sql = "UPDATE LichHen "
+                   + "SET trangThai = N'Chờ xác nhận' "
+                   + "WHERE maLichHen = ? AND trangThai = N'Đã xác nhận'";
+
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement p = c.prepareStatement(sql)) {
+
+            p.setString(1, ma);
+
+            int affectedRows = p.executeUpdate();
+
+            if (affectedRows > 0) {
+                // Lưu lý do vào nhật ký hoạt động
+                AuditLog.event(
+                        "UPDATE",
+                        "Chuyển lịch hẹn mã " + ma
+                        + " từ Đã xác nhận về Chờ xác nhận. Lý do: " + reason
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Đã chuyển lịch hẹn về trạng thái Chờ xác nhận!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+                clearForm();
+                loadAppointments();
+
+                // Tự động chuyển sang tab Chờ xác nhận
+                tabbedPane.setSelectedIndex(0);
+
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Không thể chuyển lịch hẹn. Có thể lịch đã thay đổi trạng thái trước đó!",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi khi chuyển trạng thái lịch hẹn:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
     private void updateActionButtonsState() {
         if (btnActionPrimary == null) return;
 
@@ -762,21 +890,34 @@ public class BookingProcessPanel extends JPanel {
         btnActionEdit.setVisible(tabIdx != 2);
 
         if (tabIdx == 0) {
+            // Tab chờ xác nhận
             btnActionPrimary.setText("Xác nhận lịch hẹn");
             btnActionPrimary.setEnabled(true);
             btnActionPrimary.setVisible(true);
+
             btnActionCancel.setVisible(true);
+            btnReturnPending.setVisible(false);
+
         } else if (tabIdx == 1) {
+            // Tab đã xác nhận
             btnActionPrimary.setText("Đã xác nhận");
             btnActionPrimary.setEnabled(false);
             btnActionPrimary.setVisible(true);
+
             btnActionCancel.setVisible(false);
+            btnReturnPending.setVisible(true);
+            btnReturnPending.setEnabled(true);
+
         } else {
+            // Tab lịch sử xử lý
             btnActionPrimary.setVisible(false);
             btnActionCancel.setVisible(false);
+            btnReturnPending.setVisible(false);
         }
 
-        if (btnClear != null) btnClear.setVisible(true);
+        if (btnClear != null) {
+            btnClear.setVisible(true);
+        }
 
         revalidate();
         repaint();
