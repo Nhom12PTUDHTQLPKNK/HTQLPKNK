@@ -853,79 +853,153 @@ public class ExaminationProcessPanel extends JPanel {
     
     
     // TAG 3
-    private JPanel createPhieuKhamCardPage() {
-        JPanel main = new JPanel(new BorderLayout(10, 12));
-        main.setBackground(BG);
-        main.setBorder(new EmptyBorder(18, 20, 18, 20));
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
+private JPanel createPhieuKhamCardPage() {
 
-        JPanel titlePanel = new JPanel();
-        titlePanel.setOpaque(false);
-        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
-        
-        JLabel title = createTitle("Quản lý danh sách phiếu khám");
-        JLabel subtitle = new JLabel("Hiển thị trực quan thông tin phiếu khám, răng miệng và dịch vụ chỉ định");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        subtitle.setForeground(MUTED);
-        
-        titlePanel.add(title);
-        titlePanel.add(Box.createVerticalStrut(5));
-        titlePanel.add(subtitle);
-        header.add(titlePanel, BorderLayout.WEST);
+    JPanel main = new JPanel(new BorderLayout(10, 12));
+    main.setBackground(BG);
+    main.setBorder(new EmptyBorder(18, 20, 18, 20));
 
-        JPanel filter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-        filter.setOpaque(false);
-        
-        txtSearchPhieuKham = new JTextField(18);
-        styleTextField(txtSearchPhieuKham);
-        txtSearchPhieuKham.setToolTipText("Tìm kiếm theo mã lịch hẹn, tên hoặc SĐT");
-        
-        JButton btnSearch = createButton("⌕ Tìm kiếm", BLUE);
-        JButton btnReload = createButton("Tải lại", MUTED);
+    // ================= HEADER BANNER =================
+    JPanel header = new JPanel(new BorderLayout(20, 0));
+    header.setBackground(new Color(255, 250, 225));
+    header.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createLineBorder(new Color(255, 210, 65), 2),
+        new EmptyBorder(15, 18, 15, 18)
+    ));
+    header.setPreferredSize(new Dimension(0, 112));
 
-        btnReload.addActionListener(e -> {
-            txtSearchPhieuKham.setText("");
-            loadPhieuKhamCards("");
-        });
+    // ===== ICON BÊN TRÁI =====
+    JLabel lblIcon = new JLabel();
+    lblIcon.setPreferredSize(new Dimension(105, 75));
+    lblIcon.setHorizontalAlignment(SwingConstants.CENTER);
 
-        btnSearch.addActionListener(e -> {
-            loadPhieuKhamCards(txtSearchPhieuKham.getText().trim());
-        });
-
-        filter.add(new JLabel("Từ khóa:"));
-        filter.add(txtSearchPhieuKham);
-        filter.add(btnSearch);
-        filter.add(btnReload);
-        header.add(filter, BorderLayout.EAST);
-        main.add(header, BorderLayout.NORTH);
-
-        cardContainer = new JPanel();
-        cardContainer.setLayout(new BoxLayout(cardContainer, BoxLayout.Y_AXIS));
-        cardContainer.setBackground(BG);
-
-        JScrollPane scrollPane = new JScrollPane(cardContainer);
-        scrollPane.setBorder(null);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setBackground(BG);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-
-        main.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setOpaque(false);
-        footer.setBorder(new EmptyBorder(5, 0, 0, 0));
-
-        lblTotalPhieuKhamCards = new JLabel("Tổng số phiếu khám hiển thị: 0");
-        lblTotalPhieuKhamCards.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblTotalPhieuKhamCards.setForeground(MUTED);
-
-        footer.add(lblTotalPhieuKhamCards, BorderLayout.WEST);
-        main.add(footer, BorderLayout.SOUTH);
-
-        return main;
+    try {
+        java.net.URL iconURL = getClass().getResource("/img/list1.png");
+        if (iconURL != null) {
+            ImageIcon icon = new ImageIcon(iconURL);
+            Image scaled = icon.getImage().getScaledInstance(
+                82, 82, Image.SCALE_SMOOTH
+            );
+            lblIcon.setIcon(new ImageIcon(scaled));
+        } else {
+            lblIcon.setText("🦷");
+            lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+        }
+    } catch (Exception ex) {
+        lblIcon.setText("🦷");
+        lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
     }
+
+    JPanel iconPanel = new JPanel(new BorderLayout());
+    iconPanel.setOpaque(false);
+    iconPanel.add(lblIcon, BorderLayout.CENTER);
+    iconPanel.setBorder(new MatteBorder(
+        0, 0, 0, 3, new Color(255, 210, 65)
+    ));
+
+    header.add(iconPanel, BorderLayout.WEST);
+
+    // ===== TIÊU ĐỀ =====
+    JPanel titlePanel = new JPanel();
+    titlePanel.setOpaque(false);
+    titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+
+    JLabel title = new JLabel("Quản lý danh sách phiếu khám");
+    title.setFont(new Font("Segoe UI", Font.BOLD, 25));
+    title.setForeground(new Color(15, 39, 85));
+    title.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    JLabel subtitle = new JLabel(
+        "Hiển thị trực quan thông tin phiếu khám, răng miệng và dịch vụ chỉ định"
+    );
+    subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    subtitle.setForeground(new Color(65, 78, 100));
+    subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    titlePanel.add(title);
+    titlePanel.add(Box.createVerticalStrut(9));
+    titlePanel.add(subtitle);
+
+    header.add(titlePanel, BorderLayout.CENTER);
+
+    // ===== KHU VỰC TÌM KIẾM =====
+    JPanel filter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
+    filter.setOpaque(false);
+
+    JLabel lblKeyword = new JLabel("Từ khóa:");
+    lblKeyword.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    lblKeyword.setForeground(new Color(15, 39, 85));
+
+    txtSearchPhieuKham = new JTextField(17);
+    styleTextField(txtSearchPhieuKham);
+    txtSearchPhieuKham.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txtSearchPhieuKham.setPreferredSize(new Dimension(220, 38));
+    txtSearchPhieuKham.setToolTipText(
+        "Tìm kiếm theo mã lịch hẹn, tên hoặc SĐT"
+    );
+
+    JButton btnSearch = createButton("⌕  Tìm kiếm", BLUE);
+    btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    btnSearch.setPreferredSize(new Dimension(115, 38));
+
+    JButton btnReload = createButton("⟳  Tải lại", MUTED);
+    btnReload.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    btnReload.setPreferredSize(new Dimension(100, 38));
+
+    btnReload.addActionListener(e -> {
+        txtSearchPhieuKham.setText("");
+        loadPhieuKhamCards("");
+    });
+
+    btnSearch.addActionListener(e -> {
+        loadPhieuKhamCards(txtSearchPhieuKham.getText().trim());
+    });
+
+    txtSearchPhieuKham.addActionListener(e -> {
+        loadPhieuKhamCards(txtSearchPhieuKham.getText().trim());
+    });
+
+    filter.add(lblKeyword);
+    filter.add(txtSearchPhieuKham);
+    filter.add(btnSearch);
+    filter.add(btnReload);
+
+    header.add(filter, BorderLayout.EAST);
+
+    main.add(header, BorderLayout.NORTH);
+
+    // ================= CARD CONTAINER =================
+    cardContainer = new JPanel();
+    cardContainer.setLayout(new BoxLayout(cardContainer, BoxLayout.Y_AXIS));
+    cardContainer.setBackground(BG);
+
+    JScrollPane scrollPane = new JScrollPane(cardContainer);
+    scrollPane.setBorder(null);
+    scrollPane.setOpaque(false);
+    scrollPane.getViewport().setBackground(BG);
+    scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+    main.add(scrollPane, BorderLayout.CENTER);
+
+    // ================= FOOTER =================
+    JPanel footer = new JPanel(new BorderLayout());
+    footer.setOpaque(false);
+    footer.setBorder(new EmptyBorder(5, 0, 0, 0));
+
+    lblTotalPhieuKhamCards = new JLabel(
+        "Tổng số phiếu khám hiển thị: 0"
+    );
+    lblTotalPhieuKhamCards.setFont(
+        new Font("Segoe UI", Font.BOLD, 13)
+    );
+    lblTotalPhieuKhamCards.setForeground(MUTED);
+
+    footer.add(lblTotalPhieuKhamCards, BorderLayout.WEST);
+    main.add(footer, BorderLayout.SOUTH);
+
+    return main;
+}
 
     public void loadPhieuKhamCards(String keyword) {
         if (cardContainer == null) return;
@@ -1583,40 +1657,25 @@ private JPanel createPatientHeader() {
         body.add(separator);
         body.add(Box.createVerticalStrut(15));
 
-        body.add(createFieldLabel("Loại điều trị"));
-        body.add(Box.createVerticalStrut(6));
-        cboFormLoaiDieuTri = new JComboBox<>();
-        styleCombo(cboFormLoaiDieuTri);
-        cboFormLoaiDieuTri.setEnabled(true);
-        JPanel loaiBox = new JPanel(new BorderLayout());
-        loaiBox.setOpaque(false);
-        loaiBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        loaiBox.add(cboFormLoaiDieuTri, BorderLayout.CENTER);
-        loaiBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        loaiBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        body.add(loaiBox);
-        body.add(Box.createVerticalStrut(12));
-
-        body.add(createFieldLabel("Tên dịch vụ"));
-        body.add(Box.createVerticalStrut(6));
-        cboFormTenDichVu = new JComboBox<>();
-        styleCombo(cboFormTenDichVu);
-        cboFormTenDichVu.setEnabled(true);
-        JPanel dvBox = new JPanel(new BorderLayout());
-        dvBox.setOpaque(false);
-        dvBox.setBorder(new EmptyBorder(0, 12, 0, 0));
-        dvBox.add(cboFormTenDichVu, BorderLayout.CENTER);
-        dvBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        dvBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        body.add(dvBox);
-        body.add(Box.createVerticalStrut(12));
-
+       
         body.add(createFieldLabel("Tình trạng răng"));
         body.add(Box.createVerticalStrut(6));
 
         cboCondition = new JComboBox<>(new String[]{
-            "Bình thường", "Sâu răng", "Viêm nướu", "Mẻ răng", "Mất răng", "Đã điều trị", "Viêm tủy", "Mòn cổ răng", "Răng khôn mọc lệch"
+            "Bình thường",
+            "Sâu răng",
+            "Viêm nướu",
+            "Mẻ răng",
+            "Mất răng",
+            "Đã điều trị",
+            "Viêm tủy",
+            "Mòn cổ răng",
+            "Răng khôn mọc lệch"
         });
+
+        // Cho phép vừa chọn vừa nhập nội dung
+        cboCondition.setEditable(true);
+
         styleCombo(cboCondition);
         cboCondition.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cboCondition.setPreferredSize(new Dimension(300, 34));
@@ -1626,6 +1685,7 @@ private JPanel createPatientHeader() {
         JPanel conditionBox = new JPanel(new BorderLayout());
         conditionBox.setOpaque(false);
         conditionBox.setBorder(new EmptyBorder(0, 12, 0, 0));
+
         conditionBox.add(cboCondition, BorderLayout.CENTER);
         conditionBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         conditionBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -2607,6 +2667,20 @@ private JPanel createPatientHeader() {
             return button;
         }
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+ // TAG 4
 
     private JPanel createTreatmentPlanPage() {
         JPanel main = new JPanel(new BorderLayout(0, 12));
