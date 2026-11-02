@@ -20,12 +20,24 @@ import java.awt.event.HierarchyEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.print.PageFormat;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
 import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 
 public class EmployeePanel extends JPanel {
     // màu chủ đạo 
@@ -162,6 +174,7 @@ public class EmployeePanel extends JPanel {
      JButton bNew = btn("Thêm mới", PINK, Color.WHITE);
      JButton bEdit = btn("Sửa", BLUE_SOFT, BLUE);
      JButton bDel = btn("Xóa", RED_SOFT, RED);
+     JButton bPrintCard = btn("In thẻ nhân viên", BLUE_DEEP, Color.WHITE);
 
      // Thanh công cụ bên phải
      JPanel tools = new JPanel(
@@ -309,9 +322,15 @@ public class EmployeePanel extends JPanel {
         		bClear = btn("Làm mới", PINK, Color.WHITE);
         bSave.setPreferredSize(new Dimension(130, 44)); 
         bClear.setPreferredSize(new Dimension(130, 44));
-        JPanel bp = new JPanel(new GridLayout(1, 2, 10, 0)); bp.setOpaque(false); 
-        bp.add(bSave); 
-        bp.add(bClear);
+        JPanel formActions = new JPanel(new GridLayout(1, 2, 10, 0));
+        formActions.setOpaque(false);
+        formActions.add(bSave);
+        formActions.add(bClear);
+        bPrintCard.setPreferredSize(new Dimension(130, 44));
+        JPanel bp = new JPanel(new GridLayout(2, 1, 0, 8));
+        bp.setOpaque(false);
+        bp.add(formActions);
+        bp.add(bPrintCard);
         Card form = new Card(PINK); form.setLayout(new BorderLayout(0, 10)); 
         form.setPreferredSize(new Dimension(340, 0)); 
         form.setMinimumSize(new Dimension(320, 0));
@@ -360,6 +379,7 @@ public class EmployeePanel extends JPanel {
             txtEmpName.requestFocus();
         });
         bDel.addActionListener(e -> performDelete()); 
+        bPrintCard.addActionListener(e -> previewEmployeeCard());
         bSave.addActionListener(e -> performSave()); 
         bClear.addActionListener(e -> clearForm());
         table.getSelectionModel().addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) loadDataToFormForEdit(); });
@@ -482,6 +502,171 @@ public class EmployeePanel extends JPanel {
         } catch (SQLException ex) { 
         	JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE); ex.printStackTrace(); 
         	}
+    }
+
+    private void previewEmployeeCard() {
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên trong bảng để tạo thẻ.",
+                    "Chưa chọn nhân viên", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        String employeeId = str(tableModel.getValueAt(modelRow, 0));
+        NhanVien employee = dao.findById(employeeId);
+        if (employee == null) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên trong cơ sở dữ liệu.",
+                    "Lỗi dữ liệu", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            EmployeeCard card = new EmployeeCard(employee, createEmployeeLoginQr(employee.getMaNhanVien()));
+            JPanel content = new JPanel(new BorderLayout(0, 14));
+            content.setBorder(new EmptyBorder(16, 16, 8, 16));
+            content.add(card, BorderLayout.CENTER);
+            JLabel hint = lbl("Mã QR chứa mã nhân viên để nhận diện hồ sơ.", F, MUTED);
+            content.add(hint, BorderLayout.SOUTH);
+
+            int choice = JOptionPane.showOptionDialog(this, content, "Xem trước thẻ nhân viên",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null,
+                    new String[]{"In thẻ", "Đóng"}, "In thẻ");
+            if (choice == 0) printEmployeeCard(card, employee.getTenNhanVien());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Không thể tạo mã QR: " + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static BufferedImage createEmployeeLoginQr(String employeeId) throws Exception {
+        String payload;
+        try (java.sql.Connection conn = sql.DBConnection.getConnection();
+             java.sql.PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT qrPayload, trangThai FROM TaiKhoan WHERE maNhanVien = ?")) {
+            stmt.setString(1, employeeId);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Nhân viên này chưa được cấp tài khoản đăng nhập.");
+                if (rs.getInt("trangThai") != 1) throw new SQLException("Tài khoản nhân viên đang bị khóa.");
+                payload = rs.getString("qrPayload");
+            }
+        }
+
+        if (!isLoginQrPayload(payload)) {
+            payload = "CLINIC|" + UUID.randomUUID();
+            BitMatrix matrix = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 220, 220);
+            ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(matrix, "PNG", imageBytes);
+            try (java.sql.Connection conn = sql.DBConnection.getConnection();
+                 java.sql.PreparedStatement stmt = conn.prepareStatement(
+                         "UPDATE TaiKhoan SET qrPayload = ?, qrImage = ? WHERE maNhanVien = ? AND trangThai = 1")) {
+                stmt.setString(1, payload);
+                stmt.setBytes(2, imageBytes.toByteArray());
+                stmt.setString(3, employeeId);
+                if (stmt.executeUpdate() == 0) throw new SQLException("Không thể gắn mã đăng nhập QR vào tài khoản nhân viên.");
+            }
+        }
+
+        Map<EncodeHintType, Object> hints = new HashMap<>();
+        hints.put(EncodeHintType.MARGIN, 1);
+        BitMatrix matrix = new MultiFormatWriter().encode(
+                payload, BarcodeFormat.QR_CODE, 220, 220, hints);
+        BufferedImage image = new BufferedImage(220, 220, BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < 220; y++) {
+            for (int x = 0; x < 220; x++) image.setRGB(x, y, matrix.get(x, y) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+        }
+        return image;
+    }
+
+    private static boolean isLoginQrPayload(String value) {
+        if (value == null || !value.startsWith("CLINIC|")) return false;
+        try {
+            UUID.fromString(value.substring("CLINIC|".length()));
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    private void printEmployeeCard(EmployeeCard card, String employeeName) {
+        PrinterJob job = PrinterJob.getPrinterJob();
+        job.setJobName("Thẻ nhân viên - " + employeeName);
+        PageFormat page = job.defaultPage();
+        page.setOrientation(PageFormat.LANDSCAPE);
+        job.setPrintable(card, page);
+        if (!job.printDialog()) return;
+        try {
+            job.print();
+        } catch (PrinterException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể in thẻ: " + ex.getMessage(), "Lỗi in", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static final class EmployeeCard extends JPanel implements Printable {
+        private static final int CARD_W = 520, CARD_H = 320;
+        private final NhanVien employee;
+        private final BufferedImage qr;
+
+        EmployeeCard(NhanVien employee, BufferedImage qr) {
+            this.employee = employee;
+            this.qr = qr;
+            setPreferredSize(new Dimension(CARD_W, CARD_H));
+            setMinimumSize(new Dimension(CARD_W, CARD_H));
+            setOpaque(true);
+        }
+
+        @Override protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+            g.setColor(Color.WHITE); g.fillRoundRect(0, 0, w, h, 26, 26);
+            g.setColor(BLUE_DEEP); g.fillRoundRect(0, 0, w, 78, 26, 26); g.fillRect(0, 48, w, 30);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Segoe UI", Font.BOLD, 22)); g.drawString("SMILE DENTAL", 26, 36);
+            g.setFont(new Font("Segoe UI", Font.PLAIN, 12)); g.drawString("THẺ NHÂN VIÊN", 27, 59);
+            g.setColor(BLUE_DEEP); g.fillRoundRect(28, 105, 8, 166, 8, 8);
+
+            g.setColor(MUTED); g.setFont(new Font("Segoe UI", Font.BOLD, 11)); g.drawString("HỌ VÀ TÊN", 54, 119);
+            g.setColor(TEXT); g.setFont(new Font("Segoe UI", Font.BOLD, 22));
+            drawClipped(g, employee.getTenNhanVien(), 54, 151, 300);
+            g.setColor(BLUE_DEEP); g.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            g.drawString("Mã NV: " + safe(employee.getMaNhanVien()), 54, 184);
+            g.setColor(TEXT); g.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            g.drawString("Chức vụ: " + safe(employee.getChucVu()), 54, 216);
+            g.drawString("Số điện thoại: " + safe(employee.getSdt()), 54, 246);
+            g.setColor(MUTED); g.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            g.drawString("Trình độ: " + safe(employee.getTrinhDo()), 54, 272);
+
+            int qrSize = 142, qrX = w - qrSize - 28, qrY = 112;
+            g.setColor(Color.WHITE); g.fillRoundRect(qrX - 7, qrY - 7, qrSize + 14, qrSize + 14, 12, 12);
+            g.setColor(LINE); g.drawRoundRect(qrX - 7, qrY - 7, qrSize + 14, qrSize + 14, 12, 12);
+            g.drawImage(qr, qrX, qrY, qrSize, qrSize, null);
+            g.setColor(MUTED); g.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+            g.drawString("Quét để nhận diện nhân viên", qrX - 9, qrY + qrSize + 23);
+            g.setColor(LINE); g.drawRoundRect(0, 0, w - 1, h - 1, 26, 26);
+            g.dispose();
+        }
+
+        private static void drawClipped(Graphics2D g, String text, int x, int y, int maxWidth) {
+            String value = safe(text);
+            FontMetrics metrics = g.getFontMetrics();
+            while (value.length() > 1 && metrics.stringWidth(value) > maxWidth) value = value.substring(0, value.length() - 1);
+            if (!value.equals(safe(text))) value = value.substring(0, Math.max(0, value.length() - 1)) + "…";
+            g.drawString(value, x, y);
+        }
+
+        @Override public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) {
+            if (pageIndex > 0) return NO_SUCH_PAGE;
+            Graphics2D g = (Graphics2D) graphics.create();
+            double scale = Math.min(pageFormat.getImageableWidth() / CARD_W, pageFormat.getImageableHeight() / CARD_H);
+            double x = pageFormat.getImageableX() + (pageFormat.getImageableWidth() - CARD_W * scale) / 2;
+            double y = pageFormat.getImageableY() + (pageFormat.getImageableHeight() - CARD_H * scale) / 2;
+            g.translate(x, y); g.scale(scale, scale); setSize(CARD_W, CARD_H); printAll(g); g.dispose();
+            return PAGE_EXISTS;
+        }
+
+        private static String safe(String value) { return value == null || value.trim().isEmpty() ? "Chưa cập nhật" : value.trim(); }
     }
 
     // Các hàm hỗ trợ
