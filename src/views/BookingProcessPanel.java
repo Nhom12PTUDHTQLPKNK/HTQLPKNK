@@ -756,6 +756,8 @@ public class BookingProcessPanel extends JPanel {
         }
 
         if (success) {
+            // Báo cho trang Tra cứu lịch hẹn cập nhật theo
+            AppointmentSearchPanel.notifyAppointmentChanged();
             clearForm();
             loadAppointments();
         }
@@ -857,6 +859,9 @@ public class BookingProcessPanel extends JPanel {
                         "Thành công",
                         JOptionPane.INFORMATION_MESSAGE
                 );
+
+                // Báo cho trang Tra cứu lịch hẹn cập nhật theo
+                AppointmentSearchPanel.notifyAppointmentChanged();
 
                 clearForm();
                 loadAppointments();
@@ -1066,6 +1071,9 @@ public class BookingProcessPanel extends JPanel {
                 AuditLog.event("UPDATE", "Sửa lịch hẹn - mã " + ma);
                 JOptionPane.showMessageDialog(this, "Đã cập nhật lịch hẹn!");
 
+                // Báo cho trang Tra cứu lịch hẹn cập nhật theo
+                AppointmentSearchPanel.notifyAppointmentChanged();
+
                 clearForm();
                 loadAppointments();
                 return;
@@ -1271,6 +1279,10 @@ public class BookingProcessPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION && lichHenDAO.cancelAppointment(selectedAppointmentId)) {
             AuditLog.event("UPDATE", "Hủy lịch hẹn - mã " + selectedAppointmentId);
             JOptionPane.showMessageDialog(this, "Hủy lịch hẹn thành công!");
+
+            // Báo cho trang Tra cứu lịch hẹn cập nhật theo
+            AppointmentSearchPanel.notifyAppointmentChanged();
+
             clearForm();
             loadAppointments();
         }

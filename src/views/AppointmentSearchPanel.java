@@ -1,4 +1,3 @@
-
 package views;
 
 
@@ -23,7 +22,9 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,9 @@ public class AppointmentSearchPanel extends JPanel {
     private static final Color ORANGE = new Color(217, 119, 6);
     private static final Color RED = new Color(220, 38, 38);
 
+    // Danh sách các trang tra cứu đang mở, dùng để báo cập nhật khi nơi khác sửa lịch hẹn
+    private static final List<AppointmentSearchPanel> INSTANCES = new ArrayList<>();
+
     private DefaultTableModel tableModel;
     private JTable table;
     private JTextField txtSearch;
@@ -53,6 +57,9 @@ public class AppointmentSearchPanel extends JPanel {
     private JComboBox<String> cboDateFilter;
     private JSpinner spFromDate;
     private JSpinner spToDate;
+
+    // Nút lọc "Tất cả" để đưa bộ lọc về mặc định khi bấm Tải lại
+    private JToggleButton statusAllButton;
 
     private JPanel detailContent;
     private JPanel detailHost;
@@ -92,6 +99,16 @@ public class AppointmentSearchPanel extends JPanel {
         add(createMainContent(), BorderLayout.CENTER);
 
         loadAppointments();
+
+        // Đăng ký trang này để nhận thông báo khi lịch hẹn thay đổi ở màn hình khác
+        INSTANCES.add(this);
+    }
+
+    // Các màn hình khác (vd: BookingProcessPanel) gọi hàm này sau khi thêm/sửa/xác nhận/hủy lịch hẹn
+    public static void notifyAppointmentChanged() {
+        for (AppointmentSearchPanel panel : new ArrayList<>(INSTANCES)) {
+            SwingUtilities.invokeLater(panel::loadAppointments);
+        }
     }
 
     // Tải hình ảnh từ thư mục src/img
@@ -201,6 +218,10 @@ public class AppointmentSearchPanel extends JPanel {
         JButton btnSearch = createButton("Tra cứu", BLUE_PRIMARY, 88);
         btnSearch.addActionListener(e -> applyFilters());
 
+        // Nút tải lại nằm cạnh nút tra cứu: xóa bộ lọc và tải mới dữ liệu
+        JButton btnRefresh = createButton("Tải lại", new Color(74, 88, 105), 88);
+        btnRefresh.addActionListener(e -> resetPage());
+
         txtSearch.addActionListener(e -> applyFilters());
 
         JLabel searchLabel = new JLabel("Tìm kiếm:");
@@ -210,10 +231,67 @@ public class AppointmentSearchPanel extends JPanel {
         searchPanel.add(searchLabel);
         searchPanel.add(txtSearch);
         searchPanel.add(btnSearch);
+        searchPanel.add(btnRefresh);
 
         headerPanel.add(searchPanel, BorderLayout.EAST);
 
         return headerPanel;
+    }
+
+    // Làm mới lại cả trang: xóa từ khóa, đưa bộ lọc về mặc định, bỏ chọn hồ sơ rồi tải lại dữ liệu
+    private void resetPage() {
+        txtSearch.setText("");
+
+        selectedStatus = "Tất cả";
+        if (statusAllButton != null) {
+            statusAllButton.setSelected(true);
+        }
+
+        if (cboDateFilter != null) {
+            cboDateFilter.setSelectedIndex(0);
+        }
+
+        table.clearSelection();
+        resetDetailPanel();
+        loadAppointments();
+    }
+
+    // Đưa khu vực hồ sơ bên phải về trạng thái chưa chọn (hiện logo lớn)
+    private void resetDetailPanel() {
+        selectedAppointmentId = null;
+
+        if (detailAnimation != null && detailAnimation.isRunning()) {
+            detailAnimation.stop();
+        }
+
+        lblDetailHint.setText("Chọn một lịch hẹn trong bảng để xem chi tiết");
+
+        detailHost.removeAll();
+        detailHost.add(detailPlaceholder, BorderLayout.CENTER);
+        detailHost.revalidate();
+        detailHost.repaint();
+    }
+
+    // Sau khi tải lại dữ liệu: nếu hồ sơ đang xem vẫn còn thì chọn lại và cập nhật thông tin mới
+    private void restoreSelectionAfterReload() {
+        if (selectedAppointmentId == null) {
+            return;
+        }
+
+        for (int viewRow = 0; viewRow < table.getRowCount(); viewRow++) {
+            int modelRow = table.convertRowIndexToModel(viewRow);
+
+            if (selectedAppointmentId.equals(
+                    String.valueOf(tableModel.getValueAt(modelRow, 0)))) {
+
+                table.setRowSelectionInterval(viewRow, viewRow);
+                showAppointmentDetail(modelRow);
+                return;
+            }
+        }
+
+        // Không còn trong danh sách đang hiển thị thì đóng hồ sơ
+        resetDetailPanel();
     }
 
     // Tạo ba thẻ thống kê
@@ -328,6 +406,11 @@ public class AppointmentSearchPanel extends JPanel {
             button.setForeground(MUTED);
             button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             button.setSelected(status.equals("Tất cả"));
+
+            // Giữ lại nút "Tất cả" để dùng cho chức năng Tải lại
+            if (status.equals("Tất cả")) {
+                statusAllButton = button;
+            }
 
             group.add(button);
             statusPanel.add(button);
@@ -780,6 +863,9 @@ public class AppointmentSearchPanel extends JPanel {
         }
 
         applyFilters();
+
+        // Giữ nguyên hồ sơ đang xem (nếu còn) và cập nhật thông tin mới nhất
+        restoreSelectionAfterReload();
     }
 
     // Kết hợp lọc từ khóa, trạng thái và thời gian
