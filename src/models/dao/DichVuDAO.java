@@ -194,4 +194,24 @@ public class DichVuDAO {
 
         return dv;
     }
+    
+    public List<String> getDanhSachLoaiDieuTri() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT loaiDieuTri FROM DichVu WHERE loaiDieuTri IS NOT NULL";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String loaiDieuTri = rs.getString("loaiDieuTri");
+                if (loaiDieuTri != null && !loaiDieuTri.trim().isEmpty()) {
+                    list.add(loaiDieuTri);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
