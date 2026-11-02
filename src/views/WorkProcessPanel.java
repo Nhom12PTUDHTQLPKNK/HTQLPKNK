@@ -68,56 +68,137 @@ public class WorkProcessPanel extends JPanel {
         setBackground(BG_CANVAS);
         setBorder(new EmptyBorder(20, 30, 20, 30));
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
+        
+        //CÁI HEAADER HỒNG
 
-        JLabel lblTitle = new JLabel("Phân Ca Lịch Làm Việc (Trong Tuần)");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(TEXT_DARK);
+     // HEADER CARD GRADIENT HỒNG - XANH
+     JPanel headerCard = new JPanel(new BorderLayout(10, 0)) {
+         @Override
+         protected void paintComponent(Graphics g) {
+             Graphics2D g2 = (Graphics2D) g.create();
 
-        JPanel titleBox = new JPanel();
-        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
-        titleBox.setOpaque(false);
-        titleBox.add(lblTitle);
-        headerPanel.add(titleBox, BorderLayout.WEST);
+             g2.setRenderingHint(
+                     RenderingHints.KEY_ANTIALIASING,
+                     RenderingHints.VALUE_ANTIALIAS_ON
+             );
 
-        JPanel navWeekPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        navWeekPanel.setOpaque(false);
+             GradientPaint gradient = new GradientPaint(
+                     0, 0, new Color(255, 220, 238),
+                     getWidth(), getHeight(), new Color(219, 234, 254)
+             );
 
-        JButton btnPrev = createStaticButton("<", BLUE_PRIMARY, 40);
-        btnPrev.addActionListener(e -> {
-            currentWeekStart = currentWeekStart.minusWeeks(1);
-            updateWeekHeader();
-            renderWeekGrid();
-        });
+             g2.setPaint(gradient);
+             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 22, 22);
 
-        lblWeekTitle = new JLabel();
-        lblWeekTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblWeekTitle.setForeground(TEXT_DARK);
-        updateWeekHeader();
+             g2.setColor(new Color(255, 255, 255, 150));
+             g2.drawRoundRect(
+                     0, 0, getWidth() - 1, getHeight() - 1, 22, 22
+             );
 
-        JButton btnNext = createStaticButton(">", BLUE_PRIMARY, 40);
-        btnNext.addActionListener(e -> {
-            currentWeekStart = currentWeekStart.plusWeeks(1);
-            updateWeekHeader();
-            renderWeekGrid();
-        });
+             g2.dispose();
+             super.paintComponent(g);
+         }
+     };
 
-        JButton btnToday = createStaticButton("Tuần này", PINK_ACCENT, 95);
-        btnToday.addActionListener(e -> {
-            currentWeekStart = LocalDate.now().with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
-            updateWeekHeader();
-            renderWeekGrid();
-        });
+     headerCard.setOpaque(false);
+     headerCard.setBorder(new EmptyBorder(16, 22, 16, 22));
+     headerCard.setPreferredSize(new Dimension(0, 112));
 
-        navWeekPanel.add(btnPrev);
-        navWeekPanel.add(lblWeekTitle);
-        navWeekPanel.add(btnNext);
-        navWeekPanel.add(Box.createHorizontalStrut(15));
-        navWeekPanel.add(btnToday);
+     // TIÊU ĐỀ BÊN TRÁI
+     JPanel titleBox = new JPanel(new GridBagLayout());
+     titleBox.setOpaque(false);
 
-        headerPanel.add(navWeekPanel, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
+     GridBagConstraints titleGbc = new GridBagConstraints();
+     titleGbc.anchor = GridBagConstraints.WEST;
+
+     // LOGO
+     JLabel lblIcon = new JLabel();
+     ImageIcon titleIcon = loadImage("/img/rang-tiepnhan.png", 72, 72);
+     lblIcon.setPreferredSize(new Dimension(72, 72));
+
+     if (titleIcon != null) {
+         lblIcon.setIcon(titleIcon);
+     } else {
+         lblIcon.setText("🦷");
+         lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 35));
+         System.out.println("Không tìm thấy ảnh /img/rang-tiepnhan.png");
+     }
+
+     titleGbc.gridx = 0;
+     titleGbc.gridy = 0;
+     titleGbc.gridheight = 2;
+     titleGbc.insets = new Insets(0, 0, 0, 12);
+     titleBox.add(lblIcon, titleGbc);
+
+     // TIÊU ĐỀ CHÍNH
+     JLabel lblTitle = new JLabel("Phân Ca Lịch Làm Việc (Trong Tuần)");
+     lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
+     lblTitle.setForeground(TEXT_DARK);
+
+     titleGbc.gridx = 1;
+     titleGbc.gridy = 0;
+     titleGbc.gridheight = 1;
+     titleGbc.insets = new Insets(0, 0, 0, 0);
+     titleBox.add(lblTitle, titleGbc);
+
+     // MÔ TẢ
+     JLabel lblSub = new JLabel(
+             "Quản lý và theo dõi lịch phân công làm việc theo tuần"
+     );
+     lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+     lblSub.setForeground(MUTED);
+
+     titleGbc.gridx = 1;
+     titleGbc.gridy = 1;
+     titleGbc.insets = new Insets(4, 0, 0, 0);
+     titleBox.add(lblSub, titleGbc);
+
+     headerCard.add(titleBox, BorderLayout.WEST);
+
+     // THANH ĐIỀU HƯỚNG TUẦN - GIỮ NGUYÊN CHỨC NĂNG
+     JPanel navWeekPanel = new JPanel(
+             new FlowLayout(FlowLayout.RIGHT, 10, 0)
+     );
+     navWeekPanel.setOpaque(false);
+
+     JButton btnPrev = createStaticButton("<", BLUE_PRIMARY, 40);
+     btnPrev.addActionListener(e -> {
+         currentWeekStart = currentWeekStart.minusWeeks(1);
+         updateWeekHeader();
+         renderWeekGrid();
+     });
+
+     lblWeekTitle = new JLabel();
+     lblWeekTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+     lblWeekTitle.setForeground(TEXT_DARK);
+     updateWeekHeader();
+
+     JButton btnNext = createStaticButton(">", BLUE_PRIMARY, 40);
+     btnNext.addActionListener(e -> {
+         currentWeekStart = currentWeekStart.plusWeeks(1);
+         updateWeekHeader();
+         renderWeekGrid();
+     });
+
+     JButton btnToday = createStaticButton("Tuần này", PINK_ACCENT, 95);
+     btnToday.addActionListener(e -> {
+         currentWeekStart = LocalDate.now().with(
+                 WeekFields.of(Locale.getDefault()).dayOfWeek(), 1
+         );
+         updateWeekHeader();
+         renderWeekGrid();
+     });
+
+     navWeekPanel.add(btnPrev);
+     navWeekPanel.add(lblWeekTitle);
+     navWeekPanel.add(btnNext);
+     navWeekPanel.add(Box.createHorizontalStrut(15));
+     navWeekPanel.add(btnToday);
+
+     headerCard.add(navWeekPanel, BorderLayout.EAST);
+
+     add(headerCard, BorderLayout.NORTH);
+
 
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
@@ -159,6 +240,28 @@ public class WorkProcessPanel extends JPanel {
             }
         };
     }
+
+private ImageIcon loadImage(String path, int width, int height) {
+    try {
+        java.net.URL imageURL = getClass().getResource(path);
+
+        if (imageURL == null) {
+            return null;
+        }
+
+        ImageIcon original = new ImageIcon(imageURL);
+        Image scaled = original.getImage().getScaledInstance(
+                width,
+                height,
+                Image.SCALE_SMOOTH
+        );
+
+        return new ImageIcon(scaled);
+
+    } catch (Exception e) {
+        return null;
+    }
+}
 
     private JPanel createLegendItem(Color color, String text) {
         JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
@@ -215,6 +318,9 @@ public class WorkProcessPanel extends JPanel {
         column.setLayout(new BorderLayout());
         column.setBorder(new EmptyBorder(10, 8, 10, 8));
 
+        // Đảm bảo khung ngày có chiều cao tối thiểu
+        column.setMinimumSize(new Dimension(80, 300));
+
         JPanel colHeader = new JPanel();
         colHeader.setLayout(new BoxLayout(colHeader, BoxLayout.Y_AXIS));
         colHeader.setOpaque(false);
@@ -248,9 +354,19 @@ public class WorkProcessPanel extends JPanel {
         }
 
         JScrollPane shiftScroll = new JScrollPane(shiftsBox);
+
         shiftScroll.setBorder(null);
         shiftScroll.setOpaque(false);
         shiftScroll.getViewport().setOpaque(false);
+
+        // Chỉ hiện thanh cuộn dọc khi có nhiều ca
+        shiftScroll.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        shiftScroll.setVerticalScrollBarPolicy(
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        );
+
         column.add(shiftScroll, BorderLayout.CENTER);
 
         column.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -285,76 +401,168 @@ public class WorkProcessPanel extends JPanel {
         return new String[]{tenNV, chucVu};
     }
 
-    private JComponent createShiftChip(LichLamViec s) {
-        JPanel chipPanel = new JPanel(new BorderLayout());
-        chipPanel.setOpaque(true);
-        chipPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
-        chipPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
-        
-        String status = s.getTrangThai() != null ? s.getTrangThai() : "";
-        if (status.equals("Đã làm") || status.equals("Đang làm")) {
-            chipPanel.setBackground(new Color(230, 230, 230)); 
-        } else {
-            chipPanel.setBackground(new Color(210, 235, 255)); 
+
+private JComponent createShiftChip(LichLamViec s) {
+
+    String status = s.getTrangThai() != null
+            ? s.getTrangThai().trim() : "";
+
+    boolean isDone = status.equals("Đã làm");
+    boolean isInProgress = status.equals("Đang làm");
+    boolean isLocked = isDone || isInProgress;
+
+    // Màu nền và viền theo trạng thái
+    Color cardBg;
+    Color cardBorder;
+    Color statusColor;
+    String statusIcon;
+
+    if (isDone) {
+        cardBg = new Color(232, 246, 238);
+        cardBorder = new Color(155, 205, 170);
+        statusColor = new Color(30, 130, 65);
+        statusIcon = "✓";
+    } else if (isInProgress) {
+        cardBg = new Color(238, 242, 246);
+        cardBorder = new Color(185, 198, 210);
+        statusColor = new Color(90, 105, 120);
+        statusIcon = "🔒";
+    } else {
+        cardBg = new Color(225, 240, 255);
+        cardBorder = new Color(155, 195, 235);
+        statusColor = new Color(10, 90, 170);
+        statusIcon = "●";
+    }
+
+    // Card ca làm việc bo góc
+    JPanel chipPanel = new JPanel(new BorderLayout()) {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+            g2.setColor(cardBg);
+            g2.fillRoundRect(
+                    0, 0, getWidth(), getHeight(), 14, 14
+            );
+
+            g2.setColor(cardBorder);
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawRoundRect(
+                    0, 0, getWidth() - 1, getHeight() - 1, 14, 14
+            );
+
+            g2.dispose();
         }
+    };
 
-        String[] staffInfo = getStaffInfo(s.getMaNhanVien());
-        String hoTen = staffInfo[0];
-        String chucVu = staffInfo[1];
-        String thoiGian = s.getGioBatDau() + " - " + s.getGioKetThuc();
+    chipPanel.setOpaque(false);
+    chipPanel.setBorder(new EmptyBorder(9, 5, 9, 5));
 
-        JLabel lblInfo = new JLabel("<html><center><b>" + hoTen + "</b><br><font size='2' color='#333333'>" + chucVu + "</font><br><font size='2' color='#004080'><b>" + thoiGian + "</b></font><br><font size='2' color='#555555'>[" + status + "]</font></center></html>");
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        if (status.equals("Đã làm") || status.equals("Đang làm")) {
-            lblInfo.setForeground(new Color(110, 110, 110));
-        } else {
-            lblInfo.setForeground(new Color(10, 80, 160));
-        }
-        lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
-        chipPanel.add(lblInfo, BorderLayout.CENTER);
+    // Đồng bộ kích thước tất cả card ca
+    chipPanel.setPreferredSize(new Dimension(100, 108));
+    chipPanel.setMinimumSize(new Dimension(70, 108));
+    chipPanel.setMaximumSize(
+            new Dimension(Integer.MAX_VALUE, 108)
+    );
 
-        chipPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        chipPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                txtShiftId.setText(s.getMaLichLamViec());
-                txtShiftId.setEnabled(false);
-                txtStaffName.setText(s.getMaNhanVien());
-                
-                for (int i = 0; i < cbShiftTime.getItemCount(); i++) {
-                    ShiftItem item = cbShiftTime.getItemAt(i);
-                    if (item.getGioBatDau().trim().equalsIgnoreCase(s.getGioBatDau().trim()) && 
-                        item.getGioKetThuc().trim().equalsIgnoreCase(s.getGioKetThuc().trim())) {
-                        cbShiftTime.setSelectedIndex(i);
-                        break;
-                    }
-                }
+    // Lấy thông tin nhân viên
+    String[] staffInfo = getStaffInfo(s.getMaNhanVien());
 
-                if (s.getNgayLamViec() != null) {
-                    txtDate.setText(s.getNgayLamViec().toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-                }
+    String hoTen = staffInfo[0];
+    String chucVu = staffInfo[1];
+    String thoiGian = s.getGioBatDau() + " - " + s.getGioKetThuc();
 
-                isEditing = true;
-                btnCreate.setEnabled(false);   
+    String colorHex = String.format(
+            "#%02X%02X%02X",
+            statusColor.getRed(),
+            statusColor.getGreen(),
+            statusColor.getBlue()
+    );
 
-                if (status.equals("Đã làm") || status.equals("Đang làm")) {
-                    txtStaffName.setEnabled(false);
-                    cbShiftTime.setEnabled(false);
-                    txtDate.setEditable(false);
-                    btnUpdate.setEnabled(false);
-                    btnDelete.setEnabled(false);
-                } else {
-                    txtStaffName.setEnabled(true);
-                    cbShiftTime.setEnabled(true);
-                    txtDate.setEditable(true);
-                    btnUpdate.setEnabled(true);
-                    btnDelete.setEnabled(true);
+    // Nội dung card
+    JLabel lblInfo = new JLabel(
+            "<html><center>"
+            + "<b>" + hoTen + "</b><br>"
+            + "<font size='2' color='#52627A'>"
+            + chucVu
+            + "</font><br>"
+            + "<font size='2' color='#145A9E'>"
+            + "<b>" + thoiGian + "</b>"
+            + "</font><br>"
+            + "<font color='" + colorHex + "'>"
+            + "<b>" + statusIcon + " " + status + "</b>"
+            + "</font>"
+            + "</center></html>"
+    );
+
+    lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
+
+    chipPanel.add(lblInfo, BorderLayout.CENTER);
+
+    chipPanel.setCursor(
+            Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+    );
+
+    // Giữ nguyên chức năng chọn ca để cập nhật hoặc xóa
+    chipPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+        @Override
+        public void mouseClicked(java.awt.event.MouseEvent e) {
+
+            txtShiftId.setText(s.getMaLichLamViec());
+            txtShiftId.setEnabled(false);
+
+            txtStaffName.setText(s.getMaNhanVien());
+
+            for (int i = 0; i < cbShiftTime.getItemCount(); i++) {
+                ShiftItem item = cbShiftTime.getItemAt(i);
+
+                if (item.getGioBatDau().trim()
+                        .equalsIgnoreCase(s.getGioBatDau().trim())
+                        && item.getGioKetThuc().trim()
+                        .equalsIgnoreCase(s.getGioKetThuc().trim())) {
+
+                    cbShiftTime.setSelectedIndex(i);
+                    break;
                 }
             }
-        });
 
-        return chipPanel;
-    }
+            if (s.getNgayLamViec() != null) {
+                txtDate.setText(
+                        s.getNgayLamViec().toLocalDate().format(
+                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                        )
+                );
+            }
+
+            isEditing = true;
+            btnCreate.setEnabled(false);
+
+            if (isLocked) {
+                txtStaffName.setEnabled(false);
+                cbShiftTime.setEnabled(false);
+                txtDate.setEditable(false);
+                btnUpdate.setEnabled(false);
+                btnDelete.setEnabled(false);
+            } else {
+                txtStaffName.setEnabled(true);
+                cbShiftTime.setEnabled(true);
+                txtDate.setEditable(true);
+                btnUpdate.setEnabled(true);
+                btnDelete.setEnabled(true);
+            }
+        }
+    });
+
+    return chipPanel;
+}
+
 
     private void loadShiftTimeComboBox(JComboBox<ShiftItem> comboBox) {
         comboBox.removeAllItems();
@@ -379,91 +587,111 @@ public class WorkProcessPanel extends JPanel {
         }
     }
 
-    private JPanel createFormPanel() {
-        JPanel panel = createCardPanel();
-        panel.setPreferredSize(new Dimension(300, 0));
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel title = new JLabel("Quản lý phân công lịch");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        title.setForeground(TEXT_DARK);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(title);
-        panel.add(Box.createVerticalStrut(15));
+private JPanel createFormPanel() {
+    JPanel panel = createCardPanel();
+    panel.setPreferredSize(new Dimension(330, 0));
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    panel.setBorder(new EmptyBorder(24, 22, 24, 22));
 
-        txtShiftId = addField(panel, "Mã phân ca (Tự động):");
-        txtShiftId.setEnabled(false);
+    // Tiêu đề panel lớn hơn
+    JLabel title = new JLabel("Quản lý phân công lịch");
+    title.setFont(new Font("Segoe UI", Font.BOLD, 19));
+    title.setForeground(TEXT_DARK);
+    title.setAlignmentX(Component.LEFT_ALIGNMENT);
+    panel.add(title);
+    panel.add(Box.createVerticalStrut(20));
 
-        txtStaffName = addField(panel, "Mã nhân viên:");
+    txtShiftId = addField(panel, "Mã phân ca (Tự động):");
+    txtShiftId.setEnabled(false);
 
-        JLabel lblShift = createFieldLabel("Chọn ca trực (Giờ BĐ - KT):");
-        panel.add(lblShift);
-        panel.add(Box.createVerticalStrut(3));
-        
-        cbShiftTime = new JComboBox<>();
-        loadShiftTimeComboBox(cbShiftTime);
-        cbShiftTime.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbShiftTime.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        cbShiftTime.setAlignmentX(Component.LEFT_ALIGNMENT);
-        cbShiftTime.setBackground(Color.WHITE);
-        panel.add(cbShiftTime);
-        panel.add(Box.createVerticalStrut(12));
+    txtStaffName = addField(panel, "Mã nhân viên:");
 
-        // Tích hợp DatePickerField vào form panel
-        txtDate = addDatePickerField(panel, "Ngày trực (dd/MM/yyyy):");
+    JLabel lblShift = createFieldLabel("Chọn ca trực (Giờ BĐ - KT):");
+    panel.add(lblShift);
+    panel.add(Box.createVerticalStrut(5));
 
-        btnCreate = createStaticButton("Tạo lịch", GREEN_ACCENT, Integer.MAX_VALUE);
-        btnCreate.addActionListener(e -> performCreate());
-        panel.add(btnCreate);
-        panel.add(Box.createVerticalStrut(8));
+    cbShiftTime = new JComboBox<>();
+    loadShiftTimeComboBox(cbShiftTime);
+    cbShiftTime.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    cbShiftTime.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+    cbShiftTime.setPreferredSize(new Dimension(280, 40));
+    cbShiftTime.setAlignmentX(Component.LEFT_ALIGNMENT);
+    cbShiftTime.setBackground(Color.WHITE);
+    panel.add(cbShiftTime);
+    panel.add(Box.createVerticalStrut(15));
 
-        btnUpdate = createStaticButton("Cập nhật", ORANGE_ACCENT, Integer.MAX_VALUE);
-        btnUpdate.addActionListener(e -> performUpdate());
-        panel.add(btnUpdate);
-        panel.add(Box.createVerticalStrut(8));
+    // Ngày trực
+    txtDate = addDatePickerField(panel, "Ngày trực (dd/MM/yyyy):");
 
-        btnDelete = createStaticButton("Xóa lịch", RED_ACCENT, Integer.MAX_VALUE);
-        btnDelete.addActionListener(e -> performDelete());
-        panel.add(btnDelete);
-        panel.add(Box.createVerticalStrut(8));
+    // Các nút lớn hơn
+    btnCreate = createStaticButton("Tạo lịch", GREEN_ACCENT, Integer.MAX_VALUE);
+    btnCreate.setPreferredSize(new Dimension(280, 42));
+    btnCreate.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    btnCreate.addActionListener(e -> performCreate());
+    panel.add(btnCreate);
+    panel.add(Box.createVerticalStrut(10));
 
-        btnClear = createStaticButton("Làm mới", PINK_ACCENT, Integer.MAX_VALUE);
-        btnClear.addActionListener(e -> clearForm());
-        panel.add(btnClear);
+    btnUpdate = createStaticButton("Cập nhật", ORANGE_ACCENT, Integer.MAX_VALUE);
+    btnUpdate.setPreferredSize(new Dimension(280, 42));
+    btnUpdate.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    btnUpdate.addActionListener(e -> performUpdate());
+    panel.add(btnUpdate);
+    panel.add(Box.createVerticalStrut(10));
 
-        return panel;
-    }
+    btnDelete = createStaticButton("Xóa lịch", RED_ACCENT, Integer.MAX_VALUE);
+    btnDelete.setPreferredSize(new Dimension(280, 42));
+    btnDelete.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    btnDelete.addActionListener(e -> performDelete());
+    panel.add(btnDelete);
+    panel.add(Box.createVerticalStrut(10));
 
-    private JLabel createFieldLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(TEXT_DARK);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return lbl;
-    }
+    btnClear = createStaticButton("Làm mới", PINK_ACCENT, Integer.MAX_VALUE);
+    btnClear.setPreferredSize(new Dimension(280, 42));
+    btnClear.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    btnClear.addActionListener(e -> clearForm());
+    panel.add(btnClear);
 
-    private JTextField addField(JPanel p, String labelText) {
-        p.add(createFieldLabel(labelText));
-        p.add(Box.createVerticalStrut(3));
-        JTextField t = new JTextField();
-        t.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        t.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        t.setAlignmentX(Component.LEFT_ALIGNMENT);
-        t.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-                new EmptyBorder(3, 8, 3, 8)
-        ));
-        p.add(t);
-        p.add(Box.createVerticalStrut(12));
-        return t;
-    }
+    return panel;
+}
+
+
+
+private JLabel createFieldLabel(String text) {
+    JLabel lbl = new JLabel(text);
+    lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    lbl.setForeground(TEXT_DARK);
+    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+    return lbl;
+}
+
+
+
+private JTextField addField(JPanel p, String labelText) {
+    p.add(createFieldLabel(labelText));
+    p.add(Box.createVerticalStrut(5));
+
+    JTextField t = new JTextField();
+    t.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    t.setPreferredSize(new Dimension(280, 40));
+    t.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+    t.setAlignmentX(Component.LEFT_ALIGNMENT);
+    t.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_LIGHT, 1),
+            new EmptyBorder(5, 10, 5, 10)
+    ));
+
+    p.add(t);
+    p.add(Box.createVerticalStrut(15));
+    return t;
+}
+
 
     private DatePickerField addDatePickerField(JPanel p, String labelText) {
         p.add(createFieldLabel(labelText));
         p.add(Box.createVerticalStrut(3));
         DatePickerField dp = new DatePickerField();
-        dp.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        dp.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         dp.setAlignmentX(Component.LEFT_ALIGNMENT);
         p.add(dp);
         p.add(Box.createVerticalStrut(12));
