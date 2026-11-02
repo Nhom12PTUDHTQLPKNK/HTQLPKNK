@@ -18,6 +18,8 @@ public class ElectronicPrescriptionPanel extends JPanel {
     // ==================== COLORS ====================
 
     private static final Color PRIMARY = new Color(15, 45, 90);
+    private static final Color BUTTON_DARK = new Color(0, 0, 110);
+    private static final Color BUTTON_DARK_ALT = BUTTON_DARK;
     private static final Color BLUE = new Color(45, 115, 205);
     private static final Color PINK = new Color(205, 65, 125);
     private static final Color BG = new Color(243, 248, 253);
@@ -134,7 +136,7 @@ public class ElectronicPrescriptionPanel extends JPanel {
         titlePanel.add(subtitle);
 
         JButton btnQuayLai = new JButton("← Quay lại");
-        styleButton(btnQuayLai, WHITE, TEXT);
+        styleButton(btnQuayLai, BUTTON_DARK, WHITE);
 
         panel.add(titlePanel, BorderLayout.WEST);
         panel.add(btnQuayLai, BorderLayout.EAST);
@@ -397,7 +399,7 @@ public class ElectronicPrescriptionPanel extends JPanel {
 
         JButton btnThemThuoc = new JButton("+ Thêm thuốc");
 
-        styleButton(btnThemThuoc, PINK, WHITE);
+        styleButton(btnThemThuoc, BUTTON_DARK, WHITE);
 
         searchPanel.add(txtSearchThuoc);
         searchPanel.add(btnThemThuoc);
@@ -597,10 +599,10 @@ public class ElectronicPrescriptionPanel extends JPanel {
             setOpaque(true);
 
             styleActionButton(btnEdit,
-                    new Color(225, 240, 255), BLUE);
+                    BUTTON_DARK, WHITE);
 
             styleActionButton(btnDelete,
-                    new Color(255, 230, 237), PINK);
+                    BUTTON_DARK_ALT, WHITE);
 
             add(btnEdit);
             add(btnDelete);
@@ -639,10 +641,10 @@ public class ElectronicPrescriptionPanel extends JPanel {
         public ActionButtonEditor() {
 
             styleActionButton(btnEdit,
-                    new Color(225, 240, 255), BLUE);
+                    BUTTON_DARK, WHITE);
 
             styleActionButton(btnDelete,
-                    new Color(255, 230, 237), PINK);
+                    BUTTON_DARK_ALT, WHITE);
 
             panel.setOpaque(true);
 
@@ -792,9 +794,9 @@ public class ElectronicPrescriptionPanel extends JPanel {
         JButton btnLamMoi = new JButton("↻  Làm mới");
         JButton btnLuu = new JButton("▣  Lưu đơn thuốc");
 
-        styleButton(btnIn, WHITE, TEXT);
-        styleButton(btnLamMoi, WHITE, TEXT);
-        styleButton(btnLuu, PINK, WHITE);
+        styleButton(btnIn, BUTTON_DARK, WHITE);
+        styleButton(btnLamMoi, BUTTON_DARK_ALT, WHITE);
+        styleButton(btnLuu, BUTTON_DARK, WHITE);
 
         btnLamMoi.addActionListener(e -> {
 
@@ -907,11 +909,12 @@ public class ElectronicPrescriptionPanel extends JPanel {
         button.setFont(new Font(
                 "Segoe UI", Font.BOLD, 10));
 
-        button.setBackground(background);
-        button.setForeground(foreground);
+        button.setBackground(BUTTON_DARK);
+        button.setForeground(BUTTON_DARK);
 
         button.setFocusPainted(false);
         button.setOpaque(true);
+        button.setContentAreaFilled(true);
 
         button.setCursor(Cursor.getPredefinedCursor(
                 Cursor.HAND_CURSOR));
@@ -933,12 +936,13 @@ public class ElectronicPrescriptionPanel extends JPanel {
         button.setFont(new Font(
                 "Segoe UI", Font.BOLD, 11));
 
-        button.setBackground(background);
-        button.setForeground(foreground);
+        button.setBackground(BUTTON_DARK);
+        button.setForeground(BUTTON_DARK);
 
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setOpaque(true);
+        button.setContentAreaFilled(true);
 
         button.setCursor(Cursor.getPredefinedCursor(
                 Cursor.HAND_CURSOR));
