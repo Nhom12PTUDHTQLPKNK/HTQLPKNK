@@ -429,13 +429,13 @@ INSERT INTO TaiKhoan (tenDN, matKhau, trangThai, quyen, maNhanVien) VALUES
 
 -- 4. LichLamViec
 INSERT INTO LichLamViec (maLichLamViec, maNhanVien, ngayLamViec, gioBatDau, gioKetThuc, trangThai) VALUES
-('LLV001', 'NV001', '2026-10-24', '08:00', '17:00', N'Đang làm'),
-('LLV002', 'NV002', '2026-10-24', '08:00', '16:00', N'Đang làm'),
-('LLV003', 'NV003', '2026-10-24', '09:00', '17:00', N'Đang làm'),
-('LLV004', 'NV004', '2026-10-24', '07:30', '17:30', N'Đang làm'),
-('LLV005', 'NV005', '2026-10-24', '08:00', '17:00', N'Đang làm'),
-('LLV006', 'NV002', '2026-10-25', '08:00', '16:00', N'Đã xếp lịch'),
-('LLV007', 'NV003', '2026-10-25', '09:00', '17:00', N'Đã xếp lịch');
+('LLV001', 'NV001', '2026-10-29', '08:00', '12:00', N'Đã làm'),
+('LLV002', 'NV002', '2026-10-30', '08:00', '12:00', N'Đã làm'),
+('LLV003', 'NV003', '2026-11-2', '13:30', '17:30', N'Đang làm'),
+('LLV004', 'NV004', '2026-11-3', '13:30', '17:30', N'Đã xếp lịch'),
+('LLV005', 'NV005', '2026-11-4', '08:00', '12:00', N'Đã xếp lịch'),
+('LLV006', 'NV002', '2026-11-5', '08:00', '12:00', N'Đã xếp lịch'),
+('LLV007', 'NV003', '2026-11-5', '18:00', '21:00', N'Đã xếp lịch');
 
 -- 5. DichVu
 INSERT INTO DichVu (maDichVu, tenDichVu, loaiDieuTri, donGia, donViTinh, moTa) VALUES
