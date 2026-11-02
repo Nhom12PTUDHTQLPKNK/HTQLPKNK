@@ -84,8 +84,13 @@ CREATE TABLE DichVu (
     loaiDieuTri NVARCHAR(50),
     donGia FLOAT,
     donViTinh NVARCHAR(20),
-    moTa NVARCHAR(MAX)
-);
+    moTa NVARCHAR(MAX),
+    hinhAnh NVARCHAR(500) NULL
+	);
+
+
+
+
 
 -- 4. Bảng Vật Tư
 CREATE TABLE VatTu (
@@ -437,14 +442,23 @@ INSERT INTO LichLamViec (maLichLamViec, maNhanVien, ngayLamViec, gioBatDau, gioK
 ('LLV006', 'NV002', '2026-11-5', '08:00', '12:00', N'Đã xếp lịch'),
 ('LLV007', 'NV003', '2026-11-5', '18:00', '21:00', N'Đã xếp lịch');
 
--- 5. DichVu
-INSERT INTO DichVu (maDichVu, tenDichVu, loaiDieuTri, donGia, donViTinh, moTa) VALUES
-('DV001', N'Lấy cao răng', N'Nha khoa tổng quát', 200000.0, N'Lần', N'Vệ sinh răng miệng'),
-('DV002', N'Trám răng', N'Nha khoa tổng quát', 350000.0, N'Răng', N'Trám răng sâu'),
-('DV003', N'Tẩy trắng răng', N'Thẩm mỹ', 1500000.0, N'Liệu trình', N'Làm trắng răng'),
-('DV004', N'Nhổ răng', N'Tiểu phẫu', 500000.0, N'Răng', N'Nhổ răng thông thường'),
-('DV005', N'Khám tổng quát', N'Khám tổng quát', 100000.0, N'Lần', N'Kiểm tra sức khỏe răng miệng'),
-('DV006', N'Niềng răng', N'Chỉnh nha', 25000000.0, N'Gói', N'Dịch vụ chỉnh nha');
+
+
+
+IF NOT EXISTS (SELECT 1 FROM DichVu)
+BEGIN
+    INSERT INTO DichVu
+    (maDichVu, tenDichVu, loaiDieuTri, donGia, donViTinh, moTa, hinhAnh)
+    VALUES
+    ('DV001', N'Lấy cao răng', N'Nha khoa tổng quát', 200000, N'Lần', N'Làm sạch cao răng', N'/img/DICHVU/laycaorang.png'),
+    ('DV002', N'Trám răng', N'Nha khoa tổng quát', 350000, N'Răng', N'Phục hồi răng sâu', N'/img/DICHVU/tramrang.png'),
+    ('DV003', N'Tẩy trắng răng', N'Thẩm mỹ', 1500000, N'Liệu trình', N'Làm trắng răng', N'/img/DICHVU/taytrang.png'),
+    ('DV004', N'Nhổ răng', N'Tiểu phẫu', 500000, N'Răng', N'Loại bỏ răng bị tổn thương', N'/img/DICHVU/rang.png'),
+    ('DV005', N'Khám tổng quát', N'Khám tổng quát', 100000, N'Lần', N'Kiểm tra sức khỏe răng miệng', N'/img/DICHVU/khamtongquat.png'),
+    ('DV006', N'Niềng răng', N'Chỉnh nha', 25000000, N'Gói', N'Điều chỉnh vị trí răng', N'/img/DICHVU/niengrang.png');
+END;
+
+
 
 -- 6. VatTu
 INSERT INTO VatTu (maVatTu, tenVatTu, donViTinh, soLuongTon, ngaySuDung) VALUES
@@ -636,3 +650,5 @@ GO
 
 
 
+
+ 
