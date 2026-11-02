@@ -57,4 +57,34 @@ public class KeHoachDieuTriDAO {
         }
         return list;
     }
+ // Lấy thông tin tổng quan và chi tiết kế hoạch điều trị theo mã bệnh án / mã lịch hẹn
+    public List<Object[]> getChiTietKeHoachByBenhAn(String maBenhAn) {
+        List<Object[]> list = new ArrayList<>();
+        String sql = 
+            "SELECT ctd.maRang, r.tinhTrang, r.chanDoan, dv.tenDichVu, ctd.soLuong, dv.donGia, (ctd.soLuong * dv.donGia) AS thanhTien " +
+            "FROM ChiTietChiDinh ctd " +
+            "JOIN HoSoBenhAn ba ON ctd.maBenhAn = ba.maBenhAn " +
+            "LEFT JOIN ChiTietKhamRang r ON ba.maBenhAn = r.maBenhAn AND ctd.maRang = r.maRang " +
+            "JOIN DichVu dv ON ctd.maDichVu = dv.maDichVu " +
+            "WHERE ba.maBenhAn = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maBenhAn);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        false,
+                        rs.getInt("maRang"),
+                        rs.getString("tinhTrang"),
+                        rs.getString("chanDoan"),
+                        rs.getString("tenDichVu")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
