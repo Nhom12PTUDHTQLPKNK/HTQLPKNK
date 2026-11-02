@@ -1,4 +1,4 @@
-package report;
+package controllers;
 
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
@@ -15,7 +15,7 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfWriter;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;

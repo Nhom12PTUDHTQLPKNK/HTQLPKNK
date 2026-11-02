@@ -4,7 +4,7 @@ import inventory.InventoryStore;
 import inventory.InventoryStore.FlowRow;
 import inventory.InventoryStore.Item;
 import inventory.InventoryStore.Txn;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

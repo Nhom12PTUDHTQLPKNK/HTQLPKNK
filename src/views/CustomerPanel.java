@@ -4,7 +4,7 @@ package views;
 
 import controllers.PatientController;
 import models.entity.KhachHang;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import sql.DBConnection;
 
 import javax.swing.*;

@@ -1,4 +1,4 @@
-package datepicker;
+package controllers;
 
 import javax.swing.JFormattedTextField;
 import javax.swing.event.DocumentEvent;

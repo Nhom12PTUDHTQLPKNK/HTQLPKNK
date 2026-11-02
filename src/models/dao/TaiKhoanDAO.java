@@ -1,9 +1,9 @@
 package models.dao;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import models.entity.Account;
 import models.entity.Role;
-import security.AccessControl;
+import controllers.AccessControl;
 import sql.DBConnection;
 
 import java.sql.*;

@@ -3,7 +3,7 @@ package views;
 
 // Tra cứu lịch hẹn
 
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import sql.DBConnection;
 
 import javax.swing.*;

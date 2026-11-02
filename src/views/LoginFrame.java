@@ -1,8 +1,8 @@
 package views;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import controllers.AuthController;
-import qrcode.LoginQrScannerDialog;
+import controllers.LoginQrScannerDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

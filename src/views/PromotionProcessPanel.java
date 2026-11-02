@@ -1,8 +1,9 @@
 package views;
 
+
 import models.dao.KhuyenMaiDAO;
 import models.entity.KhuyenMai;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -29,7 +30,7 @@ public class PromotionProcessPanel extends JPanel {
     private JTable table;
 
     private JTextField txtSearch, txtPromoId, txtPromoName, txtDiscount;
-    private datepicker.DatePickerField txtEndDate;
+    private controllers.DatePickerField txtEndDate;
     private TableRowSorter<DefaultTableModel> rowSorter;
     private boolean isEditing = false;
     private int selectedRowIndex = -1;
@@ -209,10 +210,10 @@ public class PromotionProcessPanel extends JPanel {
         return t;
     }
 
-    private datepicker.DatePickerField addDateField(JPanel p, String labelText) {
+    private controllers.DatePickerField addDateField(JPanel p, String labelText) {
         p.add(createFieldLabel(labelText));
         p.add(Box.createVerticalStrut(3));
-        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        controllers.DatePickerField field = new controllers.DatePickerField();
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         p.add(field);

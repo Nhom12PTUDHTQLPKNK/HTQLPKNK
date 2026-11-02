@@ -1,6 +1,6 @@
 package views;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import sql.DBConnection;
 
 import javax.swing.*;
@@ -191,59 +191,119 @@ public class AppointmentBookingPanel extends JPanel {
         refreshAvailability();
     }
 
-    //  HEADER
-
+    //  HEADER HỒNG LOANG NÈ TRỜI
     private JPanel createHeaderPanel() {
 
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        // hiệu ứng chuyển màu và bo góc
+        JPanel headerCard = new JPanel() {
 
-        JPanel titleRow = new JPanel(
-                new FlowLayout(FlowLayout.LEFT, 10, 0)
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+
+                Graphics2D g2 = (Graphics2D) g.create();
+
+                // Làm mịn các góc của card
+                g2.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                );
+
+                // Màu hồng pastel và xanh pastel
+                Color pinkPastel = new Color(255, 232, 243);
+                Color bluePastel = new Color(219, 234, 254);
+
+                // Tạo hiệu ứng chuyển màu từ trái sang phải
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, pinkPastel,
+                        getWidth(), 0, bluePastel
+                );
+
+                g2.setPaint(gradient);
+
+                // Vẽ nền card bo góc
+                g2.fillRoundRect(
+                        0, 0,
+                        getWidth(), getHeight(),
+                        16, 16
+                );
+
+                // Vẽ đường viền card
+                g2.setColor(BORDER_LIGHT);
+                g2.drawRoundRect(
+                        0, 0,
+                        getWidth() - 1,
+                        getHeight() - 1,
+                        16, 16
+                );
+
+                g2.dispose();
+            }
+        };
+
+        headerCard.setOpaque(false);
+        headerCard.setLayout(new BorderLayout());
+        headerCard.setBorder(new EmptyBorder(15, 20, 15, 20));
+        headerCard.setPreferredSize(new Dimension(0, 110));
+        headerCard.setMinimumSize(new Dimension(0, 110));
+
+        // Khu vực bên trái chứa logo và thông tin tiêu đề
+        JPanel leftPanel = new JPanel(
+                new FlowLayout(FlowLayout.LEFT, 15, 0)
         );
+        leftPanel.setOpaque(false);
 
-        titleRow.setOpaque(false);
-        titleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Tải logo phòng khám
+        JLabel logoLabel = new JLabel();
+        java.net.URL imgUrl = getClass().getResource("/img/logo5.png");
 
-        JLabel iconLabel = new JLabel();
+        if (imgUrl != null) {
+            ImageIcon originalIcon = new ImageIcon(imgUrl);
 
-        java.net.URL imageURL =
-                getClass().getResource("/img/rang-tiepnhan.png");
+            Image scaledImg = originalIcon.getImage().getScaledInstance(
+                    55, 55,
+                    Image.SCALE_SMOOTH
+            );
 
-        if (imageURL != null) {
-
-            ImageIcon originalIcon = new ImageIcon(imageURL);
-
-            Image scaledImage = originalIcon.getImage()
-                    .getScaledInstance(70, 70, Image.SCALE_SMOOTH);
-
-            iconLabel.setIcon(new ImageIcon(scaledImage));
-
+            logoLabel.setIcon(new ImageIcon(scaledImg));
         } else {
-            System.err.println("Không tìm thấy ảnh: /img/rang-tiepnhan.png");
+            // Hiển thị ký hiệu thay thế nếu không tìm thấy logo
+            logoLabel.setText("✚");
+            logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 38));
+            logoLabel.setForeground(BLUE_PRIMARY);
+
+            System.out.println("Không tìm thấy file ảnh tại: /img/logo5.png");
         }
 
+        // Khu vực chứa tiêu đề và mô tả
+        JPanel titleBox = new JPanel();
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        titleBox.setOpaque(false);
+
+        // Tiêu đề chính của giao diện
         JLabel title = new JLabel("Đặt Lịch Hẹn");
         title.setFont(new Font("Segoe UI", Font.BOLD, 25));
         title.setForeground(TEXT_DARK);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        titleRow.add(iconLabel);
-        titleRow.add(title);
-
-        JLabel subtitle = new JLabel(
-                "Phòng khám nha khoa Smile Dental"
-        );
-
+        // Dòng mô tả bên dưới tiêu đề
+        JLabel subtitle = new JLabel("Phòng khám nha khoa Smile Dental");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_GRAY);
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        panel.add(titleRow);
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(subtitle);
+        // Sắp xếp tiêu đề và mô tả theo chiều dọc
+        titleBox.add(title);
+        titleBox.add(Box.createVerticalStrut(5));
+        titleBox.add(subtitle);
 
-        return panel;
+        // Ghép logo và tiêu đề thành một hàng ngang
+        leftPanel.add(logoLabel);
+        leftPanel.add(titleBox);
+
+        headerCard.add(leftPanel, BorderLayout.WEST);
+
+        return headerCard;
     }
 
     // FORM CARD
@@ -315,9 +375,26 @@ public class AppointmentBookingPanel extends JPanel {
                 )
         );
 
-        JSpinner.DateEditor dateEditor =new JSpinner.DateEditor(spDate, "dd/MM/yyyy");
+        JSpinner.DateEditor dateEditor =
+                new JSpinner.DateEditor(spDate, "dd/MM/yyyy");
+
         spDate.setEditor(dateEditor);
         spDate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        JFormattedTextField dateField = dateEditor.getTextField();
+        dateField.setEditable(false);
+        dateField.setFocusable(false);
+        dateField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        dateField.setBackground(Color.WHITE);
+        dateField.setToolTipText("Nhấn để chọn ngày hẹn");
+
+        dateField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showCalendarPicker();
+            }
+        });
+
         addRow(appointmentGroup, "Ngày hẹn", spDate);
 
         JLabel timeLabel = new JLabel("Chọn giờ hẹn");
@@ -414,11 +491,14 @@ public class AppointmentBookingPanel extends JPanel {
         );
 
         // Nút lưu lịch hẹn
-        JButton btnSave = createButton("LƯU LỊCH HẸN",new Color(20, 145, 75));
-        btnSave.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JButton btnSave = createButton(
+                "LƯU LỊCH HẸN",
+                new Color(18, 105, 60)
+        );
 
-        btnSave.setForeground(Color.WHITE);
-        btnSave.setBackground(new Color(20, 145, 75));
+        btnSave.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnSave.setForeground(Color.GREEN);
+        btnSave.setBackground(new Color(18, 105, 60));
 
         btnSave.setOpaque(true);
         btnSave.setContentAreaFilled(true);
@@ -429,6 +509,7 @@ public class AppointmentBookingPanel extends JPanel {
         btnSave.setMinimumSize(new Dimension(0, 54));
         btnSave.setBorder(new EmptyBorder(12, 20, 12, 20));
         btnSave.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         btnSave.addActionListener(e -> performSave());
 
         card.add(heading, BorderLayout.NORTH);
@@ -1104,7 +1185,7 @@ public class AppointmentBookingPanel extends JPanel {
         );
 
         Color normal = background;
-        Color hover = new Color(15, 112, 57);
+        Color hover = new Color(10, 80, 45);
         button.addMouseListener(new MouseAdapter() {
 
             @Override
@@ -1365,7 +1446,216 @@ public class AppointmentBookingPanel extends JPanel {
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
     }
+    
+    private void showCalendarPicker() {
+        LocalDate currentDate = getSelectedDate();
 
+        final JDialog dialog = new JDialog(
+                SwingUtilities.getWindowAncestor(this),
+                "Chọn ngày hẹn",
+                Dialog.ModalityType.APPLICATION_MODAL
+        );
+
+        dialog.setSize(360, 340);
+        dialog.setResizable(false);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.getContentPane().setBackground(Color.WHITE);
+
+        final int[] selectedMonth = {currentDate.getMonthValue()};
+        final int[] selectedYear = {currentDate.getYear()};
+
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 10));
+        header.setBackground(Color.WHITE);
+
+        JButton btnPreviousMonth = new JButton("‹");
+        JButton btnNextMonth = new JButton("›");
+
+        String[] monthNames = {
+                "Tháng 1", "Tháng 2", "Tháng 3",
+                "Tháng 4", "Tháng 5", "Tháng 6",
+                "Tháng 7", "Tháng 8", "Tháng 9",
+                "Tháng 10", "Tháng 11", "Tháng 12"
+        };
+
+        JComboBox<String> cbMonth = new JComboBox<>(monthNames);
+        cbMonth.setSelectedIndex(selectedMonth[0] - 1);
+
+        Integer[] years = new Integer[101];
+        int startYear = LocalDate.now().getYear() - 50;
+
+        for (int i = 0; i < years.length; i++) {
+            years[i] = startYear + i;
+        }
+
+        JComboBox<Integer> cbYear = new JComboBox<>(years);
+        cbYear.setSelectedItem(selectedYear[0]);
+
+        cbMonth.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cbYear.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+        btnPreviousMonth.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        btnNextMonth.setFont(new Font("Segoe UI", Font.BOLD, 18));
+
+        header.add(btnPreviousMonth);
+        header.add(cbMonth);
+        header.add(cbYear);
+        header.add(btnNextMonth);
+
+        JPanel calendarPanel = new JPanel(new GridLayout(0, 7, 4, 4));
+        calendarPanel.setBackground(Color.WHITE);
+        calendarPanel.setBorder(new EmptyBorder(5, 12, 10, 12));
+
+        Runnable updateCalendar = () -> {
+            calendarPanel.removeAll();
+
+            String[] weekdays = {
+                    "T2", "T3", "T4", "T5", "T6", "T7", "CN"
+            };
+
+            for (String weekday : weekdays) {
+                JLabel label = new JLabel(weekday, SwingConstants.CENTER);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                label.setForeground(BLUE_PRIMARY);
+                calendarPanel.add(label);
+            }
+
+            LocalDate firstDay = LocalDate.of(
+                    selectedYear[0],
+                    selectedMonth[0],
+                    1
+            );
+
+            int firstDayOfWeek = firstDay.getDayOfWeek().getValue();
+            int daysInMonth = firstDay.lengthOfMonth();
+
+            for (int i = 1; i < firstDayOfWeek; i++) {
+                calendarPanel.add(new JLabel(""));
+            }
+
+            for (int day = 1; day <= daysInMonth; day++) {
+                final int selectedDay = day;
+
+                LocalDate date = LocalDate.of(
+                        selectedYear[0],
+                        selectedMonth[0],
+                        selectedDay
+                );
+
+                JButton dayButton = new JButton(String.valueOf(day));
+                dayButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                dayButton.setFocusPainted(false);
+                dayButton.setOpaque(true);
+                dayButton.setContentAreaFilled(true);
+                dayButton.setBorderPainted(false);
+                dayButton.setCursor(
+                        Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                );
+
+                if (date.equals(currentDate)) {
+                    dayButton.setBackground(BLUE_PRIMARY);
+                    dayButton.setForeground(Color.WHITE);
+                } else if (date.equals(LocalDate.now())) {
+                    dayButton.setBackground(GREEN_LIGHT);
+                    dayButton.setForeground(GREEN_ACCENT);
+                } else {
+                    dayButton.setBackground(Color.WHITE);
+                    dayButton.setForeground(TEXT_DARK);
+                }
+
+                dayButton.addActionListener(e -> {
+                    LocalDate selectedDate = LocalDate.of(
+                            selectedYear[0],
+                            selectedMonth[0],
+                            selectedDay
+                    );
+
+                    Date dateValue = Date.from(
+                            selectedDate.atStartOfDay(ZoneId.systemDefault())
+                                    .toInstant()
+                    );
+
+                    spDate.setValue(dateValue);
+                    dialog.dispose();
+                });
+
+                calendarPanel.add(dayButton);
+            }
+
+            calendarPanel.revalidate();
+            calendarPanel.repaint();
+        };
+
+        cbMonth.addActionListener(e -> {
+            selectedMonth[0] = cbMonth.getSelectedIndex() + 1;
+            updateCalendar.run();
+        });
+
+        cbYear.addActionListener(e -> {
+            Object value = cbYear.getSelectedItem();
+
+            if (value != null) {
+                selectedYear[0] = (Integer) value;
+                updateCalendar.run();
+            }
+        });
+
+        btnPreviousMonth.addActionListener(e -> {
+            if (selectedMonth[0] == 1) {
+                selectedMonth[0] = 12;
+                selectedYear[0]--;
+            } else {
+                selectedMonth[0]--;
+            }
+
+            cbMonth.setSelectedIndex(selectedMonth[0] - 1);
+            cbYear.setSelectedItem(selectedYear[0]);
+            updateCalendar.run();
+        });
+
+        btnNextMonth.addActionListener(e -> {
+            if (selectedMonth[0] == 12) {
+                selectedMonth[0] = 1;
+                selectedYear[0]++;
+            } else {
+                selectedMonth[0]++;
+            }
+
+            cbMonth.setSelectedIndex(selectedMonth[0] - 1);
+            cbYear.setSelectedItem(selectedYear[0]);
+            updateCalendar.run();
+        });
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.setBackground(Color.WHITE);
+
+        JButton btnToday = new JButton("Hôm nay");
+        btnToday.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnToday.setForeground(BLUE_PRIMARY);
+        btnToday.setBackground(BLUE_LIGHT);
+        btnToday.setFocusPainted(false);
+        btnToday.setBorderPainted(false);
+
+        btnToday.addActionListener(e -> {
+            Date today = Date.from(
+                    LocalDate.now().atStartOfDay(ZoneId.systemDefault())
+                            .toInstant()
+            );
+
+            spDate.setValue(today);
+            dialog.dispose();
+        });
+
+        bottomPanel.add(btnToday);
+
+        updateCalendar.run();
+
+        dialog.add(header, BorderLayout.NORTH);
+        dialog.add(calendarPanel, BorderLayout.CENTER);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+        dialog.setLocationRelativeTo(spDate);
+        dialog.setVisible(true);
+    }
     private String formatTime(String time) {
         if (time == null) {
             return "";

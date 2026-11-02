@@ -1,13 +1,13 @@
 package views;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import inventory.InventoryStore;
 import inventory.InventoryStore.Item;
 import inventory.InventoryStore.Txn;
 import inventory.InventoryStore.TxnStatus;
 import inventory.InventoryStore.TxnType;
-import report.PdfTableExport;
-import datepicker.DatePickerField;
+import controllers.PdfTableExport;
+import controllers.DatePickerField;
 import models.dao.VatTuDAO;
 
 import javax.swing.*;

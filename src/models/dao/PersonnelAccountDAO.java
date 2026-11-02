@@ -1,7 +1,7 @@
 package models.dao;
 
-import Audit.AuditLog;
-import security.AccessControl;
+import controllers.AuditLog;
+import controllers.AccessControl;
 import sql.DBConnection;
 
 import java.sql.Connection;

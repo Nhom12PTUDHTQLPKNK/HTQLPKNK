@@ -1,4 +1,4 @@
-package Audit;
+package controllers;
 
 import sql.DBConnection;
 import java.sql.Connection;

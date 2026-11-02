@@ -1,7 +1,7 @@
 
 package models.dao;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import models.entity.DichVu;
 import sql.DBConnection;
 
@@ -193,5 +193,25 @@ public class DichVuDAO {
         dv.setHinhAnh(rs.getString("hinhAnh"));
 
         return dv;
+    }
+    
+    public List<String> getDanhSachLoaiDieuTri() {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT loaiDieuTri FROM DichVu WHERE loaiDieuTri IS NOT NULL";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String loaiDieuTri = rs.getString("loaiDieuTri");
+                if (loaiDieuTri != null && !loaiDieuTri.trim().isEmpty()) {
+                    list.add(loaiDieuTri);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

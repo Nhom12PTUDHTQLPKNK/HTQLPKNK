@@ -1,5 +1,4 @@
-
-package datepicker;
+package controllers;
 
 import java.awt.BorderLayout;
 import java.text.ParseException;

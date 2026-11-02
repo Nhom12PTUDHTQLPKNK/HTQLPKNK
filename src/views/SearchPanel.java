@@ -1,6 +1,6 @@
 package views;
 
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
