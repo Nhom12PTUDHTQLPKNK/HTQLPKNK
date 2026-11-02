@@ -390,11 +390,69 @@ public class AppointmentBookingPanel extends JPanel {
 
         // Nhóm dịch vụ và lịch hẹn
         JPanel appointmentGroup = createGroupPanel("Thông tin dịch vụ và lịch hẹn");
+     // ComboBox dịch vụ: vừa chọn danh sách, vừa nhập tự do
         cbService = new JComboBox<ServiceItem>();
+
+        
+     // Nhấn vào bất kỳ vị trí nào trong ComboBox cũng xổ danh sách
+        cbService.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (!cbService.isPopupVisible()) {
+                    cbService.showPopup();
+                }
+            }
+        });
+
+        cbService.setEditable(true);
+        cbService.setMaximumRowCount(8);
+        cbService.setEditable(true);
+        cbService.setMaximumRowCount(8);
+
+        // Luôn hiển thị nút mũi tên xổ xuống
+        cbService.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                JButton button = new JButton("▼");
+
+                button.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                button.setForeground(BLUE_PRIMARY);
+                button.setBackground(new Color(232, 241, 255));
+                button.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+                button.setFocusPainted(false);
+                button.setContentAreaFilled(true);
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                return button;
+            }
+        });
+
+        cbService.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbService.setBackground(Color.WHITE);
+        cbService.setForeground(TEXT_DARK);
+
+        cbService.setPreferredSize(new Dimension(360, 36));
+        cbService.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+
+        // Phần nhập tên dịch vụ
+        JTextField serviceEditor =
+                (JTextField) cbService.getEditor().getEditorComponent();
+        serviceEditor.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (!cbService.isPopupVisible()) {
+                    cbService.showPopup();
+                }
+            }
+        });
+        serviceEditor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        serviceEditor.setForeground(TEXT_DARK);
+        serviceEditor.setBackground(Color.WHITE);
+        serviceEditor.setBorder(new EmptyBorder(4, 6, 4, 6));
+
         cbDoctor = new JComboBox<DoctorItem>();
         cbTime = new JComboBox<String>();
 
-        styleCombo(cbService);
         styleCombo(cbDoctor);
         styleCombo(cbTime);
 
@@ -2014,7 +2072,10 @@ public class AppointmentBookingPanel extends JPanel {
     private void performSave() {
         String phone = txtPhone.getText().trim();
         String name = txtCustName.getText().trim();
-        ServiceItem service =(ServiceItem) cbService.getSelectedItem();
+        Object selectedService = cbService.getEditor().getItem();
+
+        String serviceName = selectedService == null? "": selectedService.toString().trim();
+
         DoctorItem doctor = (DoctorItem) cbDoctor.getSelectedItem();
         String time = cbTime.getSelectedItem() == null? null: cbTime.getSelectedItem().toString();
         LocalDate date = getSelectedDate();
@@ -2028,9 +2089,8 @@ public class AppointmentBookingPanel extends JPanel {
             return;
         }
 
-        if (service == null || doctor == null) {
-            showWarning("Chưa có dịch vụ hoặc nha sĩ. " + "Vui lòng kiểm tra dữ liệu trong hệ thống!");
-
+        if (serviceName.isEmpty() || doctor == null) {
+            showWarning("Vui lòng nhập dịch vụ khám và chọn nha sĩ phụ trách!");
             return;
         }
         if (date.isBefore(LocalDate.now())) {
@@ -2154,7 +2214,7 @@ public class AppointmentBookingPanel extends JPanel {
                     ps.setDate(4, sqlDate);
                     ps.setString(5, time);
                     ps.setString(6, STATUS_PENDING);
-                    ps.setString(7, service.name);
+                    ps.setString(7, serviceName);
                     ps.executeUpdate();
                 }
 
