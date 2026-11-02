@@ -84,7 +84,7 @@ public class MenuFrame extends JFrame {
         setTitle("SMILE DENTAL MANAGEMENT SYSTEM - HỆ THỐNG QUẢN LÝ PHÒNG KHÁM");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(980, 650));
-        setSize(1600, 900);
+        setSize(1900, 900);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         getContentPane().setBackground(BG_CANVAS);

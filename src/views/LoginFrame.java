@@ -35,7 +35,7 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
         setTitle("Đăng nhập - SmileDental");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(1600, 900);
+        setSize(1900, 900);
         setMinimumSize(new Dimension(1100, 650));
         setLocationRelativeTo(null);
         setFocusableWindowState(true);
