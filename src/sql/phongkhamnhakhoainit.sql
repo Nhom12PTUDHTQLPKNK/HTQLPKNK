@@ -92,8 +92,7 @@ CREATE TABLE DichVu (
 
 
 
-ALTER TABLE DichVu
-ADD hinhAnh VARBINARY(MAX) NULL;
+
 
 -- 4. Bảng Vật Tư
 CREATE TABLE VatTu (
