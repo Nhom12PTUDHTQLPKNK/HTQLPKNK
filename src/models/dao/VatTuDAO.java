@@ -1,6 +1,6 @@
 package models.dao;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import models.entity.VatTu;
 import sql.DBConnection;
 

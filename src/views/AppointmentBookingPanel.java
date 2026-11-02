@@ -1,6 +1,6 @@
 package views;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import sql.DBConnection;
 
 import javax.swing.*;

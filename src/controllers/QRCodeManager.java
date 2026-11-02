@@ -1,4 +1,4 @@
-package qrcode;
+package controllers;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 

@@ -2,7 +2,7 @@ package views;
 
 import models.dao.NhanVienDAO;
 import models.entity.NhanVien;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -25,19 +25,12 @@ import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
-import java.io.ByteArrayOutputStream;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.EncodeHintType;
-import com.google.zxing.MultiFormatWriter;
-import com.google.zxing.qrcode.QRCodeWriter;
-import com.google.zxing.client.j2se.MatrixToImageWriter;
-import com.google.zxing.common.BitMatrix;
+import controllers.EmployeeQrController;
 
 public class EmployeePanel extends JPanel {
     // màu chủ đạo 
@@ -521,11 +514,12 @@ public class EmployeePanel extends JPanel {
         }
 
         try {
-            EmployeeCard card = new EmployeeCard(employee, createEmployeeLoginQr(employee.getMaNhanVien()));
+            EmployeeCard card = new EmployeeCard(employee,
+                    EmployeeQrController.createLoginQrImage(employee.getMaNhanVien()));
             JPanel content = new JPanel(new BorderLayout(0, 14));
             content.setBorder(new EmptyBorder(16, 16, 8, 16));
             content.add(card, BorderLayout.CENTER);
-            JLabel hint = lbl("Mã QR chứa mã nhân viên để nhận diện hồ sơ.", F, MUTED);
+            JLabel hint = lbl("Mã QR dùng để đăng nhập bằng tài khoản nhân viên.", F, MUTED);
             content.add(hint, BorderLayout.SOUTH);
 
             int choice = JOptionPane.showOptionDialog(this, content, "Xem trước thẻ nhân viên",
@@ -535,55 +529,6 @@ public class EmployeePanel extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Không thể tạo mã QR: " + ex.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private static BufferedImage createEmployeeLoginQr(String employeeId) throws Exception {
-        String payload;
-        try (java.sql.Connection conn = sql.DBConnection.getConnection();
-             java.sql.PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT qrPayload, trangThai FROM TaiKhoan WHERE maNhanVien = ?")) {
-            stmt.setString(1, employeeId);
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) throw new SQLException("Nhân viên này chưa được cấp tài khoản đăng nhập.");
-                if (rs.getInt("trangThai") != 1) throw new SQLException("Tài khoản nhân viên đang bị khóa.");
-                payload = rs.getString("qrPayload");
-            }
-        }
-
-        if (!isLoginQrPayload(payload)) {
-            payload = "CLINIC|" + UUID.randomUUID();
-            BitMatrix matrix = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 220, 220);
-            ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
-            MatrixToImageWriter.writeToStream(matrix, "PNG", imageBytes);
-            try (java.sql.Connection conn = sql.DBConnection.getConnection();
-                 java.sql.PreparedStatement stmt = conn.prepareStatement(
-                         "UPDATE TaiKhoan SET qrPayload = ?, qrImage = ? WHERE maNhanVien = ? AND trangThai = 1")) {
-                stmt.setString(1, payload);
-                stmt.setBytes(2, imageBytes.toByteArray());
-                stmt.setString(3, employeeId);
-                if (stmt.executeUpdate() == 0) throw new SQLException("Không thể gắn mã đăng nhập QR vào tài khoản nhân viên.");
-            }
-        }
-
-        Map<EncodeHintType, Object> hints = new HashMap<>();
-        hints.put(EncodeHintType.MARGIN, 1);
-        BitMatrix matrix = new MultiFormatWriter().encode(
-                payload, BarcodeFormat.QR_CODE, 220, 220, hints);
-        BufferedImage image = new BufferedImage(220, 220, BufferedImage.TYPE_INT_RGB);
-        for (int y = 0; y < 220; y++) {
-            for (int x = 0; x < 220; x++) image.setRGB(x, y, matrix.get(x, y) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
-        }
-        return image;
-    }
-
-    private static boolean isLoginQrPayload(String value) {
-        if (value == null || !value.startsWith("CLINIC|")) return false;
-        try {
-            UUID.fromString(value.substring("CLINIC|".length()));
-            return true;
-        } catch (IllegalArgumentException ex) {
-            return false;
         }
     }
 

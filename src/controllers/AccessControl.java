@@ -1,4 +1,4 @@
-package security;
+package controllers;
 
 import controllers.AuthController;
 import models.entity.Account;

@@ -1,10 +1,10 @@
 package views;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import controllers.AuthController;
 import models.entity.Account;
 import models.entity.Role;
-import security.AccessControl;
+import controllers.AccessControl;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

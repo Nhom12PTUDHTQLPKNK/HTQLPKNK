@@ -1,7 +1,7 @@
 package views;
 
-import Audit.AuditLog;
-import report.PdfTableExport;
+import controllers.AuditLog;
+import controllers.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -326,10 +326,10 @@ public class AppointmentUpdatePanel extends JPanel {
         return txt;
     }
 
-    private datepicker.DatePickerField addDateFieldToForm(JPanel form, String labelText) {
+    private controllers.DatePickerField addDateFieldToForm(JPanel form, String labelText) {
         form.add(createFieldLabel(labelText));
         form.add(Box.createVerticalStrut(4));
-        datepicker.DatePickerField field = new datepicker.DatePickerField();
+        controllers.DatePickerField field = new controllers.DatePickerField();
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(field);

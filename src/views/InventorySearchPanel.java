@@ -5,7 +5,7 @@ import inventory.InventoryStore.AlertSummary;
 import inventory.InventoryStore.Category;
 import inventory.InventoryStore.StockRow;
 import inventory.InventoryStore.StockStatus;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

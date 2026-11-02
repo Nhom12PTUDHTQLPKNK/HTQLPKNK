@@ -1,4 +1,4 @@
-package qrcode;
+package controllers;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;

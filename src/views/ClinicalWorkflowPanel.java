@@ -1,6 +1,7 @@
 package views;
 
-import Audit.AuditLog;
+
+import controllers.AuditLog;
 import models.dao.DonThuocDAO;
 import models.dao.KeHoachDieuTriDAO;
 import models.dao.LichHenDAO;

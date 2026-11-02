@@ -1,6 +1,6 @@
 package views;
 
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import sql.DBConnection;
 
 import javax.swing.*;

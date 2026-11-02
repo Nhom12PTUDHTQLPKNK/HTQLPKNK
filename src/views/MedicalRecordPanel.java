@@ -2,7 +2,7 @@ package views;
 
 import models.dao.HoSoBenhAnDAO;
 import models.entity.HoSoBenhAn;
-import report.PdfTableExport;
+import controllers.PdfTableExport;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;

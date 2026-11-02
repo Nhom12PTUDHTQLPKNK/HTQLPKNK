@@ -1,8 +1,8 @@
 package views;
 
 import models.dao.PersonnelAccountDAO;
-import security.AccessControl;
-import report.PdfTableExport;
+import controllers.AccessControl;
+import controllers.PdfTableExport;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

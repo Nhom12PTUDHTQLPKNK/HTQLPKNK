@@ -1,8 +1,8 @@
 package models.dao;
 
-import Audit.AuditLog;
+import controllers.AuditLog;
 import models.entity.NhanVien;
-import security.AccessControl;
+import controllers.AccessControl;
 import sql.DBConnection;
 
 import java.sql.*;
