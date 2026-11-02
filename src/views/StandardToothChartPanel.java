@@ -291,13 +291,13 @@ public class StandardToothChartPanel extends JPanel {
         texts.setLayout(new BoxLayout(texts, BoxLayout.Y_AXIS));
 
         JLabel title = new JLabel("Sơ đồ răng chuẩn");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 26));
         title.setForeground(new Color(15, 29, 69));
 
         JLabel subtitle = new JLabel(
             "Dữ liệu răng chuẩn dùng chung cho toàn hệ thống - Hệ thống FDI"
         );
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         subtitle.setForeground(new Color(74, 100, 130));
 
         texts.add(title);
@@ -345,18 +345,18 @@ public class StandardToothChartPanel extends JPanel {
             }
         };
 
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
                 new EmptyBorder(0, 8, 0, 8)
         ));
 
         JButton btnRefresh = new JButton("  Làm mới");
-        java.net.URL refreshImgUrl = getClass().getResource("/img/refresh.png");
+        java.net.URL refreshImgUrl = getClass().getResource("/img/capnhat.png");
 
         if (refreshImgUrl != null) {
             ImageIcon icon = new ImageIcon(refreshImgUrl);
-            Image scaled = icon.getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+            Image scaled = icon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
             btnRefresh.setIcon(new ImageIcon(scaled));
         } else {
             btnRefresh.setText("↻ Làm mới");
@@ -464,7 +464,7 @@ public class StandardToothChartPanel extends JPanel {
                 new EmptyBorder(0, 8, 0, 8)
         ));
 
-        java.net.URL searchImgUrl = getClass().getResource("/img/search.png");
+        java.net.URL searchImgUrl = getClass().getResource("/img/kinhlup.png");
         JLabel searchIconLabel;
 
         if (searchImgUrl != null) {
@@ -845,7 +845,7 @@ public class StandardToothChartPanel extends JPanel {
         infoBox.setPreferredSize(new Dimension(100, 95));
         infoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 95));
 
-        JLabel infoTitle = new JLabel("ℹ  Thông tin chung");
+        JLabel infoTitle = new JLabel("  Thông tin chung");
         infoTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         infoTitle.setForeground(NAVY);
 
@@ -875,7 +875,7 @@ public class StandardToothChartPanel extends JPanel {
         extraBox.setPreferredSize(new Dimension(100, 100));
         extraBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        JLabel extraTitle = new JLabel("🦷  Mô tả thêm");
+        JLabel extraTitle = new JLabel("  Mô tả thêm");
         extraTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         extraTitle.setForeground(NAVY);
 
