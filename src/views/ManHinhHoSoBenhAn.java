@@ -51,18 +51,11 @@ public class ManHinhHoSoBenhAn extends JPanel {
         JLabel lblTitle = new JLabel("Quản Lý Hồ Sơ Bệnh Án");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
-
-        JLabel lblSub = new JLabel("Quản lý chẩn đoán, lịch sử điều trị và phác đồ nha khoa của bệnh nhân");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
-
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(2));
-        titleBox.add(lblSub);
-
         headerPanel.add(titleBox, BorderLayout.WEST);
 
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));

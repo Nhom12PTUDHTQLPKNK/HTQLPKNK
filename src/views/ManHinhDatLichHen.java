@@ -322,16 +322,9 @@ public class ManHinhDatLichHen extends JPanel {
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Dòng mô tả bên dưới tiêu đề
-        JLabel subtitle = new JLabel("Phòng khám nha khoa Smile Dental");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitle.setForeground(TEXT_GRAY);
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         // Sắp xếp tiêu đề và mô tả theo chiều dọc
         titleBox.add(title);
         titleBox.add(Box.createVerticalStrut(5));
-        titleBox.add(subtitle);
-
         // Ghép logo và tiêu đề thành một hàng ngang
         leftPanel.add(logoLabel);
         leftPanel.add(titleBox);

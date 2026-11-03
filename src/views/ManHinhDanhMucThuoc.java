@@ -89,15 +89,8 @@ public class ManHinhDanhMucThuoc extends JPanel {
         JLabel title = new JLabel("Danh mục thuốc chuẩn");
         title.setFont(new Font("Segoe UI", Font.BOLD, 25));
         title.setForeground(NAVY);
-
-        JLabel subtitle = new JLabel("Quản lý danh mục thuốc sử dụng trong điều trị nha khoa");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setForeground(MUTED);
-
         titlePanel.add(title);
         titlePanel.add(Box.createVerticalStrut(3));
-        titlePanel.add(subtitle);
-
         left.add(logo);
         left.add(titlePanel);
 

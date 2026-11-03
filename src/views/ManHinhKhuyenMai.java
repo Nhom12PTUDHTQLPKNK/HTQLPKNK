@@ -104,15 +104,8 @@ public class ManHinhKhuyenMai extends JPanel {
         JLabel lblTitle = new JLabel("Quản Lý Chương Trình Khuyến Mãi");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblTitle.setForeground(TEXT_DARK);
-
-        JLabel lblSubtitle = new JLabel("Thêm, cập nhật, xóa và theo dõi các chương trình khuyến mãi" );
-        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 17));
-        lblSubtitle.setForeground(TEXT_GRAY);
-
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(7));
-        titleBox.add(lblSubtitle);
-
      // chỗ chứa logo và tiêu đề
         JPanel titleContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         titleContainer.setOpaque(false);

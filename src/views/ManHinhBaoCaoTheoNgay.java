@@ -44,15 +44,10 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titleLabel.setForeground(TEXT_DARK);
-        JLabel descriptionLabel = new JLabel(description);
-        descriptionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        descriptionLabel.setForeground(MUTED);
         JPanel heading = new JPanel();
         heading.setOpaque(false);
         heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
         heading.add(titleLabel);
-        heading.add(Box.createVerticalStrut(3));
-        heading.add(descriptionLabel);
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         filters.setOpaque(false);

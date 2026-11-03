@@ -44,7 +44,7 @@ class ManHinhQuyTrinhLamSang extends JPanel {
         JButton refresh = BoCongCuGiaoDien.button("Tải lại", BoCongCuGiaoDien.BLUE_PRIMARY, 90);
         refresh.addActionListener(e -> reload());
         toolbar.add(refresh);
-        root.add(BoCongCuGiaoDien.pageHeader(title, subtitle, toolbar), BorderLayout.NORTH);
+        root.add(BoCongCuGiaoDien.pageHeader(title, toolbar), BorderLayout.NORTH);
 
         JPanel content = new JPanel(new BorderLayout(0, 12));
         content.setOpaque(false);

@@ -93,15 +93,8 @@ public class ManHinhXuLyBanHang extends JPanel {
             lblTitle.setIcon(logoIcon);
             lblTitle.setIconTextGap(14);
         }
-
-        JLabel lblSub = new JLabel("Tạo hóa đơn mới từ dịch vụ khám bệnh và tra cứu lịch sử hóa đơn toàn hệ thống");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        lblSub.setForeground(MUTED);
-
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(lblSub);
-        
         JPanel headerWestWrapper = new JPanel(new GridBagLayout());
         headerWestWrapper.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();

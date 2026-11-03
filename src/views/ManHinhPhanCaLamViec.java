@@ -139,17 +139,9 @@ public class ManHinhPhanCaLamViec extends JPanel {
      titleBox.add(lblTitle, titleGbc);
 
      // MÔ TẢ
-     JLabel lblSub = new JLabel(
-             "Quản lý và theo dõi lịch phân công làm việc theo tuần"
-     );
-     lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-     lblSub.setForeground(MUTED);
-
      titleGbc.gridx = 1;
      titleGbc.gridy = 1;
      titleGbc.insets = new Insets(4, 0, 0, 0);
-     titleBox.add(lblSub, titleGbc);
-
      headerCard.add(titleBox, BorderLayout.WEST);
 
      // THANH ĐIỀU HƯỚNG TUẦN - GIỮ NGUYÊN CHỨC NĂNG

@@ -31,18 +31,11 @@ public class ManHinhTroGiup extends JPanel {
         JLabel lblTitle = new JLabel("📖 Trợ Giúp & Hướng Dẫn Phím Tắt Hệ Thống");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
-
-        JLabel lblSubtitle = new JLabel("Tra cứu nhanh các nhóm menu hệ thống và tổ hợp phím tắt thao tác nhanh cho người dùng");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSubtitle.setForeground(MUTED);
-
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(2));
-        titleBox.add(lblSubtitle);
-
         headerPanel.add(titleBox, BorderLayout.WEST);
 
         // Ô tìm kiếm nhanh phím tắt

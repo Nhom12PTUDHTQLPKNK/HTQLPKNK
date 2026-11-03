@@ -134,15 +134,8 @@ public class ManHinhXuLyLichHen extends JPanel {
             lblTitle.setIcon(icon("logo5.png", 45, 45));
             lblTitle.setIconTextGap(14); // Khoảng cách giữa ảnh và chữ tiêu đề
         }
-
-        JLabel lblSubtitle = new JLabel("Theo dõi và quản lý lịch khám tại phòng khám nha khoa");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        lblSubtitle.setForeground(TEXT_GRAY);
-
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(lblSubtitle);
-
         // Căn giữa tiêu đề theo chiều dọc trong card
         JPanel headerWestWrapper = new JPanel(new GridBagLayout());
         headerWestWrapper.setOpaque(false);

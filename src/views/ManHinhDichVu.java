@@ -134,13 +134,6 @@
 	        );
 	        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 25));
 	        lblTitle.setForeground(TEXT_DARK);
-	
-	        JLabel lblSub = new JLabel(
-	                "Quản lý danh sách dịch vụ, đơn giá và phân loại điều trị"
-	        );
-	        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-	        lblSub.setForeground(MUTED);
-	
 	        // ================= ICON TIÊU ĐỀ =================
 	        JLabel lblIcon = new JLabel();
 	
@@ -163,12 +156,8 @@
 	        textBox.setOpaque(false);
 	
 	        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-	        lblSub.setAlignmentX(Component.LEFT_ALIGNMENT);
-	
 	        textBox.add(lblTitle);
 	        textBox.add(Box.createVerticalStrut(5));
-	        textBox.add(lblSub);
-	
 	        titleBox.add(lblIcon, BorderLayout.WEST);
 	        titleBox.add(textBox, BorderLayout.CENTER);
 	

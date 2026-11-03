@@ -280,17 +280,8 @@ public class ManHinhSoDoRangChuan extends JPanel {
         JLabel title = new JLabel("Sơ đồ răng chuẩn");
         title.setFont(new Font("Segoe UI", Font.BOLD, 26));
         title.setForeground(new Color(15, 29, 69));
-
-        JLabel subtitle = new JLabel(
-            "Dữ liệu răng chuẩn dùng chung cho toàn hệ thống - Hệ thống FDI"
-        );
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitle.setForeground(new Color(74, 100, 130));
-
         texts.add(title);
         texts.add(Box.createVerticalStrut(4));
-        texts.add(subtitle);
-
         left.add(icon);
         left.add(texts);
 

@@ -68,19 +68,12 @@ public class ManHinhTraCuuDuLieu extends JPanel {
         JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titleLabel.setForeground(TEXT_DARK);
-
-        JLabel subtitleLabel = new JLabel(subtitle);
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitleLabel.setForeground(MUTED);
-
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
 
         titleBox.add(titleLabel);
         titleBox.add(Box.createVerticalStrut(2));
-        titleBox.add(subtitleLabel);
-
         header.add(titleBox, BorderLayout.WEST);
 
         // ================= TOOLBAR =================

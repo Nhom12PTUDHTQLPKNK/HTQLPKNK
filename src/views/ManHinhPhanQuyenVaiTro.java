@@ -95,15 +95,8 @@ public class ManHinhPhanQuyenVaiTro extends JPanel {
             lblTitle.setIcon(logoIcon);
             lblTitle.setIconTextGap(14); // Khoảng cách giữa ảnh và chữ tiêu đề
         }
-
-        JLabel lblSub = new JLabel("Quản lý tên đăng nhập, cấp quyền hệ thống và trạng thái hoạt động của nhân sự");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        lblSub.setForeground(MUTED);
-
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(lblSub);
-        
         // Căn giữa tiêu đề theo chiều dọc trong card
         JPanel headerWestWrapper = new JPanel(new GridBagLayout());
         headerWestWrapper.setOpaque(false);

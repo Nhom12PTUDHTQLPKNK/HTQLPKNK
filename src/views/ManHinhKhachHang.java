@@ -143,16 +143,9 @@ private void createHeader() {
     titleBox.add(lblTitle, titleGbc);
 
     // Mô tả nằm ngay dưới tiêu đề
-    JLabel lblSub = new JLabel("Quản lý hồ sơ thông tin bệnh nhân và khách hàng nha khoa");
-    lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-    lblSub.setForeground(MUTED);
-
     titleGbc.gridx = 1;
     titleGbc.gridy = 1;
     titleGbc.insets = new Insets(4, 0, 0, 0);
-
-    titleBox.add(lblSub, titleGbc);
-
     // Đưa logo và chữ về sát bên trái
     headerCard.add(titleBox, BorderLayout.WEST);
 

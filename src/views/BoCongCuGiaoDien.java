@@ -67,21 +67,16 @@ public final class BoCongCuGiaoDien {
         return p;
     }
 
-    public static JPanel pageHeader(String title, String subtitle, JComponent east) {
+    public static JPanel pageHeader(String title, JComponent east) {
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
         JLabel lblTitle = new JLabel(title);
         lblTitle.setFont(font(Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
-        JLabel lblSub = new JLabel(subtitle);
-        lblSub.setFont(font(Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
         JPanel box = new JPanel();
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setOpaque(false);
         box.add(lblTitle);
-        box.add(Box.createVerticalStrut(2));
-        box.add(lblSub);
         header.add(box, BorderLayout.WEST);
         if (east != null) header.add(east, BorderLayout.EAST);
         return header;

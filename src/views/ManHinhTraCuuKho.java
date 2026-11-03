@@ -48,8 +48,7 @@ public class ManHinhTraCuuKho extends JPanel {
         JPanel root = BoCongCuGiaoDien.pageRoot();
         add(root, BorderLayout.CENTER);
 
-        root.add(BoCongCuGiaoDien.pageHeader("Tra Cứu Tồn Kho",
-                "Tra cứu số lượng tồn theo thuốc, vật tư, thiết bị; theo dõi lô và hạn sử dụng", null), BorderLayout.NORTH);
+        root.add(BoCongCuGiaoDien.pageHeader("Tra Cứu Tồn Kho", null), BorderLayout.NORTH);
 
         JPanel body = new JPanel(new BorderLayout(0, 12));
         body.setOpaque(false);

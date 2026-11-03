@@ -133,15 +133,8 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
             title.setIcon(logoIcon);
             title.setIconTextGap(14);
         }
-
-        JLabel subtitle = new JLabel("Quản lý hồ sơ nhân viên, tài khoản đăng nhập và quyền truy cập");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setForeground(MUTED);
-
         titleBox.add(title);
         titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(subtitle);
-
         // căn giữa tiêu đề theo chiều dọc trong card
         JPanel westWrapper = new JPanel(new GridBagLayout());
         westWrapper.setOpaque(false);
@@ -352,10 +345,6 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
         title.setForeground(TEXT);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel subtitle = new JLabel("Nhập hoặc cập nhật dữ liệu SQL Server");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        subtitle.setForeground(MUTED);
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         // nhãn trạng thái biểu mẫu (thêm mới / đang sửa)
         lblMode.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblMode.setOpaque(true);
@@ -365,7 +354,6 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
 
         heading.add(title);
         heading.add(Box.createVerticalStrut(5));
-        heading.add(subtitle);
         heading.add(Box.createVerticalStrut(10));
         heading.add(lblMode);
 

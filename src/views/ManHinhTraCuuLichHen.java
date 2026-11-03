@@ -187,16 +187,8 @@ public class ManHinhTraCuuLichHen extends JPanel {
         JLabel title = new JLabel("Tra Cứu Lịch Hẹn Khám");
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(TEXT_DARK);
-
-        JLabel subtitle = new JLabel(
-                "Theo dõi, lọc và xem nhanh hồ sơ lịch hẹn");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitle.setForeground(MUTED);
-
         titleBox.add(title);
         titleBox.add(Box.createVerticalStrut(4));
-        titleBox.add(subtitle);
-
         leftPanel.add(logoLabel);
         leftPanel.add(titleBox);
 

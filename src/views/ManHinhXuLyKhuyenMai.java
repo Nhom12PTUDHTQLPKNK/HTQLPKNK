@@ -51,17 +51,11 @@ public class ManHinhXuLyKhuyenMai extends JPanel {
         JLabel lblTitle = new JLabel("Xử Lý: Cập Nhật Khuyến Mãi (F3)");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTitle.setForeground(TEXT_DARK);
-
-        JLabel lblSub = new JLabel("Thiết lập và quản lý các chương trình ưu đãi, giảm giá dịch vụ nha khoa");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(MUTED);
-
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
         titleBox.setOpaque(false);
         titleBox.add(lblTitle);
         titleBox.add(Box.createVerticalStrut(2));
-        titleBox.add(lblSub);
         headerPanel.add(titleBox, BorderLayout.WEST);
 
         // TOOLBAR TÌM KIẾM

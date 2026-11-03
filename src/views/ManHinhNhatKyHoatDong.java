@@ -72,8 +72,7 @@ public class ManHinhNhatKyHoatDong extends JPanel {
             @Override public void actionPerformed(java.awt.event.ActionEvent e) { reloadSource(); }
         });
         tb.add(btnRefresh);
-        root.add(BoCongCuGiaoDien.pageHeader("Nhật Ký Hoạt Động",
-                "Theo dõi các thao tác do hệ thống ghi nhận", tb), BorderLayout.NORTH);
+        root.add(BoCongCuGiaoDien.pageHeader("Nhật Ký Hoạt Động", tb), BorderLayout.NORTH);
 
         JPanel body = new JPanel(new BorderLayout(0, 12));
         body.setOpaque(false);

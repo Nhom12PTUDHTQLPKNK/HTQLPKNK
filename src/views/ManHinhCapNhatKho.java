@@ -106,9 +106,7 @@ public class ManHinhCapNhatKho extends JPanel {
         tb.add(btnSearch);
 
         root.add(BoCongCuGiaoDien.pageHeader(
-            "Cập Nhật Kho - Nhập, Xuất, Điều Chỉnh",
-            "Tồn kho chỉ thay đổi sau khi giao dịch được xác nhận",
-            tb
+            "Cập Nhật Kho - Nhập, Xuất, Điều Chỉnh", tb
         ), BorderLayout.NORTH);
 
         // 2. Center Content (Table + Form)
