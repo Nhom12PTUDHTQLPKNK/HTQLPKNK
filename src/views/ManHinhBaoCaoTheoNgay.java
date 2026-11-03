@@ -1,9 +1,6 @@
 package views;
 
-import controllers.DieuKhienXacThuc;
 import controllers.TruongChonNgay;
-import controllers.XuatBaoCaoExcel;
-import controllers.DichVuBaoCao;
 import models.dao.TruyVanBaoCaoNgayDAO;
 import models.dao.BaoCaoPhongKhamDAO;
 
@@ -12,13 +9,12 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.print.PrinterException;
-import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared date range, SQL refresh, print, Excel and PDF workflow for reports. */
+/** Shared date range, SQL refresh and print workflow for reports. */
 public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
     protected static final Color TEXT_DARK = new Color(15, 29, 69);
     protected static final Color MUTED = new Color(91, 112, 145);
@@ -69,15 +65,9 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         filters.add(period);
         styleButton(runButton, new Color(0, 126, 255));
         JButton print = new JButton("In");
-        JButton excel = new JButton("Excel");
-        JButton pdf = new JButton("PDF");
         styleButton(print, new Color(74, 85, 96));
-        styleButton(excel, new Color(40, 167, 69));
-        styleButton(pdf, new Color(220, 53, 69));
         filters.add(runButton);
         filters.add(print);
-        filters.add(excel);
-        filters.add(pdf);
         JPanel header = new JPanel(new BorderLayout(0, 10));
         header.setOpaque(false);
         header.add(heading, BorderLayout.NORTH);
@@ -102,8 +92,6 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         toDate.setText(today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
         runButton.addActionListener(e -> refreshReport());
         print.addActionListener(e -> printReport());
-        excel.addActionListener(e -> exportExcel());
-        pdf.addActionListener(e -> exportPdf());
     }
 
     protected abstract KetQuaBaoCao fetchReport(LocalDate from, LocalDate to, ChuKyBaoCao period) throws Exception;
@@ -221,32 +209,6 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         table.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 
-    private List<Object[]> currentRows() {
-        List<Object[]> rows = new ArrayList<>();
-        for (int r = 0; r < table.getRowCount(); r++) {
-            Object[] row = new Object[table.getColumnCount()];
-            int modelRow = table.convertRowIndexToModel(r);
-            for (int c = 0; c < table.getColumnCount(); c++) {
-                row[c] = model.getValueAt(modelRow, table.convertColumnIndexToModel(c));
-            }
-            rows.add(row);
-        }
-        return rows;
-    }
-
-    private String[] visibleColumns() {
-        String[] result = new String[table.getColumnCount()];
-        for (int c = 0; c < result.length; c++) {
-            result[c] = String.valueOf(model.getColumnName(table.convertColumnIndexToModel(c)));
-        }
-        return result;
-    }
-
-    private String currentUser() {
-        return DieuKhienXacThuc.getCurrentUser() == null
-                ? "Người dùng" : DieuKhienXacThuc.getCurrentUser().getUsername();
-    }
-
     private void printReport() {
         try {
             table.print(JTable.PrintMode.FIT_WIDTH,
@@ -255,40 +217,6 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         } catch (PrinterException ex) {
             showError("Không thể in báo cáo: " + ex.getMessage());
         }
-    }
-
-    private void exportExcel() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Xuất báo cáo Excel");
-        chooser.setSelectedFile(new File("bao-cao.xlsx"));
-        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
-        File file = withExtension(chooser.getSelectedFile(), ".xlsx");
-        try {
-            XuatBaoCaoExcel.write(file, title, visibleColumns(), currentRows());
-            JOptionPane.showMessageDialog(this, "Đã xuất báo cáo: " + file.getAbsolutePath());
-        } catch (Exception ex) {
-            showError("Không thể xuất Excel: " + ex.getMessage());
-        }
-    }
-
-    private void exportPdf() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Xuất báo cáo PDF");
-        chooser.setSelectedFile(new File("bao-cao.pdf"));
-        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
-        File file = withExtension(chooser.getSelectedFile(), ".pdf");
-        try {
-            DichVuBaoCao.exportTable(file, title, reportSubtitle, visibleColumns(), currentRows(),
-                    "Số dòng: " + table.getRowCount(), currentUser());
-            JOptionPane.showMessageDialog(this, "Đã xuất báo cáo: " + file.getAbsolutePath());
-        } catch (Exception ex) {
-            showError("Không thể xuất PDF: " + ex.getMessage());
-        }
-    }
-
-    private File withExtension(File file, String extension) {
-        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(extension)
-                ? file : new File(file.getParentFile(), file.getName() + extension);
     }
 
     private void showError(String message) {

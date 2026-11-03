@@ -79,7 +79,6 @@ public class ManHinhMenuChinh extends JFrame {
     public static final String CARD_REPORT_REVENUE = "REPORT_REVENUE";
     public static final String CARD_REPORT_SERVICE = "REPORT_SERVICE";
     public static final String CARD_REPORT_WAREHOUSE = "REPORT_WAREHOUSE";
-    public static final String CARD_REPORT_EXPORT = "REPORT_EXPORT";
 
     public ManHinhMenuChinh() {
         setTitle("SMILE DENTAL MANAGEMENT SYSTEM - HỆ THỐNG QUẢN LÝ PHÒNG KHÁM");
@@ -303,7 +302,6 @@ public class ManHinhMenuChinh extends JFrame {
         mainContentPanel.add(new ManHinhBaoCaoDoanhThuCongNo(), CARD_REPORT_REVENUE);
         mainContentPanel.add(new ManHinhBaoCaoDichVuNhaSi(), CARD_REPORT_SERVICE);
         mainContentPanel.add(new ManHinhBaoCaoNhapXuatKho(), CARD_REPORT_WAREHOUSE);
-        mainContentPanel.add(new ManHinhXuatBaoCao(), CARD_REPORT_EXPORT);
 
         mainContentPanel.add(new ManHinhSoDoRangChuan(), CARD_DENTAL_CHART);
         mainContentPanel.add(new ManHinhDanhMucThuoc(), CARD_MEDICINES);
@@ -475,7 +473,6 @@ public class ManHinhMenuChinh extends JFrame {
         addItem(mnuReport, "Doanh thu, chi phí & công nợ", "/img/report_revenue.png", CARD_REPORT_REVENUE, KeyEvent.VK_R, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuReport, "Thống kê dịch vụ & hiệu suất nha sĩ", "/img/report_service.png", CARD_REPORT_SERVICE, KeyEvent.VK_E, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuReport, "Thống kê xuất nhập tồn kho", "/img/report_warehouse.png", CARD_REPORT_WAREHOUSE, KeyEvent.VK_A, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
-        addItem(mnuReport, "Kết xuất báo cáo Excel / PDF", "/img/thongke.png", CARD_REPORT_EXPORT, KeyEvent.VK_P, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
 
         menuBar.add(mnuSystem);
         menuBar.add(mnuCategory);
