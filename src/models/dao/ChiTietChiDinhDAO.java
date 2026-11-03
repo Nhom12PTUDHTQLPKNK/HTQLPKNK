@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.ChiTietChiDinh;
 import sql.DBConnection;
 
@@ -39,7 +39,7 @@ public class ChiTietChiDinhDAO {
                     }
                 }
 
-                AuditLog.event("CREATE",
+                NhatKyKiemToan.event("CREATE",
                         "Thêm chỉ định dịch vụ " + ctd.getMaDichVu()
                         + " - Bệnh án " + ctd.getMaBenhAn());
             }
@@ -72,7 +72,7 @@ public class ChiTietChiDinhDAO {
             boolean updated = stmt.executeUpdate() > 0;
 
             if (updated) {
-                AuditLog.event("UPDATE",
+                NhatKyKiemToan.event("UPDATE",
                         "Cập nhật chi tiết chỉ định mã: " + ctd.getMaChiDinh());
             }
 
@@ -92,7 +92,7 @@ public class ChiTietChiDinhDAO {
             boolean deleted = stmt.executeUpdate() > 0;
 
             if (deleted) {
-                AuditLog.event("DELETE",
+                NhatKyKiemToan.event("DELETE",
                         "Xóa chi tiết chỉ định mã: " + maChiDinh);
             }
 

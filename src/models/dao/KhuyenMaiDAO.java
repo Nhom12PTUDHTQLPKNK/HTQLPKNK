@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.KhuyenMai;
 import sql.DBConnection;
 
@@ -21,7 +21,7 @@ public class KhuyenMaiDAO {
             stmt.setDate(5, (Date) km.getNgayKetThuc());
             stmt.setBoolean(6, km.getTrangThai() != null ? km.getTrangThai() : true);
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Khuyến mãi " + km.getMaKhuyenMai());
+            if (saved) NhatKyKiemToan.event("CREATE", "Khuyến mãi " + km.getMaKhuyenMai());
             return saved;
         }
     }
@@ -37,7 +37,7 @@ public class KhuyenMaiDAO {
             stmt.setBoolean(5, km.getTrangThai() != null ? km.getTrangThai() : true);
             stmt.setString(6, km.getMaKhuyenMai());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Khuyến mãi " + km.getMaKhuyenMai());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Khuyến mãi " + km.getMaKhuyenMai());
             return updated;
         }
     }
@@ -48,7 +48,7 @@ public class KhuyenMaiDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maKhuyenMai);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Khuyến mãi " + maKhuyenMai);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Khuyến mãi " + maKhuyenMai);
             return deleted;
         }
     }

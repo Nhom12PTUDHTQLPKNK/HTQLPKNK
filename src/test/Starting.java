@@ -3,7 +3,7 @@ package test;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-import views.LoginFrame;
+import views.ManHinhDangNhap;
 
 
 
@@ -21,6 +21,6 @@ public class Starting {
 
         // 3. Mở màn hình đăng nhập
         
-        SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
+        SwingUtilities.invokeLater(() -> new ManHinhDangNhap().setVisible(true));
     }
 }

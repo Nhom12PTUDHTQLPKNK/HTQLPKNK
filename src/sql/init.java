@@ -46,15 +46,28 @@ public class init {
 
             // The SQL script drops and recreates every table. Run it only for a
             // first-time setup so normal application launches preserve user data.
+            boolean databaseExists;
             try (PreparedStatement checkDatabase = conn.prepareStatement(
                     "SELECT 1 FROM sys.databases WHERE name = ?")) {
                 checkDatabase.setString(1, "QuanLyPhongKhamNhaKhoa");
                 try (ResultSet rs = checkDatabase.executeQuery()) {
-                    if (rs.next()) {
-                        System.out.println(">>> Cơ sở dữ liệu đã tồn tại; bỏ qua khởi tạo để giữ dữ liệu hiện có.");
-                        return;
-                    }
+                    databaseExists = rs.next();
                 }
+            }
+            if (databaseExists) {
+                // Hủy lịch đã quá thời điểm hẹn và gỡ xác nhận sớm khỏi lịch tương lai.
+                stmt.executeUpdate("UPDATE QuanLyPhongKhamNhaKhoa.dbo.LichHen "
+                        + "SET trangThai = CASE "
+                        + "WHEN ngayHen < CAST(GETDATE() AS DATE) "
+                        + "OR (ngayHen = CAST(GETDATE() AS DATE) "
+                        + "AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time)) THEN N'Đã hủy' "
+                        + "WHEN ngayHen > CAST(GETDATE() AS DATE) AND trangThai = N'Đã xác nhận' THEN N'Chờ xác nhận' "
+                        + "ELSE trangThai END "
+                        + "WHERE ngayHen < CAST(GETDATE() AS DATE) "
+                        + "OR (ngayHen = CAST(GETDATE() AS DATE) AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time)) "
+                        + "OR (ngayHen > CAST(GETDATE() AS DATE) AND trangThai = N'Đã xác nhận')");
+                System.out.println(">>> Cơ sở dữ liệu đã tồn tại; bỏ qua khởi tạo để giữ dữ liệu hiện có.");
+                return;
             }
 
             InputStream inputStream = init.class.getResourceAsStream(resourceName);

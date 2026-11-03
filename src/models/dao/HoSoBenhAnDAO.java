@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.HoSoBenhAn;
 import sql.DBConnection;
 
@@ -22,7 +22,7 @@ public class HoSoBenhAnDAO {
             stmt.setString(6, hs.getChuanDoan());
             stmt.setString(7, hs.getTrangThai());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Bệnh án " + hs.getMaBenhAn());
+            if (saved) NhatKyKiemToan.event("CREATE", "Bệnh án " + hs.getMaBenhAn());
             return saved;
         }
     }
@@ -39,7 +39,7 @@ public class HoSoBenhAnDAO {
             stmt.setString(6, hs.getTrangThai());
             stmt.setString(7, hs.getMaBenhAn());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Bệnh án " + hs.getMaBenhAn());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Bệnh án " + hs.getMaBenhAn());
             return updated;
         }
     }
@@ -50,7 +50,7 @@ public class HoSoBenhAnDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maBenhAn);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Bệnh án " + maBenhAn);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Bệnh án " + maBenhAn);
             return deleted;
         }
     }
@@ -62,7 +62,7 @@ public class HoSoBenhAnDAO {
             stmt.setString(1, trangThaiMoi);
             stmt.setString(2, maBenhAn);
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Trạng thái bệnh án " + maBenhAn);
+            if (updated) NhatKyKiemToan.event("UPDATE", "Trạng thái bệnh án " + maBenhAn);
             return updated;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -117,6 +117,22 @@ public class HoSoBenhAnDAO {
             while (rs.next()) dentists.add(new String[]{rs.getString("maNhanVien"), rs.getString("tenNhanVien")});
         }
         return dentists;
+    }
+
+    public List<Object[]> getCustomerHistory(String customerId) throws SQLException {
+        List<Object[]> rows = new ArrayList<>();
+        String sql = "SELECT ba.maBenhAn, ba.ngayKham, nv.tenNhanVien, ba.chuanDoan, ba.ketQuaKham, ba.trangThai "
+                + "FROM HoSoBenhAn ba LEFT JOIN NhanVien nv ON ba.maNhanVien = nv.maNhanVien "
+                + "WHERE ba.maKhachHang = ? ORDER BY ba.ngayKham DESC";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) rows.add(new Object[]{rs.getString("maBenhAn"), rs.getDate("ngayKham"),
+                        rs.getString("tenNhanVien"), rs.getString("chuanDoan"), rs.getString("ketQuaKham"),
+                        rs.getString("trangThai")});
+            }
+        }
+        return rows;
     }
 
     public List<HoSoBenhAn> search(String keyword) {

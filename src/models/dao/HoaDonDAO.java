@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.HoaDon;
 import sql.DBConnection;
 
@@ -21,7 +21,7 @@ public class HoaDonDAO {
             stmt.setString(5, hd.getMaKhuyenMai());
             stmt.setDate(6, hd.getNgayLap() != null ? new java.sql.Date(hd.getNgayLap().getTime()) : null);
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Hóa đơn " + hd.getMaHoaDon());
+            if (saved) NhatKyKiemToan.event("CREATE", "Hóa đơn " + hd.getMaHoaDon());
             return saved;
         }
     }
@@ -37,7 +37,7 @@ public class HoaDonDAO {
             stmt.setDate(5, hd.getNgayLap() != null ? new java.sql.Date(hd.getNgayLap().getTime()) : null);
             stmt.setString(6, hd.getMaHoaDon());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Hóa đơn " + hd.getMaHoaDon());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Hóa đơn " + hd.getMaHoaDon());
             return updated;
         }
     }
@@ -48,7 +48,7 @@ public class HoaDonDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maHoaDon);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Hóa đơn " + maHoaDon);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Hóa đơn " + maHoaDon);
             return deleted;
         }
     }

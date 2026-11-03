@@ -1,8 +1,8 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.NhanVien;
-import controllers.AccessControl;
+import controllers.KiemSoatTruyCap;
 import sql.DBConnection;
 
 import java.sql.*;
@@ -24,7 +24,7 @@ public class NhanVienDAO {
             stmt.setString(7, nv.getTrinhDo());
             stmt.setDouble(8, nv.getMucLuong() != null ? nv.getMucLuong() : 0.0);
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Nhân viên " + nv.getMaNhanVien());
+            if (saved) NhatKyKiemToan.event("CREATE", "Nhân viên " + nv.getMaNhanVien());
             return saved;
         }
     }
@@ -42,7 +42,7 @@ public class NhanVienDAO {
             stmt.setDouble(7, nv.getMucLuong() != null ? nv.getMucLuong() : 0.0);
             stmt.setString(8, nv.getMaNhanVien());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Nhân viên " + nv.getMaNhanVien());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Nhân viên " + nv.getMaNhanVien());
             return updated;
         }
     }
@@ -54,15 +54,15 @@ public class NhanVienDAO {
             try (ResultSet rs = lookup.executeQuery()) {
                 if (rs.next()) {
                     String username = rs.getString("tenDN");
-                    if (!AccessControl.isAdministrator()) throw new SQLException("Chỉ admin mới được xóa nhân viên có tài khoản.");
-                    if (AccessControl.isCurrentAccount(username)) throw new SQLException("Không thể tự xóa tài khoản đang đăng nhập.");
-                    if (AccessControl.isProtectedAdministrator(username, rs.getString("quyen"))) throw new SQLException("Không thể xóa tài khoản admin/quản lý.");
+                    if (!KiemSoatTruyCap.isAdministrator()) throw new SQLException("Chỉ admin mới được xóa nhân viên có tài khoản.");
+                    if (KiemSoatTruyCap.isCurrentAccount(username)) throw new SQLException("Không thể tự xóa tài khoản đang đăng nhập.");
+                    if (KiemSoatTruyCap.isProtectedAdministrator(username, rs.getString("quyen"))) throw new SQLException("Không thể xóa tài khoản admin/quản lý.");
                 }
             }
             try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM NhanVien WHERE maNhanVien = ?")) {
             stmt.setString(1, maNhanVien);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Nhân viên " + maNhanVien);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Nhân viên " + maNhanVien);
             return deleted;
             }
         }

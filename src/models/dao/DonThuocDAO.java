@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.DonThuoc;
 import sql.DBConnection;
 
@@ -25,7 +25,7 @@ public class DonThuocDAO {
             stmt.setInt(9, dt.getSoLuong());
             stmt.setString(10, dt.getCachDung());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Đơn thuốc " + dt.getMaDonThuoc());
+            if (saved) NhatKyKiemToan.event("CREATE", "Đơn thuốc " + dt.getMaDonThuoc());
             return saved;
         }
     }

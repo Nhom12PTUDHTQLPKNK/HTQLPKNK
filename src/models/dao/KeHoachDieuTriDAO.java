@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.KeHoachDieuTri;
 import sql.DBConnection;
 
@@ -25,7 +25,7 @@ public class KeHoachDieuTriDAO {
             stmt.setDouble(9, khdt.getTongChiPhiDuKien() != null ? khdt.getTongChiPhiDuKien() : 0.0);
             stmt.setString(10, khdt.getTrangThai());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Kế hoạch điều trị " + khdt.getMaKeHoach());
+            if (saved) NhatKyKiemToan.event("CREATE", "Kế hoạch điều trị " + khdt.getMaKeHoach());
             return saved;
         }
     }

@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.KhachHang;
 import sql.DBConnection;
 
@@ -23,7 +23,7 @@ public class KhachHangDAO {
             stmt.setString(7, kh.getTienSuBenh());
             stmt.setInt(8, kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0);
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Khách hàng " + kh.getMaKhachHang());
+            if (saved) NhatKyKiemToan.event("CREATE", "Khách hàng " + kh.getMaKhachHang());
             return saved;
         }
     }
@@ -41,7 +41,7 @@ public class KhachHangDAO {
             stmt.setInt(7, kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0);
             stmt.setString(8, kh.getMaKhachHang());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Khách hàng " + kh.getMaKhachHang());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Khách hàng " + kh.getMaKhachHang());
             return updated;
         }
     }
@@ -52,7 +52,7 @@ public class KhachHangDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maKhachHang);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Khách hàng " + maKhachHang);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Khách hàng " + maKhachHang);
             return deleted;
         }
     }

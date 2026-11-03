@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.VatTu;
 import sql.DBConnection;
 
@@ -19,7 +19,7 @@ public class VatTuDAO {
             stmt.setInt(1, soLuongNhap);
             stmt.setString(2, maVatTu);
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Nhập kho vật tư/thiết bị " + maVatTu + ", số lượng " + soLuongNhap);
+            if (updated) NhatKyKiemToan.event("UPDATE", "Nhập kho vật tư/thiết bị " + maVatTu + ", số lượng " + soLuongNhap);
             return updated;
         }
     }
@@ -34,7 +34,7 @@ public class VatTuDAO {
             stmt.setInt(4, vt.getSoLuongTon() != null ? vt.getSoLuongTon() : 0);
             stmt.setDate(5, (Date) vt.getNgaySuDung());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Vật tư " + vt.getMaVatTu());
+            if (saved) NhatKyKiemToan.event("CREATE", "Vật tư " + vt.getMaVatTu());
             return saved;
         }
     }
@@ -49,7 +49,7 @@ public class VatTuDAO {
             stmt.setDate(4, (Date) vt.getNgaySuDung());
             stmt.setString(5, vt.getMaVatTu());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Vật tư " + vt.getMaVatTu());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Vật tư " + vt.getMaVatTu());
             return updated;
         }
     }
@@ -60,7 +60,7 @@ public class VatTuDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maVatTu);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Vật tư " + maVatTu);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Vật tư " + maVatTu);
             return deleted;
         }
     }
@@ -73,7 +73,7 @@ public class VatTuDAO {
             stmt.setString(2, maVatTu);
             stmt.setInt(3, soLuongDung);
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Trừ tồn vật tư " + maVatTu + ", số lượng " + soLuongDung);
+            if (updated) NhatKyKiemToan.event("UPDATE", "Trừ tồn vật tư " + maVatTu + ", số lượng " + soLuongDung);
             return updated;
         } catch (SQLException e) {
             e.printStackTrace();

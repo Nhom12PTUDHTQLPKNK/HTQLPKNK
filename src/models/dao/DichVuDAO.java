@@ -1,7 +1,7 @@
 
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.DichVu;
 import sql.DBConnection;
 
@@ -44,7 +44,7 @@ public class DichVuDAO {
             boolean saved = stmt.executeUpdate() > 0;
 
             if (saved) {
-                AuditLog.event("CREATE", "Dịch vụ " + dv.getMaDichVu());
+                NhatKyKiemToan.event("CREATE", "Dịch vụ " + dv.getMaDichVu());
             }
 
             return saved;
@@ -89,7 +89,7 @@ public class DichVuDAO {
             boolean updated = stmt.executeUpdate() > 0;
 
             if (updated) {
-                AuditLog.event("UPDATE", "Dịch vụ " + dv.getMaDichVu());
+                NhatKyKiemToan.event("UPDATE", "Dịch vụ " + dv.getMaDichVu());
             }
 
             return updated;
@@ -109,7 +109,7 @@ public class DichVuDAO {
             boolean deleted = stmt.executeUpdate() > 0;
 
             if (deleted) {
-                AuditLog.event("DELETE", "Dịch vụ " + maDichVu);
+                NhatKyKiemToan.event("DELETE", "Dịch vụ " + maDichVu);
             }
 
             return deleted;

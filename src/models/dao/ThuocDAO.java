@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.Thuoc;
 import sql.DBConnection;
 
@@ -27,7 +27,7 @@ public class ThuocDAO {
             stmt.setString(11, t.getHinhAnh());
             stmt.setBoolean(12, t.getTrangThai() != null ? t.getTrangThai() : true);
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Thuốc " + t.getMaThuoc());
+            if (saved) NhatKyKiemToan.event("CREATE", "Thuốc " + t.getMaThuoc());
             return saved;
         }
     }
@@ -49,7 +49,7 @@ public class ThuocDAO {
             stmt.setBoolean(11, t.getTrangThai() != null ? t.getTrangThai() : true);
             stmt.setString(12, t.getMaThuoc());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Thuốc " + t.getMaThuoc());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Thuốc " + t.getMaThuoc());
             return updated;
         }
     }
@@ -60,7 +60,7 @@ public class ThuocDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maThuoc);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Thuốc " + maThuoc);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Thuốc " + maThuoc);
             return deleted;
         }
     }

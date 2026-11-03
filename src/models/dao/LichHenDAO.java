@@ -58,25 +58,27 @@ public class LichHenDAO {
                 "WHERE lh.trangThai = ? " +
                 "ORDER BY lh.ngayHen ASC, lh.gioKham ASC";
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBConnection.getConnection()) {
+            normalizeAppointmentStatuses(conn);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, trangThai);
+                ps.setString(1, trangThai);
 
-            try (ResultSet rs = ps.executeQuery()) {
+                try (ResultSet rs = ps.executeQuery()) {
 
-                while (rs.next()) {
+                    while (rs.next()) {
 
-                    model.addRow(new Object[]{
-                            rs.getString("maLichHen"),
-                            rs.getString("tenKH"),
-                            rs.getString("sdt"),
-                            rs.getString("tenNhanVien"),
-                            rs.getDate("ngayHen"),
-                            rs.getString("gioKham"),
-                            rs.getString("trangThai"),
-                            rs.getString("ghiChu")
-                    });
+                        model.addRow(new Object[]{
+                                rs.getString("maLichHen"),
+                                rs.getString("tenKH"),
+                                rs.getString("sdt"),
+                                rs.getString("tenNhanVien"),
+                                rs.getDate("ngayHen"),
+                                rs.getString("gioKham"),
+                                rs.getString("trangThai"),
+                                rs.getString("ghiChu")
+                        });
+                    }
                 }
             }
 
@@ -95,9 +97,27 @@ public class LichHenDAO {
         return getDanhSachLichHen("Đã xác nhận");
     }
 
+    public List<Object[]> getAppointmentSearchRows() throws SQLException {
+        normalizeAppointmentStatuses();
+        List<Object[]> rows = new ArrayList<>();
+        String sql = "SELECT L.maLichHen, K.maKhachHang, K.tenKH, K.sdt, L.ghiChu AS dichVu, "
+                + "N.tenNhanVien AS nhaSi, L.ngayHen, L.gioKham, L.trangThai "
+                + "FROM LichHen L INNER JOIN KhachHang K ON L.maKhachHang = K.maKhachHang "
+                + "LEFT JOIN NhanVien N ON L.maNhanVien = N.maNhanVien "
+                + "ORDER BY L.ngayHen DESC, L.gioKham DESC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(new Object[]{rs.getString("maLichHen"), rs.getString("maKhachHang"),
+                    rs.getString("tenKH"), rs.getString("sdt"), rs.getString("dichVu"), rs.getString("nhaSi"),
+                    rs.getDate("ngayHen"), rs.getString("gioKham"), rs.getString("trangThai")});
+        }
+        return rows;
+    }
+
     // ==================== GET ALL APPOINTMENTS ====================
 
-    // Dữ liệu trả về đúng 8 cột của BookingProcessPanel:
+    // Dữ liệu trả về đúng 8 cột của ManHinhXuLyLichHen:
     // 0: Mã lịch hẹn
     // 1: Tên khách hàng
     // 2: Số điện thoại
@@ -110,6 +130,8 @@ public class LichHenDAO {
     public List<Object[]> getAllAppointments() {
 
         List<Object[]> list = new ArrayList<>();
+        try { normalizeAppointmentStatuses(); }
+        catch (SQLException e) { throw new RuntimeException("Không thể cập nhật trạng thái lịch hẹn hết hạn.", e); }
 
         String sql =
                 "SELECT lh.maLichHen, " +
@@ -192,14 +214,18 @@ public class LichHenDAO {
                 "UPDATE LichHen " +
                 "SET trangThai = N'Đã xác nhận' " +
                 "WHERE maLichHen = ? " +
-                "AND trangThai = N'Chờ xác nhận'";
+                "AND trangThai = N'Chờ xác nhận' " +
+                "AND ngayHen = CAST(GETDATE() AS DATE) " +
+                "AND TRY_CONVERT(time, gioKham) >= CAST(GETDATE() AS time)";
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBConnection.getConnection()) {
+            normalizeAppointmentStatuses(conn);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, maLichHen);
+                ps.setString(1, maLichHen);
 
-            return ps.executeUpdate() > 0;
+                return ps.executeUpdate() > 0;
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -478,6 +504,8 @@ public class LichHenDAO {
     // Lấy danh sách lịch hẹn đầy đủ thông tin Tuổi & Giới tính cho màn hình Khám bệnh
     public List<Object[]> getAllAppointmentsWithPatientInfo() {
         List<Object[]> list = new ArrayList<>();
+        try { normalizeAppointmentStatuses(); }
+        catch (SQLException e) { throw new RuntimeException("Không thể cập nhật trạng thái lịch hẹn hết hạn.", e); }
         String sql =
                 "SELECT lh.maLichHen, kh.tenKH, kh.sdt, kh.ngaySinh, kh.gioiTinh, " +
                 "lh.ghiChu, nv.tenNhanVien, lh.ngayHen, lh.gioKham, lh.trangThai " +
@@ -549,15 +577,40 @@ public class LichHenDAO {
 
     // Cập nhật trạng thái lịch hẹn (chuyển sang 'Đang khám', 'Hoàn thành', v.v.)
     public boolean updateStatus(String maLichHen, String trangThaiMoi) {
-        String sql = "UPDATE LichHen SET trangThai = ? WHERE maLichHen = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "UPDATE LichHen SET trangThai = ? WHERE maLichHen = ? "
+                + "AND (? <> N'Đã xác nhận' OR (ngayHen = CAST(GETDATE() AS DATE) "
+                + "AND TRY_CONVERT(time, gioKham) >= CAST(GETDATE() AS time)))";
+        try (Connection conn = DBConnection.getConnection()) {
+            normalizeAppointmentStatuses(conn);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, trangThaiMoi);
             ps.setString(2, maLichHen);
+            ps.setString(3, trangThaiMoi);
             return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
+    }
+
+    private void normalizeAppointmentStatuses(Connection conn) throws SQLException {
+        String sql = "UPDATE LichHen SET trangThai = CASE "
+                + "WHEN ngayHen < CAST(GETDATE() AS DATE) "
+                + "OR (ngayHen = CAST(GETDATE() AS DATE) "
+                + "AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time)) THEN N'Đã hủy' "
+                + "WHEN ngayHen > CAST(GETDATE() AS DATE) AND trangThai = N'Đã xác nhận' THEN N'Chờ xác nhận' "
+                + "ELSE trangThai END "
+                + "WHERE ngayHen < CAST(GETDATE() AS DATE) "
+                + "OR (ngayHen = CAST(GETDATE() AS DATE) "
+                + "AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time)) "
+                + "OR (ngayHen > CAST(GETDATE() AS DATE) AND trangThai = N'Đã xác nhận')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.executeUpdate();
+        }
+    }
+
+    private void normalizeAppointmentStatuses() throws SQLException {
+        try (Connection conn = DBConnection.getConnection()) { normalizeAppointmentStatuses(conn); }
     }
 }

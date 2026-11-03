@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.ChiTietHoaDon;
 import sql.DBConnection;
 
@@ -20,7 +20,7 @@ public class ChiTietHoaDonDAO {
             stmt.setInt(4, cthd.getSoLuong());
             stmt.setDouble(5, cthd.getDonGia());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Chi tiết hóa đơn " + cthd.getMaHoaDon());
+            if (saved) NhatKyKiemToan.event("CREATE", "Chi tiết hóa đơn " + cthd.getMaHoaDon());
             return saved;
         }
     }
@@ -55,7 +55,7 @@ public class ChiTietHoaDonDAO {
             stmt.setString(1, maHoaDon);
             stmt.setString(2, maDichVu);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Chi tiết hóa đơn " + maHoaDon);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Chi tiết hóa đơn " + maHoaDon);
             return deleted;
         }
     }

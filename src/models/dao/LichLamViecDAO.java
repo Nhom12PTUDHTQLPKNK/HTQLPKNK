@@ -1,6 +1,6 @@
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.LichLamViec;
 import sql.DBConnection;
 
@@ -44,7 +44,7 @@ public class LichLamViecDAO {
             stmt.setString(5, llv.getGioKetThuc());
             stmt.setString(6, llv.getTrangThai());
             boolean saved = stmt.executeUpdate() > 0;
-            if (saved) AuditLog.event("CREATE", "Lịch làm việc " + llv.getMaLichLamViec());
+            if (saved) NhatKyKiemToan.event("CREATE", "Lịch làm việc " + llv.getMaLichLamViec());
             return saved;
         }
     }
@@ -61,7 +61,7 @@ public class LichLamViecDAO {
             stmt.setString(5, llv.getTrangThai());
             stmt.setString(6, llv.getMaLichLamViec());
             boolean updated = stmt.executeUpdate() > 0;
-            if (updated) AuditLog.event("UPDATE", "Lịch làm việc " + llv.getMaLichLamViec());
+            if (updated) NhatKyKiemToan.event("UPDATE", "Lịch làm việc " + llv.getMaLichLamViec());
             return updated;
         }
     }
@@ -73,7 +73,7 @@ public class LichLamViecDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maLichLamViec);
             boolean deleted = stmt.executeUpdate() > 0;
-            if (deleted) AuditLog.event("DELETE", "Lịch làm việc " + maLichLamViec);
+            if (deleted) NhatKyKiemToan.event("DELETE", "Lịch làm việc " + maLichLamViec);
             return deleted;
         }
     }

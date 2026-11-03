@@ -537,6 +537,21 @@ INSERT INTO LichHen (maLichHen, maKhachHang, maNhanVien, ngayHen, gioKham, trang
 ('LH019', 'KH007', 'NV003', DATEADD(DAY, 5, CAST(GETDATE() AS DATE)), '15:00', N'Chờ xác nhận', N'Kiểm tra răng'),
 ('LH020', 'KH001', 'NV001', DATEADD(DAY, 6, CAST(GETDATE() AS DATE)), '16:30', N'Đã xác nhận', N'Tư vấn nha khoa');
 
+UPDATE LichHen
+SET trangThai = CASE
+    WHEN ngayHen < CAST(GETDATE() AS DATE)
+      OR (ngayHen = CAST(GETDATE() AS DATE)
+          AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time)) THEN N'Đã hủy'
+    WHEN ngayHen > CAST(GETDATE() AS DATE)
+      AND trangThai = N'Đã xác nhận' THEN N'Chờ xác nhận'
+    ELSE trangThai
+END
+WHERE ngayHen < CAST(GETDATE() AS DATE)
+   OR (ngayHen = CAST(GETDATE() AS DATE)
+       AND TRY_CONVERT(time, gioKham) < CAST(GETDATE() AS time))
+   OR (ngayHen > CAST(GETDATE() AS DATE)
+       AND trangThai = N'Đã xác nhận');
+
 -- 10. HoSoBenhAn
 INSERT INTO HoSoBenhAn (maBenhAn, maKhachHang, maNhanVien, ngayKham, ketQuaKham, chuanDoan, trangThai) VALUES
 ('BA001', 'KH001', 'NV002', '2026-10-24', N'Răng sạch sau điều trị', N'Cao răng', N'Hoàn thành'),

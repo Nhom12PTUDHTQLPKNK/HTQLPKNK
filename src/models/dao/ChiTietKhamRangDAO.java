@@ -1,7 +1,7 @@
 
 package models.dao;
 
-import controllers.AuditLog;
+import controllers.NhatKyKiemToan;
 import models.entity.ChiTietKhamRang;
 import sql.DBConnection;
 
@@ -40,7 +40,7 @@ public class ChiTietKhamRangDAO {
                     }
                 }
 
-                AuditLog.event("CREATE",
+                NhatKyKiemToan.event("CREATE",
                         "Thêm thông tin khám răng " + ct.getMaRang()
                         + " - Bệnh án " + ct.getMaBenhAn());
             }
@@ -72,7 +72,7 @@ public class ChiTietKhamRangDAO {
             boolean updated = stmt.executeUpdate() > 0;
 
             if (updated) {
-                AuditLog.event("UPDATE",
+                NhatKyKiemToan.event("UPDATE",
                         "Cập nhật thông tin khám răng "
                         + ct.getMaRang());
             }
@@ -95,7 +95,7 @@ public class ChiTietKhamRangDAO {
             boolean deleted = stmt.executeUpdate() > 0;
 
             if (deleted) {
-                AuditLog.event("DELETE",
+                NhatKyKiemToan.event("DELETE",
                         "Xóa chi tiết khám răng " + maChiTietKham);
             }
 
