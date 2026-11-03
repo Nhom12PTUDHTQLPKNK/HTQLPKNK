@@ -9,6 +9,7 @@ public class HoSoBenhAn {
     private String maBenhAn;
     private String maKhachHang;
     private String maNhanVien;
+    private String tenNhanVien;
     private Date ngayKham;
     private String ketQuaKham;
     private String chuanDoan;
@@ -34,6 +35,9 @@ public class HoSoBenhAn {
 
     public String getMaNhanVien() { return maNhanVien; }
     public void setMaNhanVien(String maNhanVien) { this.maNhanVien = maNhanVien; }
+
+    public String getTenNhanVien() { return tenNhanVien; }
+    public void setTenNhanVien(String tenNhanVien) { this.tenNhanVien = tenNhanVien; }
 
     public Date getNgayKham() { return ngayKham; }
     public void setNgayKham(Date ngayKham) { this.ngayKham = ngayKham; }

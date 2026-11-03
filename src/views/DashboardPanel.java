@@ -565,13 +565,15 @@ public class DashboardPanel extends JPanel {
                  // 2. BIỂU ĐỒ DOANH THU 7 NGÀY GẦN NHẤT
                     
                     
+                    // Compare calendar dates so datetime values with a time component
+                    // are still included in the correct daily total.
                     String revenueSql = "WITH Ngay AS ( "
                             + "  SELECT CAST(GETDATE() AS DATE) AS NgayDoanhThu "
                             + "  UNION ALL "
                             + "  SELECT DATEADD(DAY, -1, NgayDoanhThu) FROM Ngay WHERE NgayDoanhThu > DATEADD(DAY, -6, CAST(GETDATE() AS DATE)) "
                             + ") "
                             + "SELECT n.NgayDoanhThu, COALESCE(SUM(p.daThanhToan), 0) AS DoanhThu "
-                            + "FROM Ngay n LEFT JOIN PhieuThanhToan p ON p.ngayThanhToan = n.NgayDoanhThu "
+                            + "FROM Ngay n LEFT JOIN PhieuThanhToan p ON CAST(p.ngayThanhToan AS DATE) = n.NgayDoanhThu "
                             + "GROUP BY n.NgayDoanhThu ORDER BY n.NgayDoanhThu ASC OPTION (MAXRECURSION 7)";
 
                     try (PreparedStatement ps = conn.prepareStatement(revenueSql);
@@ -1004,8 +1006,11 @@ public class DashboardPanel extends JPanel {
             for (double v : serviceRevenue) total += v;
             if (total <= 0) { g2.dispose(); return; }
 
-            int diameter = Math.min(165, Math.max(100, getHeight() - 45));
-            int cx = 20, cy = 48;
+            // Reserve a useful column for labels while growing the chart to the
+            // available height and width of this panel.
+            int diameter = Math.min(205, Math.min(getHeight() - 62, getWidth() - 205));
+            diameter = Math.max(100, diameter);
+            int cx = 18, cy = Math.max(46, (getHeight() - diameter) / 2 + 10);
             
             double startAngle = 90;
 
@@ -1020,23 +1025,26 @@ public class DashboardPanel extends JPanel {
             g2.setColor(CARD_BG);
             g2.fillOval(cx + (diameter - hole) / 2, cy + (diameter - hole) / 2, hole, hole);
 
-            int legendX = cx + diameter + 12;
-            int legendY = 53;
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+            int legendX = cx + diameter + 24;
+            int legendY = Math.max(58, cy + 12);
+            g2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            int legendTextWidth = Math.max(55, getWidth() - legendX - 28);
 
             for (int i = 0; i < count; i++) {
-                int y = legendY + i * 34;
+                int y = legendY + i * 38;
                 if (y > getHeight() - 25) break;
 
                 g2.setColor(chartColors[i % chartColors.length]);
-                g2.fillRoundRect(legendX, y - 8, 9, 9, 3, 3);
+                g2.fillRoundRect(legendX, y - 10, 11, 11, 3, 3);
 
                 double percent = serviceRevenue.get(i) / total * 100;
-                String service = serviceNames.get(i);
-                if (service.length() > 16) service = service.substring(0, 14) + "...";
+                String label = serviceNames.get(i) + " (" + String.format(VI, "%.1f", percent) + "%)";
+                while (label.length() > 4 && g2.getFontMetrics().stringWidth(label) > legendTextWidth) {
+                    label = label.substring(0, label.length() - 4) + "...";
+                }
 
                 g2.setColor(TEXT_DARK);
-                g2.drawString(service + " (" + String.format(VI, "%.1f", percent) + "%)", legendX + 14, y);
+                g2.drawString(label, legendX + 18, y);
             }
             g2.dispose();
         }

@@ -30,7 +30,8 @@ public class MedicalRecordPanel extends JPanel {
     private TableRowSorter<DefaultTableModel> rowSorter;
 
     // Các thành phần input bên phải
-    private JTextField txtRecordId, txtCustName, txtDiagnosis, txtDoctor;
+    private JTextField txtRecordId, txtCustName, txtDiagnosis;
+    private JComboBox<DoctorOption> cbDoctor;
     private JComboBox<String> cbStatus;
     private JButton btnSave, btnClear;
 
@@ -99,7 +100,7 @@ public class MedicalRecordPanel extends JPanel {
         JPanel centerContainer = new JPanel(new BorderLayout(15, 0));
         centerContainer.setOpaque(false);
 
-        String[] columns = {"Mã HS", "Mã khách hàng", "Chẩn đoán", "Mã nha sĩ", "Trạng thái"};
+        String[] columns = {"Mã HS", "Mã khách hàng", "Chẩn đoán", "Nha sĩ", "Trạng thái"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -176,9 +177,20 @@ public class MedicalRecordPanel extends JPanel {
         panel.add(Box.createVerticalStrut(14));
 
         txtRecordId = addFieldToForm(panel, "Mã hồ sơ:");
+        txtRecordId.setEditable(false);
+        txtRecordId.setBackground(new Color(240, 244, 248));
         txtCustName = addFieldToForm(panel, "Mã khách hàng:");
         txtDiagnosis = addFieldToForm(panel, "Chẩn đoán:");
-        txtDoctor = addFieldToForm(panel, "Mã nha sĩ:");
+        JLabel lblDoctor = createFieldLabel("Nha sĩ phụ trách:");
+        panel.add(lblDoctor);
+        panel.add(Box.createVerticalStrut(4));
+        cbDoctor = new JComboBox<>();
+        cbDoctor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbDoctor.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        cbDoctor.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cbDoctor.setBackground(Color.WHITE);
+        panel.add(cbDoctor);
+        panel.add(Box.createVerticalStrut(12));
 
         JLabel lblStat = createFieldLabel("Trạng thái:");
         panel.add(lblStat);
@@ -280,10 +292,10 @@ public class MedicalRecordPanel extends JPanel {
         isEditing = false;
         selectedRowIndex = -1;
         txtRecordId.setText("");
-        txtRecordId.setEnabled(true);
+        txtRecordId.setEnabled(false);
         txtCustName.setText("");
         txtDiagnosis.setText("");
-        txtDoctor.setText("");
+        if (cbDoctor.getItemCount() > 0) cbDoctor.setSelectedIndex(0);
         cbStatus.setSelectedIndex(0);
         table.clearSelection();
         txtSearch.setText("");
@@ -298,7 +310,13 @@ public class MedicalRecordPanel extends JPanel {
         txtRecordId.setEnabled(false); // Khóa mã khi đang sửa
         txtCustName.setText((String) tableModel.getValueAt(selectedRowIndex, 1));
         txtDiagnosis.setText((String) tableModel.getValueAt(selectedRowIndex, 2));
-        txtDoctor.setText((String) tableModel.getValueAt(selectedRowIndex, 3));
+        String recordId = (String) tableModel.getValueAt(selectedRowIndex, 0);
+        for (HoSoBenhAn record : medicalRecordDAO.getAll()) {
+            if (recordId.equals(record.getMaBenhAn())) {
+                selectDoctor(record.getMaNhanVien());
+                break;
+            }
+        }
         cbStatus.setSelectedItem(tableModel.getValueAt(selectedRowIndex, 4));
         isEditing = true;
     }
@@ -307,15 +325,34 @@ public class MedicalRecordPanel extends JPanel {
         String id = txtRecordId.getText().trim();
         String name = txtCustName.getText().trim();
         String diagnosis = txtDiagnosis.getText().trim();
-        String doctor = txtDoctor.getText().trim();
+        DoctorOption selectedDoctor = (DoctorOption) cbDoctor.getSelectedItem();
+        String doctor = selectedDoctor == null ? "" : selectedDoctor.id;
         String status = (String) cbStatus.getSelectedItem();
 
-        if (id.isEmpty() || name.isEmpty() || doctor.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã hồ sơ, Mã khách hàng và Mã nha sĩ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (!isEditing) {
+            try { id = medicalRecordDAO.getNextMaBenhAn(); }
+            catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Không thể tạo mã hồ sơ: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+        if (!name.matches("KH\\d{3}")) {
+            JOptionPane.showMessageDialog(this,
+                    "Mã khách hàng không đúng định dạng.\n"
+                    + "Hướng dẫn: nhập KH theo sau bởi đúng 3 chữ số, ví dụ KH001.",
+                    "Sai định dạng", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (selectedDoctor == null) {
+            JOptionPane.showMessageDialog(this, "Chưa có nhân viên nào mang vai trò nha sĩ. Vui lòng cập nhật nhân viên trước.", "Thiếu nha sĩ", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
+            if (!medicalRecordDAO.customerExists(name)) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng " + name + " trong hệ thống.", "Không tìm thấy khách hàng", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             Date examDate = new Date();
             String examResult = "";
             if (isEditing) {
@@ -364,7 +401,38 @@ public class MedicalRecordPanel extends JPanel {
         List<HoSoBenhAn> records = medicalRecordDAO.getAll();
         for (HoSoBenhAn record : records) {
             tableModel.addRow(new Object[]{record.getMaBenhAn(), record.getMaKhachHang(), record.getChuanDoan(),
-                    record.getMaNhanVien(), record.getTrangThai()});
+                    record.getTenNhanVien() == null ? record.getMaNhanVien() : record.getTenNhanVien(), record.getTrangThai()});
         }
+        refreshDentistOptions();
+        if (!isEditing) setNextRecordId();
+    }
+
+    private void refreshDentistOptions() {
+        String selectedId = cbDoctor == null || cbDoctor.getSelectedItem() == null ? null : ((DoctorOption) cbDoctor.getSelectedItem()).id;
+        cbDoctor.removeAllItems();
+        try {
+            for (String[] dentist : medicalRecordDAO.getDentists()) cbDoctor.addItem(new DoctorOption(dentist[0], dentist[1]));
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Không thể tải danh sách nha sĩ: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE);
+        }
+        if (selectedId != null) selectDoctor(selectedId);
+    }
+
+    private void selectDoctor(String id) {
+        for (int i = 0; i < cbDoctor.getItemCount(); i++) {
+            if (cbDoctor.getItemAt(i).id.equals(id)) { cbDoctor.setSelectedIndex(i); return; }
+        }
+    }
+
+    private void setNextRecordId() {
+        try { txtRecordId.setText(medicalRecordDAO.getNextMaBenhAn()); }
+        catch (SQLException ex) { txtRecordId.setText("Tự tạo khi lưu"); }
+    }
+
+    private static class DoctorOption {
+        private final String id;
+        private final String name;
+        private DoctorOption(String id, String name) { this.id = id; this.name = name; }
+        @Override public String toString() { return name; }
     }
 }

@@ -72,7 +72,7 @@ public class HoSoBenhAnDAO {
 
     public List<HoSoBenhAn> getAll() {
         List<HoSoBenhAn> list = new ArrayList<>();
-        String sql = "SELECT * FROM HoSoBenhAn ORDER BY ngayKham DESC";
+        String sql = "SELECT hs.*, nv.tenNhanVien FROM HoSoBenhAn hs LEFT JOIN NhanVien nv ON hs.maNhanVien = nv.maNhanVien ORDER BY hs.ngayKham DESC";
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -83,6 +83,40 @@ public class HoSoBenhAnDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public String getNextMaBenhAn() throws SQLException {
+        String sql = "SELECT COALESCE(MAX(TRY_CONVERT(INT, SUBSTRING(maBenhAn, 3, 3))), 0) + 1 "
+                + "FROM HoSoBenhAn WHERE maBenhAn LIKE 'BA[0-9][0-9][0-9]'";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            rs.next();
+            int next = rs.getInt(1);
+            if (next > 999) throw new SQLException("Đã hết mã hồ sơ theo định dạng BA + 3 số.");
+            return String.format("BA%03d", next);
+        }
+    }
+
+    public boolean customerExists(String maKhachHang) throws SQLException {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT 1 FROM KhachHang WHERE maKhachHang = ?")) {
+            stmt.setString(1, maKhachHang);
+            try (ResultSet rs = stmt.executeQuery()) { return rs.next(); }
+        }
+    }
+
+    public List<String[]> getDentists() throws SQLException {
+        List<String[]> dentists = new ArrayList<>();
+        String sql = "SELECT maNhanVien, tenNhanVien FROM NhanVien "
+                + "WHERE chucVu LIKE N'%nha sĩ%' OR chucVu LIKE N'%nha si%' "
+                + "ORDER BY tenNhanVien";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) dentists.add(new String[]{rs.getString("maNhanVien"), rs.getString("tenNhanVien")});
+        }
+        return dentists;
     }
 
     public List<HoSoBenhAn> search(String keyword) {
@@ -110,6 +144,7 @@ public class HoSoBenhAnDAO {
         hs.setMaBenhAn(rs.getString("maBenhAn"));
         hs.setMaKhachHang(rs.getString("maKhachHang"));
         hs.setMaNhanVien(rs.getString("maNhanVien"));
+        try { hs.setTenNhanVien(rs.getString("tenNhanVien")); } catch (SQLException ignored) { }
         hs.setNgayKham(rs.getDate("ngayKham"));
         hs.setKetQuaKham(rs.getString("ketQuaKham"));
         hs.setChuanDoan(rs.getString("chuanDoan"));

@@ -524,6 +524,19 @@ INSERT INTO LichHen (maLichHen, maKhachHang, maNhanVien, ngayHen, gioKham, trang
 ('LH009', 'KH009', 'NV001', '2026-10-26', '16:00', N'Đã xác nhận', N'Tư vấn nha khoa'),
 ('LH010', 'KH010', 'NV003', '2026-10-26', '08:00', N'Chờ xác nhận', N'Khám tổng quát');
 
+-- 10 lịch hẹn mẫu bổ sung, dùng ngày tương đối để luôn gần ngày khởi tạo.
+INSERT INTO LichHen (maLichHen, maKhachHang, maNhanVien, ngayHen, gioKham, trangThai, ghiChu) VALUES
+('LH011', 'KH004', 'NV001', DATEADD(DAY, -2, CAST(GETDATE() AS DATE)), '08:15', N'Hoàn thành', N'Tái khám và kiểm tra răng'),
+('LH012', 'KH009', 'NV002', DATEADD(DAY, -1, CAST(GETDATE() AS DATE)), '09:00', N'Đã xác nhận', N'Lấy cao răng'),
+('LH013', 'KH002', 'NV003', CAST(GETDATE() AS DATE), '10:30', N'Chờ xác nhận', N'Khám tổng quát'),
+('LH014', 'KH006', 'NV001', CAST(GETDATE() AS DATE), '13:45', N'Đã xác nhận', N'Tư vấn điều trị'),
+('LH015', 'KH008', 'NV002', DATEADD(DAY, 1, CAST(GETDATE() AS DATE)), '08:45', N'Chờ xác nhận', N'Trám răng'),
+('LH016', 'KH003', 'NV003', DATEADD(DAY, 2, CAST(GETDATE() AS DATE)), '09:30', N'Đã xác nhận', N'Tẩy trắng răng'),
+('LH017', 'KH010', 'NV001', DATEADD(DAY, 3, CAST(GETDATE() AS DATE)), '11:00', N'Chờ xác nhận', N'Tư vấn chỉnh nha'),
+('LH018', 'KH005', 'NV002', DATEADD(DAY, 4, CAST(GETDATE() AS DATE)), '14:15', N'Đã xác nhận', N'Khám răng định kỳ'),
+('LH019', 'KH007', 'NV003', DATEADD(DAY, 5, CAST(GETDATE() AS DATE)), '15:00', N'Chờ xác nhận', N'Kiểm tra răng'),
+('LH020', 'KH001', 'NV001', DATEADD(DAY, 6, CAST(GETDATE() AS DATE)), '16:30', N'Đã xác nhận', N'Tư vấn nha khoa');
+
 -- 10. HoSoBenhAn
 INSERT INTO HoSoBenhAn (maBenhAn, maKhachHang, maNhanVien, ngayKham, ketQuaKham, chuanDoan, trangThai) VALUES
 ('BA001', 'KH001', 'NV002', '2026-10-24', N'Răng sạch sau điều trị', N'Cao răng', N'Hoàn thành'),
@@ -646,6 +659,17 @@ INSERT INTO PhieuThanhToan (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThan
 ('PTT004', 'HD004', 'KH005', 'NV004', '2026-10-20', N'Chuyển khoản', 1500000.0, 0.0, N'Đã thanh toán'),
 ('PTT005', 'HD005', 'KH007', 'NV004', '2026-10-19', N'Tiền mặt', 200000.0, 0.0, N'Đã thanh toán'),
 ('PTT006', 'HD006', 'KH008', 'NV004', '2026-10-23', N'Tiền mặt', 0.0, 100000.0, N'Chưa thanh toán');
+
+-- Phiếu mẫu 7 ngày gần nhất để biểu đồ doanh thu có dữ liệu khi cài đặt lần đầu.
+-- Ngày được tính từ ngày chạy script để luôn khớp với thời điểm khởi tạo.
+INSERT INTO PhieuThanhToan (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThanhToan, hinhThucThanhToan, daThanhToan, soTienConLai, ghiChu) VALUES
+('PTT007', 'HD001', 'KH001', 'NV004', DATEADD(DAY, -6, CAST(GETDATE() AS DATE)), N'Tiền mặt', 200000.0, 0.0, N'Thanh toán mẫu'),
+('PTT008', 'HD002', 'KH002', 'NV004', DATEADD(DAY, -5, CAST(GETDATE() AS DATE)), N'Chuyển khoản', 350000.0, 0.0, N'Thanh toán mẫu'),
+('PTT009', 'HD003', 'KH003', 'NV004', DATEADD(DAY, -4, CAST(GETDATE() AS DATE)), N'Tiền mặt', 350000.0, 0.0, N'Thanh toán mẫu'),
+('PTT010', 'HD004', 'KH005', 'NV004', DATEADD(DAY, -3, CAST(GETDATE() AS DATE)), N'Chuyển khoản', 1500000.0, 0.0, N'Thanh toán mẫu'),
+('PTT011', 'HD005', 'KH007', 'NV004', DATEADD(DAY, -2, CAST(GETDATE() AS DATE)), N'Tiền mặt', 200000.0, 0.0, N'Thanh toán mẫu'),
+('PTT012', 'HD006', 'KH008', 'NV004', DATEADD(DAY, -1, CAST(GETDATE() AS DATE)), N'Tiền mặt', 100000.0, 0.0, N'Thanh toán mẫu'),
+('PTT013', 'HD001', 'KH001', 'NV004', CAST(GETDATE() AS DATE), N'Tiền mặt', 200000.0, 0.0, N'Thanh toán mẫu');
 GO
 
 
