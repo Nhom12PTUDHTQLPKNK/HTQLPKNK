@@ -59,8 +59,29 @@ public class ManHinhDanhMucThuoc extends JPanel {
         content.add(createMainContent(), BorderLayout.CENTER);
         add(content, BorderLayout.CENTER);
 
+        loadCategoryFilters();
         loadMedicinesFromDatabase();
         applyFilter();
+    }
+
+    private void loadCategoryFilters() {
+        loadFilterValues("SELECT TenNhomThuoc FROM NHOMTHUOC WHERE 1=1 ORDER BY TenNhomThuoc", cbGroup,
+                new String[]{"Kháng sinh", "Giảm đau - Hạ sốt", "Kháng viêm", "Sát khuẩn", "Gây tê nha khoa", "Corticosteroid"});
+        loadFilterValues("SELECT TenDangBaoChe FROM DANGBAOCHE WHERE 1=1 ORDER BY TenDangBaoChe", cbForm,
+                new String[]{"Viên nén", "Viên nang", "Dung dịch", "Gel bôi", "Ống tiêm", "Viên sủi"});
+        loadFilterValues("SELECT TenDuongDung FROM DUONGDUNG WHERE 1=1 ORDER BY TenDuongDung", cbRoute,
+                new String[]{"Đường uống", "Súc miệng", "Dùng ngoài", "Tiêm", "Bôi tại chỗ"});
+    }
+
+    private void loadFilterValues(String sql, JComboBox<String> combo, String[] fallback) {
+        java.util.List<String> values = new ArrayList<String>();
+        try (java.sql.Connection c = DBConnection.getConnection(); java.sql.PreparedStatement p = c.prepareStatement(sql);
+             java.sql.ResultSet r = p.executeQuery()) {
+            while (r.next()) values.add(r.getString(1));
+        } catch (SQLException ignored) { values.addAll(java.util.Arrays.asList(fallback)); }
+        combo.removeAllItems(); combo.addItem("Tất cả");
+        for (String value : values) combo.addItem(value);
+        combo.setSelectedIndex(0);
     }
 
     // Header
@@ -96,6 +117,166 @@ public class ManHinhDanhMucThuoc extends JPanel {
 
         header.add(left, BorderLayout.WEST);
         return header;
+    }
+
+    public JPanel createReferenceManagementScreen(String titleText, String description, String table, String keyColumn,
+                                                  String nameColumn, String descriptionColumn) {
+        JPanel screen = new JPanel(new BorderLayout(0, 14));
+        screen.setBackground(BG);
+        screen.setBorder(new EmptyBorder(18, 18, 18, 18));
+        JLabel title = new JLabel(titleText);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 25));
+        title.setForeground(NAVY);
+        JLabel subtitle = new JLabel(description);
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(MUTED);
+        JPanel heading = new JPanel(new GridLayout(2, 1, 0, 4));
+        heading.setOpaque(false);
+        heading.add(title);
+        heading.add(subtitle);
+        screen.add(heading, BorderLayout.NORTH);
+        screen.add(createReferencePanel(titleText, table, keyColumn, nameColumn, descriptionColumn), BorderLayout.CENTER);
+        return screen;
+    }
+
+    private JPanel createReferencePanel(String title, String table, String keyColumn, String nameColumn, String descriptionColumn) {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(14, 14, 14, 14));
+        JLabel heading = new JLabel(title);
+        heading.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        heading.setForeground(NAVY);
+        panel.add(heading, BorderLayout.NORTH);
+
+        DefaultTableModel model = new DefaultTableModel(new String[]{"Mã", "Tên danh mục", "Mô tả"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        JTable tableView = new JTable(model);
+        styleTable(tableView);
+        panel.add(new JScrollPane(tableView), BorderLayout.CENTER);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.setOpaque(false);
+        JButton add = createIconButton("Thêm", "/img/add.png", "+", PINK, PINK_BG);
+        JButton edit = createIconButton("Sửa", "/img/pen.png", "✎", BLUE_DARK, LIGHT_BLUE);
+        JButton delete = createIconButton("Xóa", "/img/xoa.png", "✕", RED, new Color(255, 230, 235));
+        JButton refresh = createIconButton("Làm mới", "/img/capnhat.png", "↻", BLUE_DARK, LIGHT_BLUE);
+        actions.add(add); actions.add(edit); actions.add(delete); actions.add(refresh);
+        panel.add(actions, BorderLayout.SOUTH);
+
+        Runnable reload = () -> {
+            model.setRowCount(0);
+            String sql = "SELECT " + keyColumn + ", " + nameColumn + ", " + descriptionColumn + " FROM dbo." + table + " ORDER BY " + nameColumn;
+            try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) model.addRow(new Object[]{rs.getString(1), rs.getString(2), rs.getString(3)});
+            } catch (SQLException ex) { JOptionPane.showMessageDialog(panel, "Không tải được " + title + ": " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE); }
+        };
+        Runnable create = () -> editReference(panel, title, table, keyColumn, nameColumn, descriptionColumn, null, null, null, reload);
+        add.addActionListener(e -> create.run());
+        edit.addActionListener(e -> {
+            int row = tableView.getSelectedRow();
+            if (row < 0) { JOptionPane.showMessageDialog(panel, "Chọn một dòng cần sửa.", "Thông báo", JOptionPane.INFORMATION_MESSAGE); return; }
+            int mr = tableView.convertRowIndexToModel(row);
+            editReference(panel, title, table, keyColumn, nameColumn, descriptionColumn, String.valueOf(model.getValueAt(mr, 0)), String.valueOf(model.getValueAt(mr, 1)), String.valueOf(model.getValueAt(mr, 2)), reload);
+        });
+        delete.addActionListener(e -> {
+            int row = tableView.getSelectedRow();
+            if (row < 0) { JOptionPane.showMessageDialog(panel, "Chọn một dòng cần xóa.", "Thông báo", JOptionPane.INFORMATION_MESSAGE); return; }
+            int mr = tableView.convertRowIndexToModel(row);
+            String key = String.valueOf(model.getValueAt(mr, 0));
+            String name = String.valueOf(model.getValueAt(mr, 1));
+            if (JOptionPane.showConfirmDialog(panel, "Xóa mục '" + name + "'?", "Xác nhận", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+            try (Connection conn = DBConnection.getConnection()) {
+                if (isReferenceInUse(conn, table, key, name)) {
+                    JOptionPane.showMessageDialog(panel, "Không thể xóa vì lựa chọn này đang được dữ liệu khác sử dụng.", "Danh mục đang được sử dụng", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM dbo." + table + " WHERE " + keyColumn + " = ?")) {
+                    ps.setString(1, key);
+                    ps.executeUpdate();
+                }
+                NhatKyKiemToan.event("DELETE", title + " - mã " + key);
+                reload.run();
+                refreshMedicineReferenceData();
+            } catch (SQLException ex) { JOptionPane.showMessageDialog(panel, "Không thể xóa mục: " + ex.getMessage(), "Không thể xóa", JOptionPane.WARNING_MESSAGE); }
+        });
+        refresh.addActionListener(e -> reload.run());
+        reload.run();
+        return panel;
+    }
+
+    private void editReference(Component parent, String title, String table, String keyColumn, String nameColumn, String descriptionColumn,
+                               String oldKey, String oldName, String oldDescription, Runnable reload) {
+        boolean editing = oldKey != null;
+        JTextField key = new JTextField(editing ? oldKey : "", 18);
+        JTextField name = new JTextField(editing ? oldName : "", 24);
+        JTextField description = new JTextField(editing ? oldDescription : "", 24);
+        key.setEditable(!editing);
+        JPanel form = new JPanel(new GridLayout(3, 2, 8, 8));
+        form.add(new JLabel("Mã danh mục:")); form.add(key);
+        form.add(new JLabel("Tên danh mục:")); form.add(name);
+        form.add(new JLabel("Mô tả:")); form.add(description);
+        if (JOptionPane.showConfirmDialog(parent, form, (editing ? "Sửa " : "Thêm ") + title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) return;
+        if (key.getText().trim().isEmpty() || name.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(parent, "Mã và tên danh mục không được để trống.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE); return;
+        }
+        String sql = editing ? "UPDATE dbo." + table + " SET " + nameColumn + " = ?, " + descriptionColumn + " = ? WHERE " + keyColumn + " = ?"
+                             : "INSERT INTO dbo." + table + " (" + keyColumn + ", " + nameColumn + ", " + descriptionColumn + ") VALUES (?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection()) {
+            boolean autoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                if (editing) updateDependentNames(conn, table, oldName, name.getText().trim());
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    if (editing) { ps.setString(1, name.getText().trim()); ps.setString(2, description.getText().trim()); ps.setString(3, oldKey); }
+                    else { ps.setString(1, key.getText().trim()); ps.setString(2, name.getText().trim()); ps.setString(3, description.getText().trim()); }
+                    ps.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(autoCommit);
+            }
+            NhatKyKiemToan.event(editing ? "UPDATE" : "CREATE", title + " - mã " + key.getText().trim());
+            reload.run();
+            refreshMedicineReferenceData();
+        } catch (SQLException ex) { JOptionPane.showMessageDialog(parent, "Không thể lưu danh mục: " + ex.getMessage(), "Lỗi CSDL", JOptionPane.ERROR_MESSAGE); }
+    }
+
+    private void updateDependentNames(Connection conn, String table, String oldName, String newName) throws SQLException {
+        String sql = null;
+        if ("DanhMucLoaiDieuTri".equals(table)) sql = "UPDATE dbo.DichVu SET loaiDieuTri = ? WHERE loaiDieuTri = ?";
+        if (sql == null || oldName.equals(newName)) return;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newName);
+            ps.setString(2, oldName);
+            ps.executeUpdate();
+        }
+    }
+
+    private void refreshMedicineReferenceData() {
+        loadCategoryFilters();
+        loadMedicinesFromDatabase();
+        applyFilter();
+    }
+
+    private boolean isReferenceInUse(Connection conn, String table, String key, String name) throws SQLException {
+        String sourceTable;
+        String sourceColumn;
+        String sourceValue;
+        switch (table) {
+            case "NHOMTHUOC": sourceTable = "THUOC"; sourceColumn = "MaNhomThuoc"; sourceValue = key; break;
+            case "DANGBAOCHE": sourceTable = "THUOC"; sourceColumn = "MaDangBaoChe"; sourceValue = key; break;
+            case "DUONGDUNG": sourceTable = "THUOC"; sourceColumn = "MaDuongDung"; sourceValue = key; break;
+            case "DanhMucLoaiDieuTri": sourceTable = "DichVu"; sourceColumn = "loaiDieuTri"; sourceValue = name; break;
+            default: return false;
+        }
+        String sql = "SELECT COUNT(*) FROM dbo." + sourceTable + " WHERE " + sourceColumn + " = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, sourceValue);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next() && rs.getInt(1) > 0; }
+        }
     }
 
     // Filter TheThongTin
@@ -281,7 +462,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
         actions.add(btnRefresh);
         top.add(actions, BorderLayout.NORTH);
 
-        String[] columns = {"Mã thuốc", "Tên thuốc", "Hoạt chất chính", "Nhóm thuốc", "Dạng bào chế", "Đường dùng", "Trạng thái"};
+        String[] columns = {"Mã thuốc", "Tên thuốc", "Hoạt chất chính", "Nhóm thuốc", "Dạng bào chế", "Đường dùng", "Giá nhập (VNĐ)", "Trạng thái"};
         tableModel = new DefaultTableModel(columns, 0) {
             public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -289,7 +470,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
         medicineTable = new JTable(tableModel);
         styleTable(medicineTable);
 
-        int[] widths = {85, 155, 125, 145, 110, 105, 120};
+        int[] widths = {85, 155, 125, 145, 110, 105, 105, 120};
         for (int i = 0; i < widths.length; i++) {
             medicineTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -584,7 +765,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(new EmptyBorder(8, 2, 4, 2));
 
-        String[] names = {"Mã thuốc", "Tên thuốc", "Hoạt chất chính", "Nhóm thuốc", "Dạng bào chế", "Đường dùng", "Nhà sản xuất", "Nước sản xuất", "Quy cách đóng gói", "Trạng thái"};
+        String[] names = {"Mã thuốc", "Tên thuốc", "Hoạt chất chính", "Nhóm thuốc", "Dạng bào chế", "Đường dùng", "Nhà sản xuất", "Nước sản xuất", "Quy cách đóng gói", "Giá nhập (VNĐ)", "Trạng thái"};
         generalValues = new JLabel[names.length];
         panel.add(createInfoGrid(names, generalValues), BorderLayout.NORTH);
 
@@ -741,7 +922,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
 
         for (int i = start; i < end; i++) {
             DuLieuThuoc m = filteredMedicines.get(i);
-            tableModel.addRow(new Object[]{m.code, m.name, m.activeIngredient, m.group, m.form, m.route, m.status});
+            tableModel.addRow(new Object[]{m.code, m.name, m.activeIngredient, m.group, m.form, m.route, formatPrice(m.purchasePrice), m.status});
         }
 
         lblPage.setText("Trang " + currentPage + "/" + totalPages);
@@ -758,7 +939,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
             "SELECT T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
             "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, " +
             "T.NhaSanXuat, T.NuocSanXuat, T.QuyCachDongGoi, " +
-            "T.MoTa, T.HinhAnh, T.TrangThai " +
+            "T.MoTa, T.HinhAnh, T.TrangThai, T.GiaNhap " +
             "FROM THUOC T " +
             "LEFT JOIN NHOMTHUOC N ON T.MaNhomThuoc = N.MaNhomThuoc " +
             "LEFT JOIN DANGBAOCHE DBC ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
@@ -784,6 +965,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
                 m.description = rs.getString("MoTa");
                 m.imagePath = rs.getString("HinhAnh");
                 m.status = rs.getBoolean("TrangThai") ? "Đang kinh doanh" : "Ngừng kinh doanh";
+                m.purchasePrice = rs.getBigDecimal("GiaNhap");
 
                 // Tải bổ sung thông tin chi tiết an toàn
                 loadDetailDataForMedicine(conn, m);
@@ -886,7 +1068,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
         lblStatus.setForeground(active ? GREEN : RED);
         lblStatus.setBackground(active ? GREEN_BG : PINK_BG);
 
-        String[] general = {safe(m.code), safe(m.name), safe(m.activeIngredient), safe(m.group), safe(m.form), safe(m.route), safe(m.manufacturer), safe(m.country), safe(m.packageInfo), safe(m.status)};
+        String[] general = {safe(m.code), safe(m.name), safe(m.activeIngredient), safe(m.group), safe(m.form), safe(m.route), safe(m.manufacturer), safe(m.country), safe(m.packageInfo), formatPrice(m.purchasePrice), safe(m.status)};
         for (int i = 0; i < general.length; i++) generalValues[i].setText(general[i]);
 
         String[] dosage = {safe(m.adultDosage), safe(m.childDosage), safe(m.frequency), safe(m.duration)};
@@ -946,7 +1128,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(10, 10));
 
-        JPanel formPanel = new JPanel(new GridLayout(8, 2, 10, 10));
+        JPanel formPanel = new JPanel(new GridLayout(9, 2, 10, 10));
         formPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         JTextField tfCode = new JTextField(medicine != null ? medicine.code : "");
@@ -963,6 +1145,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
 
         JTextField tfManuf = new JTextField(medicine != null ? medicine.manufacturer : "");
         JTextField tfCountry = new JTextField(medicine != null ? medicine.country : "");
+        JTextField tfPurchasePrice = new JTextField(medicine != null && medicine.purchasePrice != null ? medicine.purchasePrice.toPlainString() : "0");
         
         if (medicine != null) {
             tfCode.setEditable(false);
@@ -984,6 +1167,8 @@ public class ManHinhDanhMucThuoc extends JPanel {
         formPanel.add(tfManuf);
         formPanel.add(new JLabel("Nước sản xuất:"));
         formPanel.add(tfCountry);
+        formPanel.add(new JLabel("Giá nhập (VNĐ):"));
+        formPanel.add(tfPurchasePrice);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnSave = createButton("Lưu", true);
@@ -1006,7 +1191,16 @@ public class ManHinhDanhMucThuoc extends JPanel {
                 return;
             }
 
-            if (saveOrUpdateMedicineToDB(code, name, tfActive.getText().trim(), selectedGroup.key, selectedForm.key, selectedRoute.key, tfManuf.getText().trim(), tfCountry.getText().trim(), medicine == null)) {
+            java.math.BigDecimal purchasePrice;
+            try {
+                purchasePrice = new java.math.BigDecimal(tfPurchasePrice.getText().trim().replace(",", ""));
+                if (purchasePrice.signum() < 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog, "Giá nhập phải là số không âm.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (saveOrUpdateMedicineToDB(code, name, tfActive.getText().trim(), selectedGroup.key, selectedForm.key, selectedRoute.key, tfManuf.getText().trim(), tfCountry.getText().trim(), purchasePrice, medicine == null)) {
                 dialog.dispose();
                 loadMedicinesFromDatabase();
             }
@@ -1049,10 +1243,10 @@ public class ManHinhDanhMucThuoc extends JPanel {
         }
     }
 
-    private boolean saveOrUpdateMedicineToDB(String code, String name, String active, String maNhom, String maDBC, String maDD, String manuf, String country, boolean isInsert) {
+    private boolean saveOrUpdateMedicineToDB(String code, String name, String active, String maNhom, String maDBC, String maDD, String manuf, String country, java.math.BigDecimal purchasePrice, boolean isInsert) {
         String sql = isInsert 
-            ? "INSERT INTO THUOC (MaThuoc, TenThuoc, HoatChatChinh, MaNhomThuoc, MaDangBaoChe, MaDuongDung, NhaSanXuat, NuocSanXuat, TrangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
-            : "UPDATE THUOC SET TenThuoc = ?, HoatChatChinh = ?, MaNhomThuoc = ?, MaDangBaoChe = ?, MaDuongDung = ?, NhaSanXuat = ?, NuocSanXuat = ? WHERE MaThuoc = ?";
+            ? "INSERT INTO THUOC (MaThuoc, TenThuoc, HoatChatChinh, MaNhomThuoc, MaDangBaoChe, MaDuongDung, NhaSanXuat, NuocSanXuat, GiaNhap, TrangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)"
+            : "UPDATE THUOC SET TenThuoc = ?, HoatChatChinh = ?, MaNhomThuoc = ?, MaDangBaoChe = ?, MaDuongDung = ?, NhaSanXuat = ?, NuocSanXuat = ?, GiaNhap = ? WHERE MaThuoc = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -1065,6 +1259,7 @@ public class ManHinhDanhMucThuoc extends JPanel {
                 pstmt.setString(6, maDD);
                 pstmt.setString(7, manuf);
                 pstmt.setString(8, country);
+                pstmt.setBigDecimal(9, purchasePrice);
             } else {
                 pstmt.setString(1, name);
                 pstmt.setString(2, active);
@@ -1073,7 +1268,8 @@ public class ManHinhDanhMucThuoc extends JPanel {
                 pstmt.setString(5, maDD);
                 pstmt.setString(6, manuf);
                 pstmt.setString(7, country);
-                pstmt.setString(8, code);
+                pstmt.setBigDecimal(8, purchasePrice);
+                pstmt.setString(9, code);
             }
             int affected = pstmt.executeUpdate();
             if (affected == 0) {
@@ -1140,8 +1336,13 @@ public class ManHinhDanhMucThuoc extends JPanel {
         public String adultDosage, childDosage, frequency, duration, dosageNote;
         public String indication, caution;
         public String imagePath;
+        public java.math.BigDecimal purchasePrice;
 
         public DuLieuThuoc() {}
+    }
+
+    private static String formatPrice(java.math.BigDecimal price) {
+        return price == null ? "0" : String.format(java.util.Locale.forLanguageTag("vi-VN"), "%,.0f", price);
     }
 
     private ImageIcon loadImage(String path, int width, int height) {

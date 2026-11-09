@@ -355,9 +355,7 @@ private void createHeader() {
         panel.add(lblGen);
         panel.add(Box.createVerticalStrut(4));
 
-        cbGender = new JComboBox<>(
-                new String[]{"Nam", "Nữ", "Khác"}
-        );
+        cbGender = new JComboBox<>(new String[]{"Nam", "Nữ"});
 
         cbGender.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbGender.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));

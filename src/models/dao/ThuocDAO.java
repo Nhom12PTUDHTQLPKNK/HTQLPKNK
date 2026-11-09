@@ -11,7 +11,7 @@ import java.util.List;
 public class ThuocDAO {
 
     public boolean insert(Thuoc t) throws SQLException {
-        String sql = "INSERT INTO Thuoc (maThuoc, tenThuoc, hoatChatChinh, maNhomThuoc, maDangBaoChe, maDuongDung, nhaSanXuat, nuocSanXuat, quyCachDongGoi, moTa, hinhAnh, trangThai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Thuoc (maThuoc, tenThuoc, hoatChatChinh, maNhomThuoc, maDangBaoChe, maDuongDung, nhaSanXuat, nuocSanXuat, quyCachDongGoi, moTa, hinhAnh, trangThai, GiaNhap) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, t.getMaThuoc());
@@ -26,6 +26,7 @@ public class ThuocDAO {
             stmt.setString(10, t.getMoTa());
             stmt.setString(11, t.getHinhAnh());
             stmt.setBoolean(12, t.getTrangThai() != null ? t.getTrangThai() : true);
+            stmt.setBigDecimal(13, t.getGiaNhap() != null ? t.getGiaNhap() : java.math.BigDecimal.ZERO);
             boolean saved = stmt.executeUpdate() > 0;
             if (saved) NhatKyKiemToan.event("CREATE", "Thuốc " + t.getMaThuoc());
             return saved;
@@ -33,7 +34,7 @@ public class ThuocDAO {
     }
 
     public boolean update(Thuoc t) throws SQLException {
-        String sql = "UPDATE Thuoc SET tenThuoc = ?, hoatChatChinh = ?, maNhomThuoc = ?, maDangBaoChe = ?, maDuongDung = ?, nhaSanXuat = ?, nuocSanXuat = ?, quyCachDongGoi = ?, moTa = ?, hinhAnh = ?, trangThai = ? WHERE maThuoc = ?";
+        String sql = "UPDATE Thuoc SET tenThuoc = ?, hoatChatChinh = ?, maNhomThuoc = ?, maDangBaoChe = ?, maDuongDung = ?, nhaSanXuat = ?, nuocSanXuat = ?, quyCachDongGoi = ?, moTa = ?, hinhAnh = ?, trangThai = ?, GiaNhap = ? WHERE maThuoc = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, t.getTenThuoc());
@@ -47,7 +48,8 @@ public class ThuocDAO {
             stmt.setString(9, t.getMoTa());
             stmt.setString(10, t.getHinhAnh());
             stmt.setBoolean(11, t.getTrangThai() != null ? t.getTrangThai() : true);
-            stmt.setString(12, t.getMaThuoc());
+            stmt.setBigDecimal(12, t.getGiaNhap() != null ? t.getGiaNhap() : java.math.BigDecimal.ZERO);
+            stmt.setString(13, t.getMaThuoc());
             boolean updated = stmt.executeUpdate() > 0;
             if (updated) NhatKyKiemToan.event("UPDATE", "Thuốc " + t.getMaThuoc());
             return updated;
@@ -104,6 +106,7 @@ public class ThuocDAO {
         Thuoc t = new Thuoc();
         t.setMaThuoc(rs.getString("maThuoc"));
         t.setTenThuoc(rs.getString("tenThuoc"));
+        t.setGiaNhap(rs.getBigDecimal("GiaNhap"));
         t.setHoatChatChinh(rs.getString("hoatChatChinh"));
         t.setMaNhomThuoc(rs.getString("maNhomThuoc"));
         t.setMaDangBaoChe(rs.getString("maDangBaoChe"));

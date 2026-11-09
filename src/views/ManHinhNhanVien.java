@@ -57,6 +57,7 @@ public class ManHinhNhanVien extends JPanel {
     private JComboBox<String> cbRole;
     private JLabel lblCount, lblFormName, lblFormSub;
     private AnhDaiDien avatar;
+    private String employeePhotoPath;
     private boolean isEditing, mute;
     private int seq;
 
@@ -263,6 +264,9 @@ public class ManHinhNhanVien extends JPanel {
         who.add(Box.createVerticalGlue());
         JPanel aw = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0)); 
         aw.setOpaque(false); aw.add(avatar);
+        JButton btnPhoto = btn("Chọn ảnh", BLUE_SOFT, BLUE);
+        btnPhoto.addActionListener(e -> chooseEmployeePhoto());
+        aw.add(Box.createHorizontalStrut(8)); aw.add(btnPhoto);
         JPanel fh = new JPanel(new BorderLayout(12, 0)); 
         fh.setOpaque(false); fh.setBorder(new EmptyBorder(2, 0, 14, 0)); 
         fh.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -286,6 +290,8 @@ public class ManHinhNhanVien extends JPanel {
         cbRole.setFont(F); cbRole.setBackground(Color.WHITE); 
         cbRole.setAlignmentX(Component.LEFT_ALIGNMENT); 
         cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        List<String> roles = dao.getAllChucVu();
+        if (!roles.isEmpty()) { cbRole.removeAllItems(); for (String role : roles) cbRole.addItem(role); }
         box.add(cbRole); box.add(Box.createVerticalStrut(12));
         txtTrinhDo = field(box, "Trình độ"); 
         txtPhone = field(box, "Số điện thoại"); 
@@ -425,6 +431,7 @@ public class ManHinhNhanVien extends JPanel {
         txtTrinhDo.setText(""); 
         txtPhone.setText(""); 
         txtSalary.setText("");
+        employeePhotoPath = null;
         table.clearSelection(); 
         mute = true; txtSearch.setText(""); 
         mute = false; 
@@ -443,6 +450,8 @@ public class ManHinhNhanVien extends JPanel {
         txtTrinhDo.setText(str(tableModel.getValueAt(mr, 3))); txtPhone.setText(str(tableModel.getValueAt(mr, 4)));
         Object s = tableModel.getValueAt(mr, 5); 
         txtSalary.setText(s instanceof Number ? String.valueOf(((Number) s).longValue()) : "");
+        NhanVien selected = dao.findById(str(tableModel.getValueAt(mr, 0)));
+        employeePhotoPath = selected == null ? null : selected.getHinhAnh();
         refreshHeader();
     }
 
@@ -456,7 +465,7 @@ public class ManHinhNhanVien extends JPanel {
     // Cập nhật ảnh đại diện và dòng giới thiệu ở đầu form
     private void refreshHeader() {
         String n = txtEmpName.getText().trim();
-        lblFormName.setText(wrap(n.isEmpty() ? "Nhân viên mới" : n, 190)); avatar.set(txtEmpId.getText().trim(), n);
+        lblFormName.setText(wrap(n.isEmpty() ? "Nhân viên mới" : n, 190)); avatar.set(txtEmpId.getText().trim(), n, employeePhotoPath);
         lblFormSub.setText(isEditing ? "Mã " + txtEmpId.getText() + "  |  " + cbRole.getSelectedItem() : "Nhập thông tin để thêm mới");
     }
 
@@ -473,6 +482,7 @@ public class ManHinhNhanVien extends JPanel {
         try {
             // Khởi tạo đối tượng NhanVien khớp với constructor đầy đủ của Entity NhanVien
             NhanVien nv = new NhanVien(id, name, null, phone, role, null, trinhDo, salary);
+            nv.setHinhAnh(employeePhotoPath);
             boolean ok = isEditing ? dao.update(nv) : dao.insert(nv);
             if (!ok) { JOptionPane.showMessageDialog(this, isEditing ? "Cập nhật thất bại!" : "Thêm thất bại (Trùng mã nhân viên hoặc lỗi CSDL)!", "Lỗi", JOptionPane.ERROR_MESSAGE); return; }
             JOptionPane.showMessageDialog(this, isEditing ? "Cập nhật nhân viên thành công!" : "Thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
@@ -480,6 +490,16 @@ public class ManHinhNhanVien extends JPanel {
         } catch (SQLException ex) { 
         	JOptionPane.showMessageDialog(this, "Lỗi cơ sở dữ liệu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE); ex.printStackTrace(); 
         	}
+    }
+
+    private void chooseEmployeePhoto() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Chọn ảnh nhân viên");
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Ảnh (PNG, JPG, JPEG)", "png", "jpg", "jpeg"));
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            employeePhotoPath = chooser.getSelectedFile().getAbsolutePath();
+            refreshHeader();
+        }
     }
 
     private void performDelete() {
@@ -768,10 +788,13 @@ public class ManHinhNhanVien extends JPanel {
         AnhDaiDien() { setPreferredSize(new Dimension(58, 58)); }
         
         // Cắt ảnh thành hình tròn ở độ phân giải gấp đôi để khi thu nhỏ vẫn sắc nét, ưu tiên giữ phần đầu người
-        void set(String id, String name) {
+        void set(String id, String name) { set(id, name, null); }
+        void set(String id, String name, String path) {
             text = initials(name); 
             round = null;
-            String f = PHOTOS.get(id.toUpperCase()); Image p = f == null ? null : img(f);
+            String f = PHOTOS.get(id.toUpperCase()); Image p = null;
+            try { if (path != null && !path.trim().isEmpty()) p = javax.imageio.ImageIO.read(new File(path)); } catch (Exception ignored) { }
+            if (p == null) p = f == null ? null : img(f);
             if (p != null && p.getWidth(null) > 0) {
                 int S = 116, pw = p.getWidth(null), ph = p.getHeight(null); 
                 double k = Math.max((double) S / pw, (double) S / ph);

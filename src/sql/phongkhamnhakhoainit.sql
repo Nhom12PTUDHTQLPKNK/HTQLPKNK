@@ -43,6 +43,8 @@ IF OBJECT_ID('VatTu', 'U') IS NOT NULL DROP TABLE VatTu;
 IF OBJECT_ID('DichVu', 'U') IS NOT NULL DROP TABLE DichVu;
 IF OBJECT_ID('NhanVien', 'U') IS NOT NULL DROP TABLE NhanVien;
 IF OBJECT_ID('KhachHang', 'U') IS NOT NULL DROP TABLE KhachHang;
+IF OBJECT_ID('ChucVu', 'U') IS NOT NULL DROP TABLE ChucVu;
+IF OBJECT_ID('DanhMucLoaiDieuTri', 'U') IS NOT NULL DROP TABLE DanhMucLoaiDieuTri;
 IF OBJECT_ID('AuditLog', 'U') IS NOT NULL DROP TABLE AuditLog;
 GO
 
@@ -65,6 +67,25 @@ CREATE TABLE KhachHang (
     diemTichLuy INT DEFAULT 0
 );
 
+-- Danh mục chức vụ dùng chung cho hồ sơ nhân viên
+CREATE TABLE ChucVu (
+    tenChucVu NVARCHAR(50) PRIMARY KEY,
+    moTa NVARCHAR(255) NULL,
+    trangThai BIT NOT NULL DEFAULT 1
+);
+INSERT INTO ChucVu (tenChucVu) VALUES
+(N'Nha sĩ trưởng'), (N'Nha sĩ'), (N'Y tá'), (N'Lễ tân'), (N'Quản lý');
+
+CREATE TABLE DanhMucLoaiDieuTri (
+    maLoaiDieuTri VARCHAR(10) NOT NULL PRIMARY KEY,
+    tenLoaiDieuTri NVARCHAR(80) NOT NULL UNIQUE,
+    moTa NVARCHAR(255) NULL,
+    trangThai BIT NOT NULL CONSTRAINT DF_DanhMucLoaiDieuTri_trangThai DEFAULT 1
+);
+INSERT INTO DanhMucLoaiDieuTri (maLoaiDieuTri, tenLoaiDieuTri) VALUES
+('LDT001', N'Nha khoa tổng quát'), ('LDT002', N'Thẩm mỹ'), ('LDT003', N'Chỉnh nha'),
+('LDT004', N'Tiểu phẫu'), ('LDT005', N'Phục hình sứ');
+
 -- 2. Bảng Nhân Viên
 CREATE TABLE NhanVien (
     maNhanVien VARCHAR(20) PRIMARY KEY,
@@ -74,7 +95,9 @@ CREATE TABLE NhanVien (
     chucVu NVARCHAR(50),
     lichLamViec VARCHAR(20),
     trinhDo NVARCHAR(50),
-    mucLuong FLOAT
+    mucLuong FLOAT,
+    hinhAnh NVARCHAR(1000) NULL,
+    CONSTRAINT FK_NhanVien_ChucVu FOREIGN KEY (chucVu) REFERENCES ChucVu(tenChucVu)
 );
 
 -- 3. Bảng Dịch Vụ
@@ -100,6 +123,8 @@ CREATE TABLE VatTu (
     tenVatTu NVARCHAR(100) NOT NULL,
     donViTinh NVARCHAR(20),
     soLuongTon INT,
+    giaBan DECIMAL(18,2) NOT NULL CONSTRAINT DF_VatTu_giaBan DEFAULT 0,
+    giaNhap DECIMAL(18,2) NOT NULL CONSTRAINT DF_VatTu_giaNhap DEFAULT 0,
     ngaySuDung DATE
 );
 
@@ -217,6 +242,7 @@ CREATE TABLE THUOC (
     MaDuongDung VARCHAR(10) NOT NULL,
     NhaSanXuat NVARCHAR(150),
     NuocSanXuat NVARCHAR(100),
+    GiaNhap DECIMAL(18,2) NOT NULL CONSTRAINT DF_THUOC_GiaNhap DEFAULT 0,
     QuyCachDongGoi NVARCHAR(150),
     MoTa NVARCHAR(1000),
     HinhAnh NVARCHAR(500),
@@ -311,6 +337,7 @@ CREATE TABLE HoaDon (
     maNhanVien VARCHAR(20),
     maKhuyenMai VARCHAR(20),
     ngayLap DATE,
+    loaiHoaDon NVARCHAR(40) NOT NULL DEFAULT N'Hóa đơn khám chữa bệnh',
     CONSTRAINT FK_HoaDon_HoSoBenhAn FOREIGN KEY (maBenhAn) REFERENCES HoSoBenhAn(maBenhAn),
     CONSTRAINT FK_HoaDon_KhachHang FOREIGN KEY (maKhachHang) REFERENCES KhachHang(maKhachHang),
     CONSTRAINT FK_HoaDon_NhanVien FOREIGN KEY (maNhanVien) REFERENCES NhanVien(maNhanVien),

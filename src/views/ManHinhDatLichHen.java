@@ -112,6 +112,12 @@ public class ManHinhDatLichHen extends JPanel {
         }
     }
 
+    private static class MucKhachHang {
+        final String id, name, phone;
+        MucKhachHang(String id, String name, String phone) { this.id = id; this.name = name; this.phone = phone; }
+        @Override public String toString() { return id + " - " + name + (phone == null || phone.isEmpty() ? "" : " (" + phone + ")"); }
+    }
+
     // dữ liệu một hồ sơ lịch hẹn dùng để in PDF
     private static class BanGhiLichHen {
         String id;
@@ -134,6 +140,7 @@ public class ManHinhDatLichHen extends JPanel {
 
     private JComboBox<MucDichVu> cbService;
     private JComboBox<MucNhaSi> cbDoctor;
+    private JComboBox<MucKhachHang> cbCustomer;
     private JComboBox<String> cbTime;
 
     private JSpinner spDate;
@@ -214,6 +221,7 @@ public class ManHinhDatLichHen extends JPanel {
 
         try {
             loadServices();
+            loadCustomers();
             loadDoctors();
 
             isDateSelected = false;
@@ -364,7 +372,12 @@ public class ManHinhDatLichHen extends JPanel {
 
         txtPhone = createTextField(true);
         txtCustName = createTextField(true);
-
+        txtPhone.setEditable(false);
+        txtCustName.setEditable(false);
+        cbCustomer = new JComboBox<MucKhachHang>();
+        cbCustomer.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbCustomer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        addRow(customerGroup, "Khách hàng đã tạo", cbCustomer);
         addRow(customerGroup, "Số điện thoại", txtPhone);
 
         lblCustomerStatus = new JLabel("Nhập số điện thoại để kiểm tra khách hàng");
@@ -378,6 +391,7 @@ public class ManHinhDatLichHen extends JPanel {
         customerGroup.add(lblCustomerStatus);
         customerGroup.add(Box.createVerticalStrut(8));
         addRow(customerGroup, "Tên khách hàng", txtCustName);
+        loadCustomers();
         form.add(customerGroup);
         form.add(Box.createVerticalStrut(14));
 
@@ -536,45 +550,13 @@ public class ManHinhDatLichHen extends JPanel {
         spDate.addChangeListener(e -> {
             if (!loading) {
                 isDateSelected = true;
+                loading = true;
+                loadDoctors();
+                loading = false;
                 refreshAvailability();
             }
         });
-
-        // Tra cứu khách hàng
-
-        txtPhone.addActionListener(e -> lookupCustomer(true));
-        txtPhone.addFocusListener(new FocusAdapter() {
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                lookupCustomer(true);
-            }
-        });
-
-        txtPhone.getDocument().addDocumentListener(
-                new DocumentListener() {
-                    private void changed() {
-                        SwingUtilities.invokeLater(
-                                () -> lookupCustomer(false)
-                        );
-                    }
-
-                    @Override
-                    public void insertUpdate(DocumentEvent e) {
-                        changed();
-                    }
-
-                    @Override
-                    public void removeUpdate(DocumentEvent e) {
-                        changed();
-                    }
-
-                    @Override
-                    public void changedUpdate(DocumentEvent e) {
-                        changed();
-                    }
-                }
-        );
+        cbCustomer.addActionListener(e -> updateSelectedCustomer());
 
         // Nút lưu lịch hẹn
         JButton btnSave = createButton(
@@ -1353,20 +1335,24 @@ public class ManHinhDatLichHen extends JPanel {
         MucNhaSi old =(MucNhaSi) cbDoctor.getSelectedItem();
         String oldId = old == null ? null : old.id;
         cbDoctor.removeAllItems();
-        String sql ="SELECT maNhanVien, tenNhanVien FROM NhanVien "
-                        + "WHERE chucVu LIKE N'%Bác sĩ%' "
-                        + "OR chucVu LIKE N'%Nha sĩ%' "
-                        + "ORDER BY tenNhanVien";
+        String sql ="SELECT DISTINCT nv.maNhanVien, nv.tenNhanVien FROM NhanVien nv "
+                        + "JOIN LichLamViec llv ON llv.maNhanVien = nv.maNhanVien "
+                        + "AND llv.ngayLamViec = ? "
+                        + "WHERE nv.chucVu LIKE N'%Bác sĩ%' "
+                        + "OR nv.chucVu LIKE N'%Nha sĩ%' "
+                        + "ORDER BY nv.tenNhanVien";
         try (Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()
         ) {
+            ps.setDate(1, java.sql.Date.valueOf(getSelectedDate()));
+            try (ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 cbDoctor.addItem(
                         new MucNhaSi(
                                 rs.getString("maNhanVien"),
                                 rs.getString("tenNhanVien")));
+            }
             }
 
         } catch (SQLException e) {
@@ -1381,6 +1367,28 @@ public class ManHinhDatLichHen extends JPanel {
                 }
             }
         }
+    }
+
+    private void loadCustomers() {
+        if (cbCustomer == null) return;
+        cbCustomer.removeAllItems();
+        try (Connection c = DBConnection.getConnection();
+             PreparedStatement p = c.prepareStatement("SELECT maKhachHang, tenKH, sdt FROM KhachHang ORDER BY tenKH");
+             ResultSet r = p.executeQuery()) {
+            while (r.next()) cbCustomer.addItem(new MucKhachHang(r.getString(1), r.getString(2), r.getString(3)));
+        } catch (SQLException ex) { showError("Không thể tải khách hàng đã tạo!\n" + ex.getMessage()); }
+        updateSelectedCustomer();
+    }
+
+    private void updateSelectedCustomer() {
+        MucKhachHang selected = cbCustomer == null ? null : (MucKhachHang) cbCustomer.getSelectedItem();
+        txtCustId.setText(selected == null ? "" : selected.id);
+        txtCustName.setText(selected == null ? "" : selected.name);
+        txtPhone.setText(selected == null ? "" : selected.phone);
+        existingCustomer = selected != null;
+        existingCustomerId = selected == null ? null : selected.id;
+        if (lblCustomerStatus != null) setCustomerBadge(selected == null ? "Hãy tạo khách hàng trước khi đặt lịch" : "Đã chọn khách hàng " + selected.id,
+                selected == null ? RED_ACCENT : GREEN_ACCENT, selected == null ? RED_LIGHT : GREEN_LIGHT);
     }
 
     //  giới tính
@@ -2065,6 +2073,7 @@ public class ManHinhDatLichHen extends JPanel {
     private void performSave() {
         String phone = txtPhone.getText().trim();
         String name = txtCustName.getText().trim();
+        MucKhachHang selectedCustomer = (MucKhachHang) cbCustomer.getSelectedItem();
         Object selectedService = cbService.getEditor().getItem();
 
         String serviceName = selectedService == null? "": selectedService.toString().trim();
@@ -2073,12 +2082,8 @@ public class ManHinhDatLichHen extends JPanel {
         String time = cbTime.getSelectedItem() == null? null: cbTime.getSelectedItem().toString();
         LocalDate date = getSelectedDate();
 
-        if (phone.isEmpty() || name.isEmpty()) {
-            showWarning("Vui lòng nhập số điện thoại và tên khách hàng!");
-            return;
-        }
-        if (!phone.matches("\\d{10,15}")) {
-            showWarning("Số điện thoại phải có từ 10 đến 15 chữ số!");
+        if (selectedCustomer == null) {
+            showWarning("Vui lòng tạo khách hàng trước, sau đó chọn khách hàng trong danh sách!");
             return;
         }
 
@@ -2111,51 +2116,25 @@ public class ManHinhDatLichHen extends JPanel {
             conn.setAutoCommit(false);
 
             try {
-                // 1. Tìm khách hàng
-                String customerId = null;
-                String sqlFind =
-                        "SELECT TOP 1 maKhachHang "
-                                + "FROM KhachHang WITH (UPDLOCK, HOLDLOCK) "
-                                + "WHERE sdt = ? "
-                                + "ORDER BY maKhachHang";
-                try (PreparedStatement ps =conn.prepareStatement(sqlFind)
-                ) {
-                    ps.setString(1, phone);
+                String customerId = selectedCustomer.id;
+                // Chỉ nhân viên được phân công đúng ngày mới có thể nhận lịch.
+                String assignedSql = "SELECT COUNT(*) FROM LichLamViec WHERE maNhanVien=? AND ngayLamViec=?";
+                try (PreparedStatement ps = conn.prepareStatement(assignedSql)) {
+                    ps.setString(1, doctor.id);
+                    ps.setDate(2, sqlDate);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            customerId =
-                                    rs.getString("maKhachHang");
+                        if (rs.next() && rs.getInt(1) == 0) {
+                            conn.rollback();
+                            showWarning("Bác sĩ này không có phân công làm việc trong ngày đã chọn.");
+                            loadDoctors();
+                            refreshAvailability();
+                            return;
                         }
                     }
                 }
-
-                // 2. Tạo khách hàng mới nếu chưa tồn tại
-                if (customerId == null) {
-                    customerId = generateId(
-                            conn,
-                            "KhachHang",
-                            "maKhachHang",
-                            "KH",
-                            true
-                    );
-                    String sqlInsertCustomer =
-                            "INSERT INTO KhachHang "
-                                    + "(maKhachHang, tenKH, sdt, diemTichLuy) "
-                                    + "VALUES (?, ?, ?, 0)";
-
-                    try (PreparedStatement ps =conn.prepareStatement(sqlInsertCustomer)
-                    ) {
-                        ps.setString(1, customerId);
-                        ps.setString(2, name);
-                        ps.setString(3, phone);
-                        ps.executeUpdate();
-                    }
-                    createdNewCustomer = true;
-                }
-
-                // 3. Kiểm tra trùng lịch
+                // Kiểm tra lịch trùng trong cùng giao dịch để tránh hai lượt đặt đồng thời.
                 String sqlDup =
-                        "SELECT COUNT(*) FROM LichHen "
+                        "SELECT COUNT(*) FROM LichHen WITH (UPDLOCK, HOLDLOCK) "
                                 + "WHERE maNhanVien = ? "
                                 + "AND ngayHen = ? "
                                 + "AND gioKham = ? "
@@ -2359,18 +2338,17 @@ public class ManHinhDatLichHen extends JPanel {
         existingCustomerId = null;
         lastLookedPhone = "";
 
-        txtPhone.setText("");
-        txtCustName.setText("");
-
-        txtCustName.setEditable(true);
-        txtCustName.setBackground(Color.WHITE);
+        if (cbCustomer.getItemCount() > 0) cbCustomer.setSelectedIndex(0);
+        else updateSelectedCustomer();
         txtCustId.setText("");
 
         if (cbService.getItemCount() > 0) {
             cbService.setSelectedIndex(0);
         }
 
-        setCustomerBadge("Nhập số điện thoại để kiểm tra khách hàng",TEXT_GRAY,READONLY_BG);
+        setCustomerBadge(cbCustomer.getItemCount() == 0 ? "Hãy tạo khách hàng trước khi đặt lịch" : "Đã chọn khách hàng",
+                cbCustomer.getItemCount() == 0 ? RED_ACCENT : GREEN_ACCENT,
+                cbCustomer.getItemCount() == 0 ? RED_LIGHT : GREEN_LIGHT);
         refreshPreviewIds();
         refreshAvailability();
     }

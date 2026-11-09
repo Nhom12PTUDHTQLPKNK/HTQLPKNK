@@ -52,6 +52,10 @@ public class ManHinhMenuChinh extends JFrame {
     public static final String CARD_MEDICAL_RECORDS = "MEDICAL_RECORDS";
     public static final String CARD_DENTAL_CHART = "DENTAL_CHART";
     public static final String CARD_MEDICINES = "MEDICINES";
+    public static final String CARD_MEDICINE_GROUPS = "MEDICINE_GROUPS";
+    public static final String CARD_MEDICINE_FORMS = "MEDICINE_FORMS";
+    public static final String CARD_MEDICINE_ROUTES = "MEDICINE_ROUTES";
+    public static final String CARD_SERVICE_TYPES = "SERVICE_TYPES";
 
    // cập nhật[cite: 48, 52]
     public static final String CARD_INVENTORY_UPDATE = "INVENTORY_UPDATE";
@@ -304,7 +308,12 @@ public class ManHinhMenuChinh extends JFrame {
         mainContentPanel.add(new ManHinhBaoCaoNhapXuatKho(), CARD_REPORT_WAREHOUSE);
 
         mainContentPanel.add(new ManHinhSoDoRangChuan(), CARD_DENTAL_CHART);
-        mainContentPanel.add(new ManHinhDanhMucThuoc(), CARD_MEDICINES);
+        ManHinhDanhMucThuoc medicineCatalogPanel = new ManHinhDanhMucThuoc();
+        mainContentPanel.add(medicineCatalogPanel, CARD_MEDICINES);
+        mainContentPanel.add(medicineCatalogPanel.createReferenceManagementScreen("Danh mục nhóm thuốc", "Quản lý nhóm phân loại thuốc.", "NHOMTHUOC", "MaNhomThuoc", "TenNhomThuoc", "MoTa"), CARD_MEDICINE_GROUPS);
+        mainContentPanel.add(medicineCatalogPanel.createReferenceManagementScreen("Danh mục dạng bào chế", "Quản lý các dạng bào chế thuốc.", "DANGBAOCHE", "MaDangBaoChe", "TenDangBaoChe", "MoTa"), CARD_MEDICINE_FORMS);
+        mainContentPanel.add(medicineCatalogPanel.createReferenceManagementScreen("Danh mục đường dùng", "Quản lý đường sử dụng thuốc.", "DUONGDUNG", "MaDuongDung", "TenDuongDung", "MoTa"), CARD_MEDICINE_ROUTES);
+        mainContentPanel.add(medicineCatalogPanel.createReferenceManagementScreen("Danh mục loại điều trị", "Quản lý loại điều trị dùng cho dịch vụ nha khoa.", "DanhMucLoaiDieuTri", "maLoaiDieuTri", "tenLoaiDieuTri", "moTa"), CARD_SERVICE_TYPES);
         mainContentPanel.add(new ManHinhXuLyKhamBenh(), CARD_EXAMINATION);
         mainContentPanel.add(new ManHinhKeHoachDieuTri(), CARD_TREATMENT_PLAN);
         mainContentPanel.add(new ManHinhKeDonThuocDienTu(), CARD_PRESCRIPTION);
@@ -423,6 +432,13 @@ public class ManHinhMenuChinh extends JFrame {
     }
 
     // 1. Menu Quản lý / Admin 
+    private void addReferenceCategoryItems(JMenu menu) {
+        addItem(menu, "Nhóm thuốc", "/img/medicine.png", CARD_MEDICINE_GROUPS, 0, 0);
+        addItem(menu, "Dạng bào chế", "/img/medicine.png", CARD_MEDICINE_FORMS, 0, 0);
+        addItem(menu, "Đường dùng", "/img/medicine.png", CARD_MEDICINE_ROUTES, 0, 0);
+        addItem(menu, "Loại điều trị", "/img/service.png", CARD_SERVICE_TYPES, 0, 0);
+    }
+
     private JMenuBar createAdminMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         menuBar.setBackground(NAVY_BG);
@@ -448,6 +464,7 @@ public class ManHinhMenuChinh extends JFrame {
         addItem(mnuCategory, "Hồ sơ bệnh án", "/img/medical.png", CARD_MEDICAL_RECORDS, KeyEvent.VK_T, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Sơ đồ răng chuẩn", "/img/dental.png", CARD_DENTAL_CHART, KeyEvent.VK_D, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuCategory, "Danh mục thuốc chuẩn", "/img/medicine.png", CARD_MEDICINES, KeyEvent.VK_M, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addReferenceCategoryItems(mnuCategory);
 
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
         addItem(mnuUpdate, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);
@@ -504,6 +521,7 @@ public class ManHinhMenuChinh extends JFrame {
         addItem(mnuCategory, "Hồ sơ bệnh án", "/img/medical.png", CARD_MEDICAL_RECORDS, KeyEvent.VK_T, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Sơ đồ răng chuẩn", "/img/dental.png", CARD_DENTAL_CHART, KeyEvent.VK_D, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(mnuCategory, "Danh mục thuốc chuẩn", "/img/medicine.png", CARD_MEDICINES, KeyEvent.VK_M, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addReferenceCategoryItems(mnuCategory);
         
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
 
@@ -546,6 +564,7 @@ public class ManHinhMenuChinh extends JFrame {
         addItem(mnuCategory, "Khách hàng / Bệnh nhân", "/img/customer.png", CARD_CUSTOMERS, KeyEvent.VK_K, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Hồ sơ bệnh án", "/img/medical.png", CARD_MEDICAL_RECORDS, KeyEvent.VK_T, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Danh mục thuốc chuẩn", "/img/medicine.png", CARD_MEDICINES, KeyEvent.VK_M, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addReferenceCategoryItems(mnuCategory);
 
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
         addItem(mnuUpdate, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);

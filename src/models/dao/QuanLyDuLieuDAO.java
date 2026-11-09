@@ -117,10 +117,10 @@ public class QuanLyDuLieuDAO {
             case D_KHO:
             case S_KHO:
                 return executeQueryToModel(
-                    "SELECT maThuoc AS Ma, tenThuoc AS Ten, 'Thuoc' AS Loai, soLuongTon AS Ton, donViTinh AS DonVi, '' AS HanDung FROM Thuoc " +
+                    "SELECT maThuoc AS Ma, tenThuoc AS Ten, 'Thuoc' AS Loai, soLuongTon AS Ton, donViTinh AS DonVi, CAST(0 AS DECIMAL(18,2)) AS giaBan, GiaNhap AS giaNhap, '' AS HanDung FROM Thuoc " +
                     "UNION ALL " +
-                    "SELECT maVatTu AS Ma, tenVatTu AS Ten, 'VatTu' AS Loai, soLuongTon AS Ton, donViTinh AS DonVi, CAST(ngaySuDung AS VARCHAR) AS HanDung FROM VatTu",
-                    new String[]{"Mã", "Tên thuốc / vật tư", "Loại", "Tồn kho", "Đơn vị", "Hạn dùng"});
+                    "SELECT maVatTu AS Ma, tenVatTu AS Ten, 'VatTu' AS Loai, soLuongTon AS Ton, donViTinh AS DonVi, giaBan, giaNhap, CAST(ngaySuDung AS VARCHAR) AS HanDung FROM VatTu",
+                    new String[]{"Mã", "Tên thuốc / vật tư", "Loại", "Tồn kho", "Đơn vị", "Giá bán (VNĐ)", "Giá nhập (VNĐ)", "Hạn dùng"});
             case D_GOI:
                 return executeQueryToModel(
                     "SELECT maDichVu, tenDichVu, moTa, donGia, 30 AS ThoiGian FROM DichVu",
@@ -325,19 +325,21 @@ public class QuanLyDuLieuDAO {
     }
 
     private static boolean saveKhoRow(Object[] row, Object oldKey) {
-        if (row == null || row.length < 6) return false;
+        if (row == null || row.length < 8) return false;
         String loai = String.valueOf(row[2]);
         String key = String.valueOf(row[0]);
         String name = String.valueOf(row[1]);
         String unit = String.valueOf(row[4]);
         String qty = String.valueOf(row[3]);
-        String expiry = String.valueOf(row[5]);
+        String salePrice = String.valueOf(row[5]);
+        String purchasePrice = String.valueOf(row[6]);
+        String expiry = String.valueOf(row[7]);
         boolean isThuoc = "Thuoc".equalsIgnoreCase(loai) || "thuốc".equalsIgnoreCase(loai);
         String sql = isThuoc
                 ? (oldKey == null ? "INSERT INTO Thuoc (maThuoc, tenThuoc, donViTinh, soLuongTon) VALUES (?, ?, ?, ?)"
                 : "UPDATE Thuoc SET maThuoc = ?, tenThuoc = ?, donViTinh = ?, soLuongTon = ? WHERE maThuoc = ?")
-                : (oldKey == null ? "INSERT INTO VatTu (maVatTu, tenVatTu, donViTinh, soLuongTon, ngaySuDung) VALUES (?, ?, ?, ?, ?)"
-                : "UPDATE VatTu SET maVatTu = ?, tenVatTu = ?, donViTinh = ?, soLuongTon = ?, ngaySuDung = ? WHERE maVatTu = ?");
+                : (oldKey == null ? "INSERT INTO VatTu (maVatTu, tenVatTu, donViTinh, soLuongTon, giaBan, giaNhap, ngaySuDung) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                : "UPDATE VatTu SET maVatTu = ?, tenVatTu = ?, donViTinh = ?, soLuongTon = ?, giaBan = ?, giaNhap = ?, ngaySuDung = ? WHERE maVatTu = ?");
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             if (isThuoc) {
@@ -351,8 +353,10 @@ public class QuanLyDuLieuDAO {
                 ps.setString(2, name);
                 ps.setString(3, unit);
                 ps.setInt(4, parseInt(qty));
-                ps.setString(5, expiry == null || expiry.isEmpty() ? null : expiry);
-                if (oldKey != null) ps.setString(6, String.valueOf(oldKey));
+                ps.setBigDecimal(5, parsePrice(salePrice));
+                ps.setBigDecimal(6, parsePrice(purchasePrice));
+                ps.setString(7, expiry == null || expiry.isEmpty() ? null : expiry);
+                if (oldKey != null) ps.setString(8, String.valueOf(oldKey));
             }
             boolean ok = ps.executeUpdate() > 0;
             if (ok) {
@@ -363,7 +367,16 @@ public class QuanLyDuLieuDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        } catch (NumberFormatException e) {
+            return false;
         }
+    }
+
+    private static java.math.BigDecimal parsePrice(String value) {
+        String normalized = value == null ? "" : value.replaceAll("[^0-9,.-]", "").replace(",", "").trim();
+        java.math.BigDecimal price = new java.math.BigDecimal(normalized);
+        if (price.signum() < 0) throw new NumberFormatException("Giá phải không âm");
+        return price;
     }
 
     private static boolean saveDichVu(Object[] row, Object oldKey) {

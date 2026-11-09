@@ -14,6 +14,7 @@ public class NhanVien {
     private String lichLamViec;
     private String trinhDo;
     private Double mucLuong;
+    private String hinhAnh;
 
     public NhanVien() {}
 
@@ -51,6 +52,8 @@ public class NhanVien {
 
     public Double getMucLuong() { return mucLuong; }
     public void setMucLuong(Double mucLuong) { this.mucLuong = mucLuong; }
+    public String getHinhAnh() { return hinhAnh; }
+    public void setHinhAnh(String hinhAnh) { this.hinhAnh = hinhAnh; }
 
     @Override
     public String toString() {

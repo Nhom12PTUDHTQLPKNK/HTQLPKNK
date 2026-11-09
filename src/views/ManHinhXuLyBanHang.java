@@ -2,6 +2,8 @@ package views;
 
 import controllers.NhatKyKiemToan;
 import controllers.XuatBangPDF;
+import controllers.DichVuBaoCao;
+import controllers.DieuKhienMaQR;
 import sql.DBConnection;
 
 import javax.swing.*;
@@ -14,6 +16,7 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.sql.*;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +35,7 @@ public class ManHinhXuLyBanHang extends JPanel {
     private JTable table;
     private JTextField txtSearch, txtCustomerName, txtPhone, txtNote;
     private JComboBox<String> cboPaymentMethod;
+    private JComboBox<String> cboInvoiceType;
     private JComboBox<MucBenhNhanHopChon> cboChonBenhAn;
     private TableRowSorter<DefaultTableModel> rowSorter;
 
@@ -39,6 +43,7 @@ public class ManHinhXuLyBanHang extends JPanel {
     private JTable serviceTable;
 
     private JLabel lblStatTotalInvoices, lblStatTotalRevenue, lblStatMonthInvoices, lblStatPaidInvoices;
+    private String maHoaDonMoiNhat;
 
     public ManHinhXuLyBanHang() {
         setLayout(new BorderLayout(0, 20));
@@ -180,12 +185,22 @@ public class ManHinhXuLyBanHang extends JPanel {
         formBody.add(createFieldLabel("Phương Thức Thanh Toán"));
         formBody.add(Box.createVerticalStrut(6));
 
-        cboPaymentMethod = new JComboBox<>(new String[]{"Tiền Mặt", "Chuyển Khoản Ngân Hàng", "Thẻ Tín Dụng"});
+        cboPaymentMethod = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
         cboPaymentMethod.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cboPaymentMethod.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         cboPaymentMethod.setAlignmentX(Component.LEFT_ALIGNMENT);
         cboPaymentMethod.setBackground(Color.WHITE);
         formBody.add(cboPaymentMethod);
+        formBody.add(Box.createVerticalStrut(14));
+
+        formBody.add(createFieldLabel("Loại hóa đơn"));
+        formBody.add(Box.createVerticalStrut(6));
+        cboInvoiceType = new JComboBox<>(new String[]{"Hóa đơn khám chữa bệnh", "Hóa đơn thuốc", "Hóa đơn vật tư"});
+        cboInvoiceType.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cboInvoiceType.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        cboInvoiceType.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cboInvoiceType.setBackground(Color.WHITE);
+        formBody.add(cboInvoiceType);
         formBody.add(Box.createVerticalStrut(14));
 
         txtNote = addFieldToForm(formBody, "Ghi Chú (nếu có)");
@@ -205,8 +220,7 @@ public class ManHinhXuLyBanHang extends JPanel {
 
         JButton btnPrintInvoice = createStaticButton("In Hóa Đơn", BLUE_PRIMARY, 135, 44);
         btnPrintInvoice.addActionListener(e -> {
-            saveInvoiceToDatabase();
-            try { table.print(); } catch (Exception ignored) {}
+            if (saveInvoiceToDatabase()) exportSavedInvoice(maHoaDonMoiNhat);
         });
 
         btnBox.add(btnReset);
@@ -309,6 +323,8 @@ public class ManHinhXuLyBanHang extends JPanel {
         rowSorter = new TableRowSorter<>(tableModel);
         table.setRowSorter(rowSorter);
         styleTable(table);
+        JButton btnExportInvoice = createStaticButton("In hóa đơn PDF", BLUE_PRIMARY, 145, 38);
+        btnExportInvoice.addActionListener(e -> exportSelectedInvoice());
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1));
@@ -317,7 +333,14 @@ public class ManHinhXuLyBanHang extends JPanel {
         JPanel centerListContainer = new JPanel(new BorderLayout(0, 12));
         centerListContainer.setOpaque(false);
         centerListContainer.add(statsPanel, BorderLayout.NORTH);
-        centerListContainer.add(scroll, BorderLayout.CENTER);
+        JPanel tableArea = new JPanel(new BorderLayout(0, 8));
+        tableArea.setOpaque(false);
+        JPanel exportBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        exportBar.setOpaque(false);
+        exportBar.add(btnExportInvoice);
+        tableArea.add(exportBar, BorderLayout.NORTH);
+        tableArea.add(scroll, BorderLayout.CENTER);
+        centerListContainer.add(tableArea, BorderLayout.CENTER);
 
         card.add(centerListContainer, BorderLayout.CENTER);
         return card;
@@ -516,7 +539,9 @@ public class ManHinhXuLyBanHang extends JPanel {
 
         // Truy vấn lấy hóa đơn kết hợp với bảng ChiTietChiDinh và DichVu để tính đúng tổng tiền thực tế
         String sql = "SELECT h.maHoaDon, k.tenKH, h.ngayLap, " +
-                     "ISNULL((SELECT SUM(d.donGia * c.soLuong) FROM ChiTietChiDinh c JOIN DichVu d ON c.maDichVu = d.maDichVu WHERE c.maBenhAn = h.maBenhAn), 0) AS tongTien " +
+                     "ISNULL((SELECT SUM(d.donGia * c.soLuong) FROM ChiTietChiDinh c JOIN DichVu d ON c.maDichVu = d.maDichVu WHERE c.maBenhAn = h.maBenhAn), 0) " +
+                     "+ ISNULL((SELECT SUM(ct.donGia * ct.soLuong) FROM ChiTietHoaDon ct WHERE ct.maHoaDon = h.maHoaDon AND ct.maVatTu IS NOT NULL), 0) AS tongTien, " +
+                     "h.loaiHoaDon, (SELECT TOP 1 p.hinhThucThanhToan FROM PhieuThanhToan p WHERE p.maHoaDon=h.maHoaDon ORDER BY p.ngayThanhToan DESC) AS hinhThucThanhToan " +
                      "FROM HoaDon h " +
                      "LEFT JOIN KhachHang k ON h.maKhachHang = k.maKhachHang " +
                      "ORDER BY h.ngayLap DESC";
@@ -545,15 +570,16 @@ public class ManHinhXuLyBanHang extends JPanel {
                         monthCount++;
                     }
                 }
-                paidCount++;
+                String method = rs.getString("hinhThucThanhToan");
+                if (method != null) paidCount++;
 
                 tableModel.addRow(new Object[]{
                     maHD,
                     tenKH,
                     dateStr,
                     df.format(tongTien),
-                    "Tiền Mặt",
-                    "Đã thanh toán"
+                    method == null ? "Chưa thanh toán" : method,
+                    method == null ? "Chưa thanh toán" : "Đã thanh toán"
                 });
             }
 
@@ -567,15 +593,18 @@ public class ManHinhXuLyBanHang extends JPanel {
         }
     }
 
-    private void saveInvoiceToDatabase() {
+    private boolean saveInvoiceToDatabase() {
         MucBenhNhanHopChon selectedPatient = (MucBenhNhanHopChon) cboChonBenhAn.getSelectedItem();
         if (selectedPatient == null || selectedPatient.maBenhAn.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn mã bệnh án trước khi lưu hóa đơn!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
+            return false;
         }
 
         String maBenhAn = selectedPatient.maBenhAn;
-        String maHoaDon = "HD" + System.currentTimeMillis();
+        String loaiHoaDon = String.valueOf(cboInvoiceType.getSelectedItem());
+        String maLoai = loaiHoaDon.contains("thuốc") ? "T" : loaiHoaDon.contains("vật tư") ? "V" : "K";
+        String maHoaDon = "HD" + maLoai + System.currentTimeMillis();
+        String hinhThuc = String.valueOf(cboPaymentMethod.getSelectedItem());
 
         String maKH = "";
         String maNV = "NV001";
@@ -593,14 +622,22 @@ public class ManHinhXuLyBanHang extends JPanel {
             e.printStackTrace();
         }
 
-        String insertSql = "INSERT INTO HoaDon (maHoaDon, maBenhAn, maKhachHang, maNhanVien, ngayLap) VALUES (?, ?, ?, ?, GETDATE())";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(insertSql)) {
-            ps.setString(1, maHoaDon);
-            ps.setString(2, maBenhAn);
-            ps.setString(3, maKH);
-            ps.setString(4, maNV);
-            ps.executeUpdate();
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            double amount = calculateInvoiceTotal(conn, maBenhAn, null);
+            if ("Chuyển khoản".equalsIgnoreCase(hinhThuc) && !showTransferQr(amount, maHoaDon)) {
+                conn.rollback(); conn.setAutoCommit(true); return false;
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO HoaDon (maHoaDon, maBenhAn, maKhachHang, maNhanVien, ngayLap, loaiHoaDon) VALUES (?, ?, ?, ?, GETDATE(), ?)")) {
+                ps.setString(1, maHoaDon); ps.setString(2, maBenhAn); ps.setString(3, maKH); ps.setString(4, maNV); ps.setString(5, loaiHoaDon);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO PhieuThanhToan (maPhieu, maHoaDon, maKhachHang, maNhanVien, ngayThanhToan, hinhThucThanhToan, daThanhToan, soTienConLai, ghiChu) VALUES (?, ?, ?, ?, GETDATE(), ?, ?, 0, ?)")) {
+                ps.setString(1, "PT" + System.currentTimeMillis()); ps.setString(2, maHoaDon); ps.setString(3, maKH); ps.setString(4, maNV);
+                ps.setString(5, hinhThuc); ps.setDouble(6, amount); ps.setString(7, loaiHoaDon); ps.executeUpdate();
+            }
+            conn.commit(); conn.setAutoCommit(true);
+            maHoaDonMoiNhat = maHoaDon;
 
             NhatKyKiemToan.event("CREATE", "Hóa đơn " + maHoaDon + " cho bệnh án " + maBenhAn);
             JOptionPane.showMessageDialog(this, "Lưu hóa đơn thành công!");
@@ -608,10 +645,111 @@ public class ManHinhXuLyBanHang extends JPanel {
             clearForm();
             loadInvoiceDataFromDatabase();
             loadPatientMedicalRecords();
+            return true;
 
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi khi lưu hóa đơn vào CSDL: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    private double calculateInvoiceTotal(Connection conn, String maBenhAn, String maHoaDon) throws SQLException {
+        String sql = "SELECT ISNULL((SELECT SUM(d.donGia*c.soLuong) FROM ChiTietChiDinh c JOIN DichVu d ON c.maDichVu=d.maDichVu WHERE c.maBenhAn=?),0) " +
+                "+ ISNULL((SELECT SUM(ct.donGia*ct.soLuong) FROM ChiTietHoaDon ct WHERE ct.maHoaDon=?),0)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maBenhAn); ps.setString(2, maHoaDon);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getDouble(1) : 0d; }
+        }
+    }
+
+    private boolean showTransferQr(double amount, String maHoaDon) {
+        String payload = buildVietQrPayload((long)Math.ceil(amount), maHoaDon);
+        byte[] png = DieuKhienMaQR.generateQrCodeBytes(payload);
+        if (png == null) {
+            JOptionPane.showMessageDialog(this, "Không thể tạo mã QR chuyển khoản.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        JLabel qr = new JLabel(new ImageIcon(png));
+        qr.setHorizontalAlignment(SwingConstants.CENTER);
+        JPanel details = new JPanel(); details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
+        details.add(new JLabel("BIDV • 8822902096"));
+        details.add(new JLabel("NGUYEN MINH SY LUAN"));
+        details.add(new JLabel(String.format(java.util.Locale.forLanguageTag("vi-VN"), "Số tiền: %,.0f đ", amount)));
+        details.add(new JLabel("Nội dung: " + maHoaDon));
+        JPanel body = new JPanel(new BorderLayout(8, 8));
+        body.add(qr, BorderLayout.CENTER); body.add(details, BorderLayout.SOUTH);
+        return JOptionPane.showConfirmDialog(this, body, "Quét QR và xác nhận đã nhận chuyển khoản", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION;
+    }
+
+    private String buildVietQrPayload(long amount, String note) {
+        String merchantInfo = tlv("00", "A000000727") + tlv("01", "970418") + tlv("02", "8822902096");
+        String additional = tlv("08", note.length() > 25 ? note.substring(0, 25) : note);
+        String payload = tlv("00", "01") + tlv("01", "12") + tlv("26", merchantInfo) +
+                tlv("52", "0000") + tlv("53", "704") + tlv("54", String.valueOf(amount)) +
+                tlv("58", "VN") + tlv("59", "NGUYEN MINH SY LUAN") + tlv("60", "HO CHI MINH") +
+                tlv("62", additional) + "6304";
+        return payload + String.format("%04X", crc16(payload));
+    }
+
+    private String tlv(String tag, String value) {
+        int length = value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        return tag + String.format("%02d", length) + value;
+    }
+
+    private int crc16(String value) {
+        int crc = 0xFFFF;
+        for (byte b : value.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+            crc ^= (b & 0xFF) << 8;
+            for (int i = 0; i < 8; i++) crc = (crc & 0x8000) != 0 ? (crc << 1) ^ 0x1021 : crc << 1;
+        }
+        return crc & 0xFFFF;
+    }
+
+    private void exportSelectedInvoice() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn trong danh sách.", "In hóa đơn PDF", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        int modelRow = table.convertRowIndexToModel(row);
+        exportSavedInvoice(String.valueOf(tableModel.getValueAt(modelRow, 0)));
+    }
+
+    private void exportSavedInvoice(String maHoaDon) {
+        if (maHoaDon == null || maHoaDon.trim().isEmpty()) return;
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu hóa đơn PDF");
+        chooser.setSelectedFile(new File("HoaDon_" + maHoaDon + ".pdf"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File file = chooser.getSelectedFile();
+        if (!file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
+            file = new File(file.getParentFile(), file.getName() + ".pdf");
+        }
+        String sql = "SELECT h.maHoaDon, h.ngayLap, k.tenKH, h.loaiHoaDon, " +
+                "ISNULL((SELECT SUM(d.donGia*c.soLuong) FROM ChiTietChiDinh c JOIN DichVu d ON c.maDichVu=d.maDichVu WHERE c.maBenhAn=h.maBenhAn),0) " +
+                "+ ISNULL((SELECT SUM(ct.donGia*ct.soLuong) FROM ChiTietHoaDon ct WHERE ct.maHoaDon=h.maHoaDon AND ct.maVatTu IS NOT NULL),0) tongTien " +
+                ",(SELECT TOP 1 p.hinhThucThanhToan FROM PhieuThanhToan p WHERE p.maHoaDon=h.maHoaDon ORDER BY p.ngayThanhToan DESC) hinhThucThanhToan " +
+                "FROM HoaDon h LEFT JOIN KhachHang k ON h.maKhachHang=k.maKhachHang WHERE h.maHoaDon=?";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maHoaDon);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Không tìm thấy hóa đơn " + maHoaDon);
+                int total = (int) Math.round(rs.getDouble("tongTien"));
+                java.sql.Date date = rs.getDate("ngayLap");
+                String dateText = date == null ? "" : date.toLocalDate().toString();
+                String customer = rs.getString("tenKH");
+                String method = rs.getString("hinhThucThanhToan");
+                String invoiceType = rs.getString("loaiHoaDon");
+                DichVuBaoCao.exportInvoice(file, maHoaDon, dateText,
+                        customer == null ? "Khách lẻ" : customer,
+                        invoiceType == null ? "Chi phí khám và thuốc/vật tư" : invoiceType, total, "Không áp dụng", 0, total,
+                        method == null ? "Chưa thanh toán" : method, "Nhân viên phòng khám");
+            }
+            JOptionPane.showMessageDialog(this, "Đã xuất hóa đơn PDF:\n" + file.getAbsolutePath(), "In hóa đơn PDF", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Không thể xuất hóa đơn PDF: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

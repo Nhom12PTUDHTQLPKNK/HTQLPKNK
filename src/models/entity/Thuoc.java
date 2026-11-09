@@ -16,6 +16,7 @@ public class Thuoc {
     private String moTa;
     private String hinhAnh;
     private Boolean trangThai;
+    private java.math.BigDecimal giaNhap;
 
     public Thuoc() {}
 
@@ -54,6 +55,9 @@ public class Thuoc {
 
     public Boolean getTrangThai() { return trangThai; }
     public void setTrangThai(Boolean trangThai) { this.trangThai = trangThai; }
+
+    public java.math.BigDecimal getGiaNhap() { return giaNhap; }
+    public void setGiaNhap(java.math.BigDecimal giaNhap) { this.giaNhap = giaNhap; }
 
     @Override
     public String toString() {

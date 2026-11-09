@@ -872,15 +872,7 @@
 	        form.add(createFieldLabel("Loại điều trị:"));
 	        form.add(Box.createVerticalStrut(4));
 	
-	        JComboBox<String> cbCat = new JComboBox<>(
-	                new String[]{
-	                    "Nha khoa tổng quát",
-	                    "Thẩm mỹ",
-	                    "Chỉnh nha",
-	                    "Tiểu phẫu",
-	                    "Phục hình sứ"
-	                }
-	        );
+	        JComboBox<String> cbCat = new JComboBox<>(dichVuDAO.getDanhSachLoaiDieuTri().toArray(new String[0]));
 	
 	        cbCat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 	        cbCat.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
