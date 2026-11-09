@@ -36,8 +36,13 @@ public class NhanSuTaiKhoanDAO {
 
     public boolean save(String id, String name, String username, String password, String role,
                         String phone, double salary, boolean active, boolean editing, String oldUsername) throws SQLException {
+        if (!KiemSoatTruyCap.isAdministrator()) throw new SQLException("Chỉ admin được quản lý tài khoản.");
         if (id == null || id.trim().isEmpty() || name == null || name.trim().isEmpty() || username == null || username.trim().isEmpty())
             throw new SQLException("Mã nhân viên, họ tên và tên đăng nhập là bắt buộc.");
+        if ("admin".equalsIgnoreCase(username.trim()) || "admin".equalsIgnoreCase(oldUsername == null ? "" : oldUsername.trim()))
+            throw new SQLException("Tài khoản Admin cố định, không thể sửa.");
+        if ("admin".equalsIgnoreCase(role == null ? "" : role.trim()))
+            throw new SQLException("Không thể gán chức vụ Admin cho tài khoản khác.");
             
         try (Connection c = DBConnection.getConnection()) {
             c.setAutoCommit(false);
@@ -132,9 +137,16 @@ public class NhanSuTaiKhoanDAO {
     }
 
     public boolean delete(String id, String username) throws SQLException {
+        if (!KiemSoatTruyCap.isAdministrator()) throw new SQLException("Chỉ admin được quản lý tài khoản.");
+        if ("admin".equalsIgnoreCase(username == null ? "" : username.trim()))
+            throw new SQLException("Tài khoản Admin cố định, không thể xóa.");
         try (Connection c = DBConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
+                try (PreparedStatement check = c.prepareStatement("SELECT COUNT(*) FROM TaiKhoan WHERE maNhanVien=? AND UPPER(LTRIM(RTRIM(ISNULL(quyen,''))))='ADMIN'")) {
+                    check.setString(1, id);
+                    try (ResultSet rs = check.executeQuery()) { if (rs.next() && rs.getInt(1) > 0) throw new SQLException("Không thể xóa tài khoản mang chức vụ Admin."); }
+                }
                 if (username != null) {
                     try (PreparedStatement p = c.prepareStatement("DELETE FROM TaiKhoan WHERE tenDN = ? OR maNhanVien = ?")) { 
                         p.setString(1, username); 
@@ -163,9 +175,11 @@ public class NhanSuTaiKhoanDAO {
     private static String normalizeRole(String role) {
         if (role == null) return "Lễ tân";
         String v = role.trim().toUpperCase();
-        if (v.equals("ADMIN") || v.equals("QUAN_LY") || role.contains("Quản lý")) return "Admin";
+        if (v.equals("ADMIN")) return "Admin";
+        if (v.equals("QUAN_LY") || role.contains("Quản lý")) return "Quản lý";
         if (v.equals("NHA_SI") || role.contains("Nha sĩ") || role.contains("Bác sĩ")) return "Nha sĩ";
         if (v.equals("Y_TA") || role.contains("Y tá") || role.contains("Điều dưỡng")) return "Y tá";
-        return "Lễ tân";
+        if (v.equals("LE_TAN") || role.contains("Lễ tân")) return "Lễ tân";
+        return role;
     }
 }

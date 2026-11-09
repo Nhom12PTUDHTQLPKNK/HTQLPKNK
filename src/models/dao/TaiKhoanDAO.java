@@ -31,7 +31,7 @@ public class TaiKhoanDAO {
                 String quyenStr = rs.getString("quyen");
                 VaiTro role = VaiTro.fromString(quyenStr);
                 
-                return new TaiKhoanThongTin(username, pass, rs.getString("maNhanVien"), role);
+                return new TaiKhoanThongTin(username, pass, rs.getString("maNhanVien"), role, quyenStr);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -62,7 +62,9 @@ public class TaiKhoanDAO {
 
     public boolean insertAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien) {
         if (!KiemSoatTruyCap.isAdministrator() || tenDN == null || tenDN.trim().isEmpty()
-                || matKhau == null || matKhau.trim().isEmpty()) return false;
+                || matKhau == null || matKhau.trim().isEmpty()
+                || "admin".equalsIgnoreCase(tenDN.trim())
+                || "admin".equalsIgnoreCase(quyen == null ? "" : quyen.trim())) return false;
         String sql = "INSERT INTO TaiKhoan (tenDN, matKhau, quyen, trangThai, maNhanVien) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -86,6 +88,8 @@ public class TaiKhoanDAO {
 
     public boolean updateAccount(String tenDN, String matKhau, String quyen, boolean trangThai, String maNhanVien, boolean updatePassword) {
         if (!KiemSoatTruyCap.isAdministrator() || tenDN == null || tenDN.trim().isEmpty()
+                || "admin".equalsIgnoreCase(tenDN.trim())
+                || "admin".equalsIgnoreCase(quyen == null ? "" : quyen.trim())
                 || (updatePassword && (matKhau == null || matKhau.trim().isEmpty()))) return false;
         if (KiemSoatTruyCap.isProtectedAdministrator(tenDN, null)
                 && (!trangThai || !KiemSoatTruyCap.isProtectedAdministrator(tenDN, quyen))) return false;
@@ -147,7 +151,7 @@ public class TaiKhoanDAO {
     }
 
     public boolean updateAccountRoleByEmployeeId(String maNhanVien, String quyen) {
-        if (!KiemSoatTruyCap.isAdministrator()) return false;
+        if (!KiemSoatTruyCap.isAdministrator() || "admin".equalsIgnoreCase(quyen == null ? "" : quyen.trim())) return false;
         String sql = "UPDATE TaiKhoan SET quyen = ? WHERE maNhanVien = ? AND LOWER(tenDN) <> 'admin' AND UPPER(LTRIM(RTRIM(ISNULL(quyen,'')))) NOT IN ('ADMIN','QUAN_LY')";
         try (Connection conn = DBConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, quyen);
@@ -206,7 +210,8 @@ public class TaiKhoanDAO {
     private String displayRole(String role) {
         if (role == null) return "Lễ tân";
         String value = role.trim().toUpperCase();
-        if (value.equals("ADMIN") || value.equals("QUAN_LY") || role.contains("Quản lý")) return "Admin";
+        if (value.equals("ADMIN")) return "Admin";
+        if (value.equals("QUAN_LY") || role.contains("Quản lý")) return "Quản lý";
         if (value.equals("NHA_SI") || role.contains("Nha sĩ") || role.contains("Bác sĩ")) return "Nha sĩ";
         if (value.equals("Y_TA") || role.contains("Y tá") || role.contains("Điều dưỡng")) return "Y tá";
         return "Lễ tân";

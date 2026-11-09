@@ -12,6 +12,8 @@ import java.util.List;
 public class NhanVienDAO {
 
     public boolean insert(NhanVien nv) throws SQLException {
+        if ("admin".equalsIgnoreCase(nv.getChucVu() == null ? "" : nv.getChucVu().trim()))
+            throw new SQLException("Không thể gán chức vụ Admin cho nhân viên.");
         String sql = "INSERT INTO NhanVien (maNhanVien, tenNhanVien, ngaySinh, sdt, chucVu, lichLamViec, trinhDo, mucLuong, hinhAnh) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -31,6 +33,9 @@ public class NhanVienDAO {
     }
 
     public boolean update(NhanVien nv) throws SQLException {
+        if ("admin".equalsIgnoreCase(nv.getChucVu() == null ? "" : nv.getChucVu().trim()))
+            throw new SQLException("Không thể gán chức vụ Admin cho nhân viên.");
+        if (isFixedAdminEmployee(nv.getMaNhanVien())) throw new SQLException("Nhân sự gắn với tài khoản Admin được bảo vệ và không thể chỉnh sửa.");
         String sql = "UPDATE NhanVien SET tenNhanVien = ?, ngaySinh = ?, sdt = ?, chucVu = ?, lichLamViec = ?, trinhDo = ?, mucLuong = ?, hinhAnh = ? WHERE maNhanVien = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -50,6 +55,7 @@ public class NhanVienDAO {
     }
 
     public boolean delete(String maNhanVien) throws SQLException {
+        if (isFixedAdminEmployee(maNhanVien)) throw new SQLException("Nhân sự gắn với tài khoản Admin được bảo vệ và không thể xóa.");
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement lookup = conn.prepareStatement("SELECT tenDN,quyen FROM TaiKhoan WHERE maNhanVien=?")) {
             lookup.setString(1, maNhanVien);
@@ -67,6 +73,15 @@ public class NhanVienDAO {
             if (deleted) NhatKyKiemToan.event("DELETE", "Nhân viên " + maNhanVien);
             return deleted;
             }
+        }
+    }
+
+    private boolean isFixedAdminEmployee(String employeeId) throws SQLException {
+        if (employeeId == null) return false;
+        String sql = "SELECT COUNT(*) FROM TaiKhoan WHERE maNhanVien=? AND LOWER(tenDN)='admin'";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, employeeId);
+            try (ResultSet rs = stmt.executeQuery()) { return rs.next() && rs.getInt(1) > 0; }
         }
     }
 
@@ -123,7 +138,7 @@ public class NhanVienDAO {
 
     public List<String> getAllChucVu() {
         List<String> list = new ArrayList<>();
-        String sql = "SELECT tenChucVu FROM ChucVu WHERE trangThai = 1 ORDER BY tenChucVu";
+        String sql = "SELECT tenChucVu FROM ChucVu WHERE trangThai = 1 AND UPPER(LTRIM(RTRIM(tenChucVu))) <> 'ADMIN' ORDER BY tenChucVu";
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {

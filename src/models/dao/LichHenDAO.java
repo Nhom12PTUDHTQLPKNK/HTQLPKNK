@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -591,6 +592,85 @@ public class LichHenDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public boolean revertConfirmedAppointment(String appointmentId) throws SQLException {
+        if (appointmentId == null || appointmentId.trim().isEmpty()) return false;
+        String sql = "UPDATE LichHen SET trangThai=N'Chờ xác nhận' "
+                + "WHERE maLichHen=? AND trangThai=N'Đã xác nhận'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, appointmentId.trim());
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /** Returns [ngayHen, gioKham, maNhanVien, ghiChu], or null when not found. */
+    public Object[] getAppointmentForEdit(String appointmentId) throws SQLException {
+        if (appointmentId == null || appointmentId.trim().isEmpty()) return null;
+        String sql = "SELECT ngayHen, gioKham, maNhanVien, ghiChu FROM LichHen WHERE maLichHen = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, appointmentId.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                return new Object[]{rs.getDate("ngayHen"), rs.getString("gioKham"),
+                        rs.getString("maNhanVien"), rs.getString("ghiChu")};
+            }
+        }
+    }
+
+    public List<Object[]> getDoctorsForAppointmentEdit() throws SQLException {
+        List<Object[]> rows = new ArrayList<>();
+        String sql = "SELECT maNhanVien, tenNhanVien FROM NhanVien "
+                + "WHERE chucVu LIKE N'%sĩ%' ORDER BY tenNhanVien";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(new Object[]{rs.getString(1), rs.getString(2)});
+        }
+        return rows;
+    }
+
+    public List<String> getAppointmentServiceNames() throws SQLException {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT tenDichVu FROM DichVu ORDER BY tenDichVu";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) names.add(rs.getString(1));
+        }
+        return names;
+    }
+
+    public boolean hasAppointmentConflict(String doctorId,java.sql.Date date,String time,String excludedAppointmentId) throws SQLException {
+        if (doctorId == null || doctorId.trim().isEmpty() || date == null
+                || time == null || time.trim().isEmpty()) return false;
+        String sql="SELECT COUNT(*) FROM LichHen WHERE maNhanVien=? AND ngayHen=? AND gioKham=? AND maLichHen<>? AND trangThai<>N'Đã hủy'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, doctorId.trim());
+            ps.setDate(2, date);
+            ps.setString(3, time.trim());
+            ps.setString(4, excludedAppointmentId == null ? "" : excludedAppointmentId.trim());
+            try (ResultSet rs = ps.executeQuery()) { return rs.next() && rs.getInt(1) > 0; }
+        }
+    }
+
+    public boolean updateAppointmentSchedule(String appointmentId,java.sql.Date date,String time,String doctorId,String note) throws SQLException {
+        if (appointmentId == null || appointmentId.trim().isEmpty() || date == null
+                || time == null || time.trim().isEmpty()) return false;
+        String sql="UPDATE LichHen SET ngayHen=?,gioKham=?,maNhanVien=?,ghiChu=? WHERE maLichHen=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, date);
+            ps.setString(2, time.trim());
+            if (doctorId == null || doctorId.trim().isEmpty()) ps.setNull(3, Types.VARCHAR);
+            else ps.setString(3, doctorId.trim());
+            ps.setString(4, note);
+            ps.setString(5, appointmentId.trim());
+            return ps.executeUpdate() > 0;
         }
     }
 

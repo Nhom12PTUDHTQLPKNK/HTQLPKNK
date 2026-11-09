@@ -36,6 +36,7 @@ public class ManHinhMenuChinh extends JFrame {
     private ManHinhNhatKyHoatDong activityLogPanel;
     private ManHinhDatLichHen appointmentBookingPanel;
     private ManHinhXuLyLichHen bookingPanel;
+    private JPanel roleMenuContainer;
 
    // hệ thống[cite: 48, 52]
     public static final String CARD_DASHBOARD = "DASHBOARD";
@@ -56,6 +57,7 @@ public class ManHinhMenuChinh extends JFrame {
     public static final String CARD_MEDICINE_FORMS = "MEDICINE_FORMS";
     public static final String CARD_MEDICINE_ROUTES = "MEDICINE_ROUTES";
     public static final String CARD_SERVICE_TYPES = "SERVICE_TYPES";
+    public static final String CARD_JOB_TITLES = "JOB_TITLES";
 
    // cập nhật[cite: 48, 52]
     public static final String CARD_INVENTORY_UPDATE = "INVENTORY_UPDATE";
@@ -136,9 +138,9 @@ public class ManHinhMenuChinh extends JFrame {
 
         // PHÂN QUYỀN GIAO DIỆN: Gọi MenuBar tương ứng với từng VaiTro
         JMenuBar menuBar = createMenuBarForRole(userRole);
-        JPanel centerContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        centerContainer.setOpaque(false);
-        centerContainer.add(menuBar);
+        roleMenuContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        roleMenuContainer.setOpaque(false);
+        roleMenuContainer.add(menuBar);
 
         // Phần User & Actions bên phải[cite: 48, 52]
         JPanel rightHeaderPanel = new JPanel(new GridBagLayout());
@@ -246,7 +248,7 @@ public class ManHinhMenuChinh extends JFrame {
         rightHeaderPanel.add(userBadge, gbc);
 
         headerBar.add(logoPanel, BorderLayout.WEST);
-        headerBar.add(centerContainer, BorderLayout.CENTER);
+        headerBar.add(roleMenuContainer, BorderLayout.CENTER);
         headerBar.add(rightHeaderPanel, BorderLayout.EAST);
 
         topContainer.add(headerBar, BorderLayout.CENTER);
@@ -260,7 +262,7 @@ public class ManHinhMenuChinh extends JFrame {
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override public void componentResized(java.awt.event.ComponentEvent e) {
-                adaptHeader(getWidth(), menuBar, headerBar, centerContainer, logoPanel,
+                adaptHeader(getWidth(), menuBar, headerBar, roleMenuContainer, logoPanel,
                         lblLogoIcon, lblLogoText, lblSubLogo, btnNotification, lblUserAvatar, lblUserName);
             }
         });
@@ -278,6 +280,7 @@ public class ManHinhMenuChinh extends JFrame {
         activityLogPanel = new ManHinhNhatKyHoatDong();
         mainContentPanel.add(activityLogPanel, CARD_LOGS);
         mainContentPanel.add(new ManHinhPhanQuyenVaiTro(), CARD_ROLE_PERMISSION);
+        mainContentPanel.add(new ManHinhChucVu(this::refreshRoleMenu), CARD_JOB_TITLES);
 
         mainContentPanel.add(new ManHinhDichVu(), CARD_SERVICES);
         mainContentPanel.add(new ManHinhKhuyenMai(), CARD_PROMOTIONS);
@@ -330,9 +333,8 @@ public class ManHinhMenuChinh extends JFrame {
             return;
         }
 
-        if ((CARD_ROLE_PERMISSION.equals(cardName) || CARD_PERSONNEL_UPDATE.equals(cardName))
-                && !KiemSoatTruyCap.isAdministrator()) {
-            JOptionPane.showMessageDialog(this, "Chỉ tài khoản admin mới được truy cập quản lý nhân sự và tài khoản.", "Không đủ quyền", JOptionPane.WARNING_MESSAGE);
+        if (!KiemSoatTruyCap.canAccessCard(cardName)) {
+            JOptionPane.showMessageDialog(this, "Chức vụ của bạn chưa được cấp quyền truy cập chức năng này.", "Không đủ quyền", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -416,19 +418,81 @@ public class ManHinhMenuChinh extends JFrame {
     // HỆ THỐNG PHÂN QUYỀN 4 THANH MENU RIÊNG BIỆT (GIỮ NGUYÊN GIAO DIỆN GỐC)
     // =========================================================================
     public JMenuBar createMenuBarForRole(VaiTro role) {
-        if (role == null) role = VaiTro.LE_TAN;
-        switch (role) {
-            case QUAN_LY:
-                return createAdminMenuBar();          // Quản lý / Admin (Toàn quyền)
-            case NHA_SI:
-                return createDentistMenuBar();        // Nha sĩ (Khám chữa bệnh, bệnh án, chỉ định)
-            case Y_TA:
-                return createNurseMenuBar();          // Y tá (Kho vật tư, lịch làm việc)
-            case LE_TAN:
-                return createReceptionistMenuBar();   // Lễ tân (Đặt lịch, thu ngân, khách hàng)
-            default:
-                return createReceptionistMenuBar();
+        return KiemSoatTruyCap.isAdministrator() ? createAdminMenuBar() : createPermissionMenuBar();
+    }
+
+    private void refreshRoleMenu() {
+        if (roleMenuContainer == null) return;
+        TaiKhoanThongTin current = DieuKhienXacThuc.getCurrentUser();
+        roleMenuContainer.removeAll();
+        roleMenuContainer.add(createMenuBarForRole(current == null ? VaiTro.LE_TAN : current.role));
+        roleMenuContainer.revalidate();
+        roleMenuContainer.repaint();
+    }
+
+    /** Dựng toàn bộ menu chức năng rồi chỉ thêm mục được quyền trong ChucVuQuyen. */
+    private JMenuBar createPermissionMenuBar() {
+        JMenuBar bar = new JMenuBar();
+        bar.setBackground(NAVY_BG);
+        bar.setOpaque(false);
+        bar.setBorder(BorderFactory.createEmptyBorder());
+
+        JMenu system = createStyledMenu("1. Hệ thống", "/img/hethong.png");
+        addItem(system, "Bảng điều khiển", "/img/control.png", CARD_DASHBOARD, KeyEvent.VK_F5, 0);
+        addItem(system, "Đổi mật khẩu", "/img/lock.png", CARD_CHANGE_PASS, KeyEvent.VK_M, ActionEvent.CTRL_MASK);
+        addItem(system, "Nhật ký hoạt động", "/img/log.png", CARD_LOGS, KeyEvent.VK_L, ActionEvent.ALT_MASK);
+        addItem(system, "Phân quyền & Tài khoản", "/img/phanquyen.png", CARD_ROLE_PERMISSION, KeyEvent.VK_U, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addItem(system, "Trợ giúp", "/img/help.png", CARD_HELP, KeyEvent.VK_F1, ActionEvent.SHIFT_MASK);
+        bar.add(system);
+
+        JMenu category = createStyledMenu("2. Danh mục", "/img/danhmuc.png");
+        addItem(category, "Chức vụ & quyền", "/img/phanquyen.png", CARD_JOB_TITLES, 0, 0);
+        addItem(category, "Dịch vụ nha khoa", "/img/service.png", CARD_SERVICES, KeyEvent.VK_D, ActionEvent.CTRL_MASK);
+        addItem(category, "Chương trình khuyến mãi", "/img/promo.png", CARD_PROMOTIONS, KeyEvent.VK_O, ActionEvent.CTRL_MASK);
+        addItem(category, "Khách hàng / Bệnh nhân", "/img/customer.png", CARD_CUSTOMERS, KeyEvent.VK_K, ActionEvent.CTRL_MASK);
+        addItem(category, "Nhân viên", "/img/staff.png", CARD_EMPLOYEES, KeyEvent.VK_E, ActionEvent.CTRL_MASK);
+        addItem(category, "Hồ sơ bệnh án", "/img/medical.png", CARD_MEDICAL_RECORDS, KeyEvent.VK_T, ActionEvent.CTRL_MASK);
+        addItem(category, "Sơ đồ răng chuẩn", "/img/dental.png", CARD_DENTAL_CHART, 0, 0);
+        addItem(category, "Danh mục thuốc chuẩn", "/img/medicine.png", CARD_MEDICINES, KeyEvent.VK_M, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addReferenceCategoryItems(category);
+        bar.add(category);
+
+        JMenu update = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
+        addItem(update, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);
+        addItem(update, "Tiếp nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
+        addItem(update, "Cập nhật nhân sự & Tài khoản", "/img/user_update.png", CARD_PERSONNEL_UPDATE, KeyEvent.VK_U, ActionEvent.CTRL_MASK);
+        bar.add(update);
+
+        JMenu process = createStyledMenu("4. Xử lý", "/img/xuly.png");
+        addItem(process, "Đặt lịch hẹn", "/img/calendar.png", CARD_BOOKING, KeyEvent.VK_B, ActionEvent.CTRL_MASK);
+        addItem(process, "Khám bệnh & Chỉ định", "/img/medical.png", CARD_EXAMINATION, KeyEvent.VK_F1, 0);
+        addItem(process, "Lập kế hoạch điều trị", "/img/medical.png", CARD_TREATMENT_PLAN, 0, 0);
+        addItem(process, "Kê đơn thuốc điện tử", "/img/service.png", CARD_PRESCRIPTION, KeyEvent.VK_F3, 0);
+        addItem(process, "Bán hàng & Hóa đơn (POS)", "/img/billing.png", CARD_SALES_INVOICE, KeyEvent.VK_F4, 0);
+        addItem(process, "Phân ca lịch làm việc", "/img/shift.png", CARD_WORK_SHIFT, KeyEvent.VK_F5, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addItem(process, "Xử lý khuyến mãi", "/img/promo.png", CARD_PROMO_PROCESS, 0, 0);
+        bar.add(process);
+
+        JMenu search = createStyledMenu("5. Tìm kiếm", "/img/timkiem.png");
+        addItem(search, "Tra cứu khách hàng, điểm tích lũy", "/img/timkiem.png", CARD_SEARCH_CUSTOMER, KeyEvent.VK_F6, 0);
+        addItem(search, "Tra cứu lịch hẹn", "/img/timkiem.png", CARD_SEARCH_APPOINTMENT, KeyEvent.VK_F7, 0);
+        addItem(search, "Tra cứu khuyến mãi", "/img/timkiem.png", CARD_SEARCH_PROMO, KeyEvent.VK_F8, 0);
+        addItem(search, "Tra cứu lịch làm việc", "/img/timkiem.png", CARD_SEARCH_SHIFT, KeyEvent.VK_F9, 0);
+        addItem(search, "Tra cứu tồn kho, thuốc", "/img/timkiem.png", CARD_SEARCH_INVENTORY, KeyEvent.VK_F10, 0);
+        addItem(search, "Tra cứu hóa đơn, phiếu thu", "/img/timkiem.png", CARD_SEARCH_INVOICE, KeyEvent.VK_F11, 0);
+        bar.add(search);
+
+        JMenu reports = createStyledMenu("6. Báo cáo", "/img/report.png");
+        addItem(reports, "Doanh thu, chi phí & công nợ", "/img/report_revenue.png", CARD_REPORT_REVENUE, KeyEvent.VK_R, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addItem(reports, "Thống kê dịch vụ & hiệu suất nha sĩ", "/img/report_service.png", CARD_REPORT_SERVICE, KeyEvent.VK_E, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        addItem(reports, "Thống kê xuất nhập tồn kho", "/img/report_warehouse.png", CARD_REPORT_WAREHOUSE, KeyEvent.VK_A, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
+        bar.add(reports);
+
+        for (int i = bar.getMenuCount() - 1; i >= 0; i--) {
+            JMenu menu = bar.getMenu(i);
+            if (menu != null && menu.getItemCount() == 0) bar.remove(i);
         }
+        return bar;
     }
 
     // 1. Menu Quản lý / Admin 
@@ -457,6 +521,7 @@ public class ManHinhMenuChinh extends JFrame {
         mnuSystem.add(itemLogout);
 
         JMenu mnuCategory = createStyledMenu("2. Danh mục", "/img/danhmuc.png");
+        if (KiemSoatTruyCap.isAdministrator()) addItem(mnuCategory, "Chức vụ & quyền", "/img/phanquyen.png", CARD_JOB_TITLES, 0, 0);
         addItem(mnuCategory, "Dịch vụ nha khoa", "/img/service.png", CARD_SERVICES, KeyEvent.VK_D, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Chương trình khuyến mãi", "/img/promo.png", CARD_PROMOTIONS, KeyEvent.VK_O, ActionEvent.CTRL_MASK);
         addItem(mnuCategory, "Khách hàng / Bệnh nhân", "/img/customer.png", CARD_CUSTOMERS, KeyEvent.VK_K, ActionEvent.CTRL_MASK);
@@ -760,6 +825,7 @@ public class ManHinhMenuChinh extends JFrame {
     }
 
     private void addItem(JMenu menu, String text, String iconPath, String cardName, int keyCode, int modifiers) {
+        if (!KiemSoatTruyCap.canAccessCard(cardName)) return;
         JMenuItem item = createStyledItem(text, iconPath, keyCode, modifiers);
         item.addActionListener(e -> showView(cardName));
         menu.add(item);

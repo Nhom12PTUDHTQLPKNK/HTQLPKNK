@@ -5,6 +5,7 @@ import controllers.NhatKyKiemToan;
 import models.dao.DonThuocDAO;
 import models.dao.KeHoachDieuTriDAO;
 import models.dao.LichHenDAO;
+import models.dao.QuyTrinhLamSangDAO;
 import models.entity.DonThuoc;
 import models.entity.KeHoachDieuTri;
 import models.entity.LichHen;
@@ -13,21 +14,18 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import sql.DBConnection;
 
 /** Shared layout and data handling for the three clinical workflow screens. */
 class ManHinhQuyTrinhLamSang extends JPanel {
     enum QuyTrinh { TREATMENT_PLAN, PRESCRIPTION, FOLLOW_UP }
 
     private final QuyTrinh workflow;
+    private final QuyTrinhLamSangDAO workflowDAO = new QuyTrinhLamSangDAO();
     private final LinkedHashMap<String, JTextField> fields = new LinkedHashMap<String, JTextField>();
     private final DefaultTableModel model;
     private final JTable table;
@@ -224,13 +222,8 @@ class ManHinhQuyTrinhLamSang extends JPanel {
 
     private void reload() {
         model.setRowCount(0);
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(query()); ResultSet rs = ps.executeQuery()) {
-            int cols = model.getColumnCount();
-            while (rs.next()) {
-                Object[] row = new Object[cols];
-                for (int i = 0; i < cols; i++) row[i] = rs.getObject(i + 1);
-                model.addRow(row);
-            }
+        try {
+            for (Object[] row : workflowDAO.getRows(workflow.name())) model.addRow(row);
             count.setText("Tổng " + model.getRowCount() + " bản ghi trong SQL Server.");
         } catch (SQLException ex) {
             count.setText("Không tải được dữ liệu từ SQL Server.");
@@ -238,14 +231,4 @@ class ManHinhQuyTrinhLamSang extends JPanel {
         }
     }
 
-    private String query() {
-        switch (workflow) {
-            case TREATMENT_PLAN:
-                return "SELECT maKeHoach, maBenhAn, maNhanVien, maDichVu, ngayLap, soLankham, thoiGianDuKien, tongChiPhiDuKien, trangThai FROM KeHoachDieuTri ORDER BY ngayLap DESC";
-            case PRESCRIPTION:
-                return "SELECT maDonThuoc, maBenhAn, maNhanVien, maKhachHang, maThuoc, tenThuoc, ngayKe, soLuong, cachDung FROM DonThuoc ORDER BY ngayKe DESC";
-            default:
-                return "SELECT lh.maLichHen, lh.maKhachHang, kh.tenKH, lh.maNhanVien, nv.tenNhanVien, lh.ngayHen, lh.gioKham, lh.trangThai, lh.ghiChu FROM LichHen lh LEFT JOIN KhachHang kh ON kh.maKhachHang = lh.maKhachHang LEFT JOIN NhanVien nv ON nv.maNhanVien = lh.maNhanVien WHERE lh.ghiChu LIKE N'%Tái khám%' ORDER BY lh.ngayHen DESC";
-        }
-    }
 }

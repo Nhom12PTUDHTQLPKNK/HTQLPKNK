@@ -1,15 +1,14 @@
 package views;
 
+import controllers.QuanLyKhachHang;
+import models.dao.TraCuuKhachHangDAO;
 import java.awt.*;
 import java.awt.event.HierarchyEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import java.sql.*;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.*;
@@ -17,19 +16,19 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.*;
 import javax.swing.plaf.basic.BasicProgressBarUI;
-import sql.DBConnection;
 
 public class ManHinhTraCuuKhachHang extends JPanel {
 
     private static final Color PINK = new Color(0xE91E78), PINK_SOFT = new Color(0xFDE8F1), BLUE = new Color(0x1E6FD9), BLUE_SOFT = new Color(0xE6F0FD), BG = new Color(0xF4F7FC), TEXT = new Color(0x1F2A44), MUTED = new Color(0x6B7794), LINE = new Color(0xE3E8F2), GOLD_BG = new Color(0xFFF5D9), GOLD_TEXT = new Color(0xB77916), SILVER_BG = new Color(0xE6F0FD), SILVER_TEXT = new Color(0x2874D0), MEMBER_BG = new Color(0xEEF0F4), MEMBER_TEXT = new Color(0x687386);
     private static final Font F = new Font("Segoe UI", Font.PLAIN, 13), FB = F.deriveFont(Font.BOLD);
-    private static final int SILVER = 100, GOLD = 200;
+    private static final int SILVER = QuanLyKhachHang.SILVER_POINTS, GOLD = QuanLyKhachHang.GOLD_POINTS;
+    private final QuanLyKhachHang customerRules = new QuanLyKhachHang();
     private static final String[] COLS = {"Mã KH", "Họ tên", "Giới tính", "Số điện thoại", "Ngày sinh", "Điểm", "Hạng"};
     private static final int[] WIDTHS = {80, 210, 80, 130, 100, 75, 110};
     private static final String[] KEYS = {"Số điện thoại", "Ngày sinh", "Giới tính", "Địa chỉ", "Số hồ sơ khám", "Lần khám gần nhất", "Lịch hẹn sắp tới", "Tổng giá trị dịch vụ", "Tiền sử bệnh"};
-    private static final String[] SORT_SQL = {"maKhachHang", "tenKH COLLATE Vietnamese_CI_AS", "ISNULL(diemTichLuy,0) DESC, tenKH", "ISNULL(diemTichLuy,0), tenKH"};
 
     private final JLabel[] statVals = new JLabel[4], vals = new JLabel[KEYS.length];
+    private final TraCuuKhachHangDAO customerDAO = new TraCuuKhachHangDAO();
     private JLabel lblName, lblTier, lblPoints, lblNext, lblCount, lblAvatar;
     private JTextField txtSearch;
     private JComboBox<String> cboSort;
@@ -479,41 +478,8 @@ public class ManHinhTraCuuKhachHang extends JPanel {
         new SwingWorker<Object[], Void>() {
             @Override
             protected Object[] doInBackground() throws Exception {
-                StringBuilder sql = new StringBuilder("SELECT maKhachHang, tenKH, gioiTinh, sdt, CONVERT(VARCHAR(10), ngaySinh, 103), ISNULL(diemTichLuy,0) FROM KhachHang WHERE 1=1");
-
-                if (!kw.isEmpty()) sql.append(" AND (maKhachHang LIKE ? OR sdt LIKE ? OR tenKH COLLATE Vietnamese_CI_AI LIKE ?)");
-
-                if (lv == 3) sql.append(" AND ISNULL(diemTichLuy,0) < ").append(SILVER);
-                else if (lv == 2) sql.append(" AND ISNULL(diemTichLuy,0) >= ").append(SILVER).append(" AND ISNULL(diemTichLuy,0) < ").append(GOLD);
-                else if (lv == 1) sql.append(" AND ISNULL(diemTichLuy,0) >= ").append(GOLD);
-
-                sql.append(" ORDER BY ").append(SORT_SQL[sort]);
-
-                List<Object[]> rows = new ArrayList<>();
-                double[] st = new double[4];
-
-                try (Connection c = conn()) {
-                    try (PreparedStatement p = c.prepareStatement(sql.toString())) {
-                        if (!kw.isEmpty()) {
-                            for (int i = 1; i <= 3; i++) p.setString(i, "%" + kw + "%");
-                        }
-
-                        try (ResultSet r = p.executeQuery()) {
-                            while (r.next()) {
-                                int pts = r.getInt(6);
-                                rows.add(new Object[]{r.getString(1), r.getString(2), nz(r.getString(3)), nz(r.getString(4)), nz(r.getString(5)), pts, rank(pts)});
-                            }
-                        }
-                    }
-
-                    try (Statement s = c.createStatement(); ResultSet r = s.executeQuery("SELECT COUNT(*), ISNULL(SUM(diemTichLuy),0), ISNULL(AVG(CAST(ISNULL(diemTichLuy,0) AS FLOAT)),0), ISNULL(SUM(CASE WHEN diemTichLuy >= " + GOLD + " THEN 1 ELSE 0 END),0) FROM KhachHang")) {
-                        if (r.next()) {
-                            for (int i = 0; i < 4; i++) st[i] = r.getDouble(i + 1);
-                        }
-                    }
-                }
-
-                return new Object[]{rows, st};
+                TraCuuKhachHangDAO.CustomerRows result = customerDAO.search(kw, lv, sort, SILVER, GOLD);
+                return new Object[]{result.rows, result.statistics};
             }
 
             @Override
@@ -529,7 +495,8 @@ public class ManHinhTraCuuKhachHang extends JPanel {
                     model.setRowCount(0);
                     int sel = -1;
 
-                    for (Object[] r : rows) {
+                    for (Object[] raw : rows) {
+                        Object[] r = new Object[]{raw[0], raw[1], raw[2], raw[3], raw[4], raw[5], customerRules.rank(((Number) raw[5]).intValue())};
                         if (r[0].equals(selectedId)) sel = model.getRowCount();
                         model.addRow(r);
                     }
@@ -559,16 +526,10 @@ public class ManHinhTraCuuKhachHang extends JPanel {
         new SwingWorker<String[], Void>() {
             @Override
             protected String[] doInBackground() throws Exception {
-                try (Connection c = conn()) {
-                    String[] a = row(c, "SELECT tenKH, sdt, CONVERT(VARCHAR(10), ngaySinh, 103), gioiTinh, diaChi, tienSuBenh, ISNULL(diemTichLuy,0) FROM KhachHang WHERE maKhachHang=?", ma);
-                    String[] b = row(c, "SELECT COUNT(*), ISNULL(CONVERT(VARCHAR(10), MAX(ngayKham), 103),'') FROM HoSoBenhAn WHERE maKhachHang=?", ma);
-                    String[] n = row(c, "SELECT TOP 1 CONVERT(VARCHAR(10), ngayHen, 103) + ' - ' + ISNULL(gioKham,'') FROM LichHen WHERE maKhachHang=? AND ngayHen >= CAST(GETDATE() AS DATE) AND trangThai <> N'Hoàn thành' ORDER BY ngayHen, gioKham", ma);
-                    String[] t = row(c, "SELECT CAST(ISNULL(SUM(ct.soLuong * ct.donGia),0) AS BIGINT) FROM ChiTietHoaDon ct JOIN HoaDon h ON h.maHoaDon = ct.maHoaDon WHERE h.maKhachHang=?", ma);
-
-                    String money = new DecimalFormat("#,##0").format(Long.parseLong(t[0].isEmpty() ? "0" : t[0])) + " đ";
-
-                    return new String[]{a[0], a[6].isEmpty() ? "0" : a[6], a[1], a[2], a[3], a[4], b[0], b[1], n[0], money, a[5]};
-                }
+                String[] data = customerDAO.getDetails(ma);
+                data[9] = new DecimalFormat("#,##0").format(Long.parseLong(data[9].isEmpty() ? "0" : data[9])) + " đ";
+                data[1] = data[1].isEmpty() ? "0" : data[1];
+                return data;
             }
 
             @Override
@@ -578,7 +539,7 @@ public class ManHinhTraCuuKhachHang extends JPanel {
                 try {
                     String[] d = get();
                     int p = Integer.parseInt(d[1]);
-                    String rk = rank(p);
+                    String rk = customerRules.rank(p);
 
                     // Tên dài tự xuống dòng thay vì bị cắt
                     lblName.setText(wrap(d[0], 190));
@@ -587,10 +548,10 @@ public class ManHinhTraCuuKhachHang extends JPanel {
                     lblTier.setText("Mã " + ma + "  |  Hạng " + rk);
                     lblTier.setForeground(tierColor(rk));
 
-                    int target = p < SILVER ? SILVER : (p < GOLD ? GOLD : 0);
+                    int target = customerRules.nextTierTarget(p);
                     bar.setValue(target == 0 ? 100 : Math.min(100, p * 100 / target));
 
-                    lblNext.setText(target == 0 ? "Đã đạt hạng cao nhất" : "Còn " + (target - p) + " điểm để lên hạng " + rank(target));
+                    lblNext.setText(target == 0 ? "Đã đạt hạng cao nhất" : "Còn " + customerRules.pointsToNextTier(p) + " điểm để lên hạng " + customerRules.rank(target));
 
                     for (int i = 0; i < vals.length; i++) {
                         vals[i].setText(wrap(d[i + 2].isEmpty() ? "Chưa có" : d[i + 2], 250));
@@ -623,12 +584,7 @@ public class ManHinhTraCuuKhachHang extends JPanel {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                try (Connection c = conn(); PreparedStatement p = c.prepareStatement("UPDATE KhachHang SET diemTichLuy = CASE WHEN ISNULL(diemTichLuy,0) + ? < 0 THEN 0 ELSE ISNULL(diemTichLuy,0) + ? END WHERE maKhachHang=?")) {
-                    p.setInt(1, pts);
-                    p.setInt(2, pts);
-                    p.setString(3, ma);
-                    p.executeUpdate();
-                }
+                customerDAO.adjustPoints(ma, pts);
                 return null;
             }
 
@@ -779,35 +735,6 @@ public class ManHinhTraCuuKhachHang extends JPanel {
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) return parts[0].substring(0, 1).toUpperCase();
         return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-    }
-
-    private static Connection conn() throws SQLException {
-        return DBConnection.getConnection();
-    }
-
-    private static String[] row(Connection c, String sql, String ma) throws SQLException {
-        try (PreparedStatement p = c.prepareStatement(sql)) {
-            p.setString(1, ma);
-
-            try (ResultSet r = p.executeQuery()) {
-                String[] a = new String[r.getMetaData().getColumnCount()];
-                Arrays.fill(a, "");
-
-                if (r.next()) {
-                    for (int i = 0; i < a.length; i++) a[i] = nz(r.getString(i + 1));
-                }
-
-                return a;
-            }
-        }
-    }
-
-    private static String nz(String s) {
-        return s == null ? "" : s;
-    }
-
-    private static String rank(int p) {
-        return p >= GOLD ? "Vàng" : (p >= SILVER ? "Bạc" : "Thành viên");
     }
 
     private static Color tierColor(String t) {

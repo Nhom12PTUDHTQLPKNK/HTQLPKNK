@@ -19,7 +19,9 @@ public enum TinhNang {
     S_KM("Tra cứu khuyến mãi"),
     S_KHO("Tra cứu kho"),
     ST_DT("Thống kê doanh thu"),
-    ST_KH("Thống kê khách hàng");
+    ST_KH("Thống kê khách hàng"),
+    ST_DV("Thống kê dịch vụ & nha sĩ"),
+    ST_KHO("Thống kê xuất nhập tồn kho");
 
     public final String title;
 

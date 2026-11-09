@@ -33,6 +33,7 @@ IF OBJECT_ID('THUOC', 'U') IS NOT NULL DROP TABLE THUOC;
 IF OBJECT_ID('HoSoBenhAn', 'U') IS NOT NULL DROP TABLE HoSoBenhAn;
 IF OBJECT_ID('LichHen', 'U') IS NOT NULL DROP TABLE LichHen;
 IF OBJECT_ID('TaiKhoan', 'U') IS NOT NULL DROP TABLE TaiKhoan;
+IF OBJECT_ID('ChucVuQuyen', 'U') IS NOT NULL DROP TABLE ChucVuQuyen;
 IF OBJECT_ID('LichLamViec', 'U') IS NOT NULL DROP TABLE LichLamViec;
 IF OBJECT_ID('DUONGDUNG', 'U') IS NOT NULL DROP TABLE DUONGDUNG;
 IF OBJECT_ID('DANGBAOCHE', 'U') IS NOT NULL DROP TABLE DANGBAOCHE;
@@ -74,7 +75,21 @@ CREATE TABLE ChucVu (
     trangThai BIT NOT NULL DEFAULT 1
 );
 INSERT INTO ChucVu (tenChucVu) VALUES
-(N'Nha sĩ trưởng'), (N'Nha sĩ'), (N'Y tá'), (N'Lễ tân'), (N'Quản lý');
+(N'Nha sĩ trưởng'), (N'Nha sĩ'), (N'Y tá'), (N'Lễ tân'), (N'Quản lý'), (N'Admin');
+
+CREATE TABLE ChucVuQuyen (
+    tenChucVu NVARCHAR(50) NOT NULL,
+    maQuyen NVARCHAR(40) NOT NULL,
+    CONSTRAINT PK_ChucVuQuyen PRIMARY KEY (tenChucVu, maQuyen),
+    CONSTRAINT FK_ChucVuQuyen_ChucVu FOREIGN KEY (tenChucVu) REFERENCES ChucVu(tenChucVu) ON UPDATE CASCADE ON DELETE CASCADE
+);
+INSERT INTO ChucVuQuyen (tenChucVu, maQuyen) VALUES
+(N'Nha sĩ trưởng',N'D_BA'),(N'Nha sĩ trưởng',N'D_GOI'),(N'Nha sĩ trưởng',N'D_KM'),(N'Nha sĩ trưởng',N'D_LLV'),(N'Nha sĩ trưởng',N'D_NV'),(N'Nha sĩ trưởng',N'BOOK'),(N'Nha sĩ trưởng',N'S_KH'),(N'Nha sĩ trưởng',N'S_KM'),(N'Nha sĩ trưởng',N'S_KHO'),(N'Nha sĩ trưởng',N'ST_DV'),
+(N'Nha sĩ',N'D_BA'),(N'Nha sĩ',N'D_GOI'),(N'Nha sĩ',N'D_KM'),(N'Nha sĩ',N'D_LLV'),(N'Nha sĩ',N'BOOK'),(N'Nha sĩ',N'S_KH'),(N'Nha sĩ',N'S_KM'),(N'Nha sĩ',N'S_KHO'),
+(N'Lễ tân',N'D_GOI'),(N'Lễ tân',N'D_KM'),(N'Lễ tân',N'D_LLV'),(N'Lễ tân',N'BOOK'),(N'Lễ tân',N'PAY'),(N'Lễ tân',N'S_KH'),(N'Lễ tân',N'S_KM'),(N'Lễ tân',N'ST_DT'),(N'Lễ tân',N'ST_KH'),
+(N'Y tá',N'D_BA'),(N'Y tá',N'D_KHO'),(N'Y tá',N'D_LLV'),(N'Y tá',N'S_KH'),(N'Y tá',N'S_KHO'),
+(N'Quản lý',N'D_BA'),(N'Quản lý',N'D_GOI'),(N'Quản lý',N'D_KM'),(N'Quản lý',N'D_LLV'),(N'Quản lý',N'D_KHO'),(N'Quản lý',N'D_NV'),(N'Quản lý',N'BOOK'),(N'Quản lý',N'PAY'),(N'Quản lý',N'S_KH'),(N'Quản lý',N'S_KM'),(N'Quản lý',N'S_KHO'),(N'Quản lý',N'ST_DT'),(N'Quản lý',N'ST_KH'),(N'Quản lý',N'ST_DV'),(N'Quản lý',N'ST_KHO'),
+(N'Admin',N'HOME'),(N'Admin',N'ACCOUNT'),(N'Admin',N'HELP'),(N'Admin',N'D_BA'),(N'Admin',N'D_GOI'),(N'Admin',N'D_KM'),(N'Admin',N'D_LLV'),(N'Admin',N'D_KHO'),(N'Admin',N'D_NV'),(N'Admin',N'BOOK'),(N'Admin',N'PAY'),(N'Admin',N'S_KH'),(N'Admin',N'S_KM'),(N'Admin',N'S_KHO'),(N'Admin',N'ST_DT'),(N'Admin',N'ST_KH'),(N'Admin',N'ST_DV'),(N'Admin',N'ST_KHO');
 
 CREATE TABLE DanhMucLoaiDieuTri (
     maLoaiDieuTri VARCHAR(10) NOT NULL PRIMARY KEY,
@@ -97,7 +112,8 @@ CREATE TABLE NhanVien (
     trinhDo NVARCHAR(50),
     mucLuong FLOAT,
     hinhAnh NVARCHAR(1000) NULL,
-    CONSTRAINT FK_NhanVien_ChucVu FOREIGN KEY (chucVu) REFERENCES ChucVu(tenChucVu)
+    CONSTRAINT FK_NhanVien_ChucVu FOREIGN KEY (chucVu) REFERENCES ChucVu(tenChucVu),
+    CONSTRAINT CK_NhanVien_NotAdminRole CHECK (chucVu IS NULL OR UPPER(LTRIM(RTRIM(chucVu))) <> 'ADMIN')
 );
 
 -- 3. Bảng Dịch Vụ
@@ -229,7 +245,13 @@ CREATE TABLE TaiKhoan (
     maNhanVien VARCHAR(20) UNIQUE,
     qrPayload VARCHAR(255),
     qrImage VARBINARY(MAX),
-    CONSTRAINT FK_TaiKhoan_NhanVien FOREIGN KEY (maNhanVien) REFERENCES NhanVien(maNhanVien) ON DELETE CASCADE
+    CONSTRAINT FK_TaiKhoan_NhanVien FOREIGN KEY (maNhanVien) REFERENCES NhanVien(maNhanVien) ON DELETE CASCADE,
+    CONSTRAINT FK_TaiKhoan_ChucVu FOREIGN KEY (quyen) REFERENCES ChucVu(tenChucVu),
+    CONSTRAINT CK_TaiKhoan_AdminRole CHECK (
+        (LOWER(tenDN) = 'admin' AND tenDN COLLATE Latin1_General_100_BIN2 = 'admin'
+            AND quyen IS NOT NULL AND UPPER(LTRIM(RTRIM(quyen))) = 'ADMIN') OR
+        (LOWER(tenDN) <> 'admin' AND (quyen IS NULL OR UPPER(LTRIM(RTRIM(quyen))) <> 'ADMIN'))
+    )
 );
 
 -- 14. Bảng Thuốc

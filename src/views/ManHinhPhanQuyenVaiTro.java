@@ -1,6 +1,7 @@
 package views;
 
 import models.dao.NhanSuTaiKhoanDAO;
+import models.dao.ChucVuDAO;
 import controllers.KiemSoatTruyCap;
 import controllers.XuatBangPDF;
 
@@ -236,7 +237,11 @@ public class ManHinhPhanQuyenVaiTro extends JPanel {
         // Bảng dữ liệu chuẩn theo giao diện mẫu
         String[] cols = {"Mã NV", "Tên Đăng Nhập", "Họ Tên Nhân Sự", "Vai Trò / Phân Quyền", "Trạng Thái", "Thao Tác"};
         accountTableModel = new DefaultTableModel(null, cols) {
-            @Override public boolean isCellEditable(int r, int c) { return c == 5; }
+            @Override public boolean isCellEditable(int r, int c) {
+                if (c != 5) return false;
+                return !"admin".equalsIgnoreCase(String.valueOf(getValueAt(r, 1)))
+                        && !"Admin".equalsIgnoreCase(String.valueOf(getValueAt(r, 3)));
+            }
         };
         accountTable = new JTable(accountTableModel);
         XuatBangPDF.install(accountTable, "Danh sách tài khoản hệ thống");
@@ -250,6 +255,7 @@ public class ManHinhPhanQuyenVaiTro extends JPanel {
         accountTable.getColumnModel().getColumn(3).setPreferredWidth(150);
         accountTable.getColumnModel().getColumn(4).setPreferredWidth(120);
         accountTable.getColumnModel().getColumn(5).setPreferredWidth(150);
+        accountTable.getColumnModel().getColumn(5).setMinWidth(190);
 
         accountTable.getColumnModel().getColumn(4).setCellRenderer(new BoVeHuyHieuTrangThai());
         accountTable.getColumnModel().getColumn(5).setCellRenderer(new BoVeNutThaoTac());
@@ -326,7 +332,13 @@ public class ManHinhPhanQuyenVaiTro extends JPanel {
 
         panel.add(createFieldLabel("Vai trò / Phân quyền:"));
         panel.add(Box.createVerticalStrut(4));
-        JComboBox<String> cbRole = new JComboBox<>(new String[]{"Admin", "Nha sĩ", "Lễ tân", "Y tá"});
+        final JComboBox<String> cbRole = new JComboBox<>();
+        try {
+            for (String roleName : new ChucVuDAO().getNames()) cbRole.addItem(roleName);
+        } catch (SQLException ex) {
+            for (String roleName : new String[]{"Nha sĩ", "Lễ tân", "Y tá"}) cbRole.addItem(roleName);
+        }
+        if (role != null) cbRole.setSelectedItem(role);
         cbRole.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbRole.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         cbRole.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -630,6 +642,7 @@ private void styleButton(JButton btn, Color bg, Color fg) {
     btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
     btn.setPreferredSize(new Dimension(72, 36));
     btn.setMinimumSize(new Dimension(72, 36));
+    btn.setMaximumSize(new Dimension(72, 36));
 
     btn.setBackground(bg);
     btn.setForeground(fg);
@@ -652,6 +665,10 @@ public Component getTableCellRendererComponent(
     setBackground(
         isSelected ? table.getSelectionBackground() : Color.WHITE
     );
+    boolean protectedAdmin = "admin".equalsIgnoreCase(String.valueOf(table.getValueAt(row, 1)))
+            || "Admin".equalsIgnoreCase(String.valueOf(table.getValueAt(row, 3)));
+    btnEdit.setEnabled(!protectedAdmin);
+    btnLock.setEnabled(!protectedAdmin);
 
     return this;
 }
@@ -714,6 +731,9 @@ public Component getTableCellRendererComponent(
             btn.setForeground(TEXT_DARK);
             btn.setFocusPainted(false);
             btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btn.setPreferredSize(new Dimension(72, 32));
+            btn.setMinimumSize(new Dimension(72, 32));
+            btn.setMaximumSize(new Dimension(72, 32));
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
@@ -723,6 +743,9 @@ public Component getTableCellRendererComponent(
             btn.setForeground(new Color(146, 64, 14));
             btn.setFocusPainted(false);
             btn.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btn.setPreferredSize(new Dimension(72, 32));
+            btn.setMinimumSize(new Dimension(72, 32));
+            btn.setMaximumSize(new Dimension(72, 32));
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 

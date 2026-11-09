@@ -2,7 +2,6 @@ package views;
 
 import controllers.NhatKyKiemToan;
 import models.dao.LichHenDAO;
-import sql.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +10,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -832,18 +830,9 @@ public class ManHinhXuLyLichHen extends JPanel {
 
         String ma = selectedAppointmentId;
 
-        String sql = "UPDATE LichHen "
-                   + "SET trangThai = N'Chờ xác nhận' "
-                   + "WHERE maLichHen = ? AND trangThai = N'Đã xác nhận'";
-
-        try (Connection c = DBConnection.getConnection();
-             PreparedStatement p = c.prepareStatement(sql)) {
-
-            p.setString(1, ma);
-
-            int affectedRows = p.executeUpdate();
-
-            if (affectedRows > 0) {
+        try {
+            boolean updated = lichHenDAO.revertConfirmedAppointment(ma);
+            if (updated) {
                 // Lưu lý do vào nhật ký hoạt động
                 NhatKyKiemToan.event(
                         "UPDATE",
@@ -934,25 +923,16 @@ public class ManHinhXuLyLichHen extends JPanel {
 
         final String ma = selectedAppointmentId;
 
-        try (Connection c = DBConnection.getConnection()) {
-            java.sql.Date oldDate;
-            String oldTime, oldDoc, oldNote;
-
-            try (PreparedStatement p = c.prepareStatement("SELECT ngayHen, gioKham, maNhanVien, ghiChu FROM LichHen WHERE maLichHen=?")) {
-                p.setString(1, ma);
-
-                try (ResultSet r = p.executeQuery()) {
-                    if (!r.next()) {
-                        JOptionPane.showMessageDialog(this, "Không tìm thấy lịch hẹn " + ma + " trong cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    oldDate = r.getDate(1);
-                    oldTime = nz(r.getString(2));
-                    oldDoc = r.getString(3);
-                    oldNote = nz(r.getString(4));
-                }
+        try {
+            Object[] appointment = lichHenDAO.getAppointmentForEdit(ma);
+            if (appointment == null) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy lịch hẹn " + ma + " trong cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
             }
+            java.sql.Date oldDate = (java.sql.Date) appointment[0];
+            String oldTime = nz((String) appointment[1]);
+            String oldDoc = (String) appointment[2];
+            String oldNote = nz((String) appointment[3]);
 
             List<String> ids = new ArrayList<>();
             JComboBox<String> cbDoc = new JComboBox<>();
@@ -960,11 +940,9 @@ public class ManHinhXuLyLichHen extends JPanel {
             ids.add(null);
             cbDoc.addItem("Chưa phân công");
 
-            try (Statement s = c.createStatement(); ResultSet r = s.executeQuery("SELECT maNhanVien, tenNhanVien FROM NhanVien WHERE chucVu LIKE N'%sĩ%' ORDER BY tenNhanVien")) {
-                while (r.next()) {
-                    ids.add(r.getString(1));
-                    cbDoc.addItem(r.getString(2));
-                }
+            for (Object[] doctor : lichHenDAO.getDoctorsForAppointmentEdit()) {
+                ids.add((String) doctor[0]);
+                cbDoc.addItem((String) doctor[1]);
             }
 
             if (ids.indexOf(oldDoc) > 0) cbDoc.setSelectedIndex(ids.indexOf(oldDoc));
@@ -972,9 +950,7 @@ public class ManHinhXuLyLichHen extends JPanel {
             JComboBox<String> cbSv = new JComboBox<>();
             cbSv.setEditable(true);
 
-            try (Statement s = c.createStatement(); ResultSet r = s.executeQuery("SELECT tenDichVu FROM DichVu ORDER BY tenDichVu")) {
-                while (r.next()) cbSv.addItem(r.getString(1));
-            }
+            for (String service : lichHenDAO.getAppointmentServiceNames()) cbSv.addItem(service);
 
             cbSv.setSelectedItem(oldNote);
 
@@ -1034,37 +1010,15 @@ public class ManHinhXuLyLichHen extends JPanel {
                     err = "Ngày hẹn mới không được nằm trong quá khứ!";
                 }
 
-                if (err == null && docId != null) {
-                    try (PreparedStatement p = c.prepareStatement("SELECT COUNT(*) FROM LichHen WHERE maNhanVien=? AND ngayHen=? AND gioKham=? AND maLichHen<>? AND trangThai<>N'Đã hủy'")) {
-                        p.setString(1, docId);
-                        p.setDate(2, nd);
-                        p.setString(3, time);
-                        p.setString(4, ma);
-
-                        try (ResultSet r = p.executeQuery()) {
-                            if (r.next() && r.getInt(1) > 0) {
-                                err = "Bác sĩ đã có lịch hẹn vào khung giờ này, vui lòng chọn giờ hoặc bác sĩ khác!";
-                            }
-                        }
-                    }
-                }
+                if (err == null && docId != null && lichHenDAO.hasAppointmentConflict(docId, nd, time, ma))
+                    err = "Bác sĩ đã có lịch hẹn vào khung giờ này, vui lòng chọn giờ hoặc bác sĩ khác!";
 
                 if (err != null) {
                     JOptionPane.showMessageDialog(this, err, "Cảnh báo", JOptionPane.WARNING_MESSAGE);
                     continue;
                 }
 
-                try (PreparedStatement p = c.prepareStatement("UPDATE LichHen SET ngayHen=?, gioKham=?, maNhanVien=?, ghiChu=? WHERE maLichHen=?")) {
-                    p.setDate(1, nd);
-                    p.setString(2, time);
-
-                    if (docId == null) p.setNull(3, Types.VARCHAR);
-                    else p.setString(3, docId);
-
-                    p.setString(4, val(cbSv));
-                    p.setString(5, ma);
-                    p.executeUpdate();
-                }
+                lichHenDAO.updateAppointmentSchedule(ma, nd, time, docId, val(cbSv));
 
                 NhatKyKiemToan.event("UPDATE", "Sửa lịch hẹn - mã " + ma);
                 JOptionPane.showMessageDialog(this, "Đã cập nhật lịch hẹn!");

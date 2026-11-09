@@ -1,7 +1,8 @@
 package views;
 
 import controllers.XuatBangPDF;
-import sql.DBConnection;
+import models.dao.BangDieuKhienDAO;
+import models.entity.DashboardSnapshot;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,7 +11,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.geom.Arc2D;
-import java.sql.*;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,6 +55,7 @@ public class ManHinhBangDieuKhien extends JPanel {
     private JPanel notificationContent;
 
     private SwingWorker<Void, Void> dashboardWorker;
+    private final BangDieuKhienDAO dashboardDAO = new BangDieuKhienDAO();
 
     private final NumberFormat moneyFormat = NumberFormat.getNumberInstance(VI);
 
@@ -541,118 +542,24 @@ public class ManHinhBangDieuKhien extends JPanel {
 
             @Override
             protected Void doInBackground() throws Exception {
-                try (Connection conn = DBConnection.getConnection()) {
-
-                    // 1. THỐNG KÊ TỔNG QUAN (Dùng hoàn toàn hàm ngày tháng của SQL Server: GETDATE)
-                	
-                	
-                	String statsSql = "SELECT "
-                	    + "(SELECT COUNT(*) FROM KhachHang) AS TongBenhNhan, "
-                	    + "(SELECT COUNT(*) FROM LichHen WHERE CAST(ngayHen AS DATE) = CAST(GETDATE() AS DATE)) AS LichHenHomNay, "
-                	    + "(SELECT COALESCE(SUM(daThanhToan), 0) FROM PhieuThanhToan) AS DoanhThuThang, "
-                	    + "(SELECT COUNT(*) FROM LichHen WHERE trangThai = N'Chờ xác nhận') AS CanChuY";
-
-                    try (PreparedStatement ps = conn.prepareStatement(statsSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            totalPatients = rs.getInt("TongBenhNhan");
-                            appointmentsToday = rs.getInt("LichHenHomNay");
-                            monthlyRevenue = rs.getDouble("DoanhThuThang");
-                            alerts = rs.getInt("CanChuY");
-                        }
-                    }
-
-                 // 2. BIỂU ĐỒ DOANH THU 7 NGÀY GẦN NHẤT
-                    
-                    
-                    // Compare calendar dates so datetime values with a time component
-                    // are still included in the correct daily total.
-                    String revenueSql = "WITH Ngay AS ( "
-                            + "  SELECT CAST(GETDATE() AS DATE) AS NgayDoanhThu "
-                            + "  UNION ALL "
-                            + "  SELECT DATEADD(DAY, -1, NgayDoanhThu) FROM Ngay WHERE NgayDoanhThu > DATEADD(DAY, -6, CAST(GETDATE() AS DATE)) "
-                            + ") "
-                            + "SELECT n.NgayDoanhThu, COALESCE(SUM(p.daThanhToan), 0) AS DoanhThu "
-                            + "FROM Ngay n LEFT JOIN PhieuThanhToan p ON CAST(p.ngayThanhToan AS DATE) = n.NgayDoanhThu "
-                            + "GROUP BY n.NgayDoanhThu ORDER BY n.NgayDoanhThu ASC OPTION (MAXRECURSION 7)";
-
-                    try (PreparedStatement ps = conn.prepareStatement(revenueSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM");
-                        while (rs.next()) {
-                            java.sql.Date d = rs.getDate("NgayDoanhThu");
-                            if (d != null) {
-                                days.add(d.toLocalDate().format(fmt));
-                                revenues.add(rs.getDouble("DoanhThu"));
-                            }
-                        }
-                    }
-
-                    // 3. CƠ CẤU DOANH THU THEO DỊCH VỤ (Truy vấn từ CSDL)
-                    String serviceSql = "SELECT TOP 5 dv.tenDichVu, SUM(ct.soLuong * ct.donGia) AS DoanhThu "
-                            + "FROM ChiTietHoaDon ct "
-                            + "INNER JOIN DichVu dv ON ct.maDichVu = dv.maDichVu "
-                            + "INNER JOIN HoaDon hd ON ct.maHoaDon = hd.maHoaDon "
-                            + "GROUP BY dv.tenDichVu "
-                            + "ORDER BY SUM(ct.soLuong * ct.donGia) DESC";
-
-                    try (PreparedStatement ps = conn.prepareStatement(serviceSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            services.add(rs.getString("tenDichVu"));
-                            serviceValues.add(rs.getDouble("DoanhThu"));
-                        }
-                    }
-
-                    // 4. BỆNH NHÂN GẦN ĐÂY (Truy vấn từ CSDL)
-                    String patientSql = "SELECT TOP 10 ba.maBenhAn, kh.tenKH, kh.sdt, COALESCE(dv.tenDichVu, ba.chuanDoan, N'Chưa cập nhật') AS DichVuGanNhat, ba.ngayKham, COALESCE(ba.trangThai, N'Chưa cập nhật') AS TrangThai "
-                            + "FROM HoSoBenhAn ba "
-                            + "INNER JOIN KhachHang kh ON ba.maKhachHang = kh.maKhachHang "
-                            + "LEFT JOIN KeHoachDieuTri khdt ON khdt.maBenhAn = ba.maBenhAn "
-                            + "LEFT JOIN DichVu dv ON dv.maDichVu = khdt.maDichVu "
-                            + "WHERE ba.ngayKham IS NOT NULL ORDER BY ba.ngayKham DESC, ba.maBenhAn DESC";
-
-                    try (PreparedStatement ps = conn.prepareStatement(patientSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            Date date = rs.getDate("ngayKham");
-                            String dateText = date == null ? "" : date.toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                            patients.add(new Object[]{
-                                    rs.getString("maBenhAn"),
-                                    rs.getString("tenKH"),
-                                    rs.getString("sdt"),
-                                    rs.getString("DichVuGanNhat"),
-                                    dateText,
-                                    rs.getString("TrangThai")
-                            });
-                        }
-                    }
-
-                    // 5. THÔNG BÁO LỊCH HẸN MỚI (Truy vấn từ CSDL)
-                    String appointmentNotiSql = "SELECT TOP 5 lh.maLichHen, kh.tenKH, lh.ngayHen, lh.trangThai FROM LichHen lh LEFT JOIN KhachHang kh ON lh.maKhachHang = kh.maKhachHang ORDER BY lh.ngayHen DESC, lh.maLichHen DESC";
-                    try (PreparedStatement ps = conn.prepareStatement(appointmentNotiSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            notifications.add(new Object[]{
-                                    "📅", "Lịch hẹn: " + safeText(rs.getString("tenKH")),
-                                    "Ngày: " + safeText(rs.getString("ngayHen")),
-                                    safeText(rs.getString("trangThai")), BLUE, new Color(232, 242, 255)
-                            });
-                        }
-                    }
-
-                    // 6. THÔNG BÁO THANH TOÁN (Truy vấn từ CSDL)
-                    String paymentNotiSql = "SELECT TOP 3 pt.maPhieu, kh.tenKH, pt.daThanhToan, pt.ngayThanhToan FROM PhieuThanhToan pt LEFT JOIN KhachHang kh ON pt.maKhachHang = kh.maKhachHang ORDER BY pt.ngayThanhToan DESC, pt.maPhieu DESC";
-                    try (PreparedStatement ps = conn.prepareStatement(paymentNotiSql);
-                         ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            notifications.add(new Object[]{
-                                    "💳", "Thanh toán",
-                                    safeText(rs.getString("tenKH")) + " - " + formatMoney(rs.getDouble("daThanhToan")),
-                                    safeText(rs.getString("ngayThanhToan")), GREEN, new Color(238, 247, 238)
-                            });
-                        }
-                    }
+                DashboardSnapshot data = dashboardDAO.loadSnapshot();
+                totalPatients = data.totalPatients;
+                appointmentsToday = data.appointmentsToday;
+                alerts = data.pendingAppointments;
+                monthlyRevenue = data.revenue;
+                patients.addAll(data.patients);
+                days.addAll(data.days);
+                revenues.addAll(data.dailyRevenue);
+                services.addAll(data.services);
+                serviceValues.addAll(data.serviceRevenue);
+                for (Object[] row : data.appointmentNotifications) {
+                    notifications.add(new Object[]{"📅", "Lịch hẹn: " + safeText((String) row[0]),
+                            "Ngày: " + safeText((String) row[1]), safeText((String) row[2]), BLUE, new Color(232, 242, 255)});
+                }
+                for (Object[] row : data.paymentNotifications) {
+                    notifications.add(new Object[]{"💳", "Thanh toán",
+                            safeText((String) row[0]) + " - " + formatMoney(((Number) row[1]).doubleValue()),
+                            safeText((String) row[2]), GREEN, new Color(238, 247, 238)});
                 }
                 return null;
             }

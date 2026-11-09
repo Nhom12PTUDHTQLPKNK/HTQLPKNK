@@ -1,5 +1,7 @@
 package views;
 
+import models.dao.DonThuocDienTuDAO;
+
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -20,9 +22,6 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.io.File;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -49,7 +48,6 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
-import sql.DBConnection;
 
 public class ManHinhKeDonThuocDienTu extends JPanel {
 
@@ -65,6 +63,7 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
 
     private static String sharedMaKeHoach = "";
     private Set<String> prescribedPatients = new HashSet<>();
+    private final DonThuocDienTuDAO prescriptionDAO = new DonThuocDienTuDAO();
 
     private CardLayout subCardLayout;
     private JPanel subContainer;
@@ -117,16 +116,8 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
 
     private void loadPrescribedStatusFromDB() {
         prescribedPatients.clear();
-        String sql = "SELECT DISTINCT maBenhAn FROM DonThuoc";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String maBA = rs.getString("maBenhAn");
-                if (maBA != null) {
-                    prescribedPatients.add(maBA.trim());
-                }
-            }
+        try {
+            prescribedPatients.addAll(prescriptionDAO.getPrescribedEncounterCodes());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -332,28 +323,17 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
         if (planListModel == null) return;
         loadPrescribedStatusFromDB();
         planListModel.setRowCount(0);
-        String sql = 
-            "SELECT hs.maBenhAn, kh.tenKH, dv.tenDichVu, r.maRang, ctd.soLuong, dv.donGia " +
-            "FROM HoSoBenhAn hs " +
-            "JOIN KhachHang kh ON hs.maKhachHang = kh.maKhachHang " +
-            "LEFT JOIN ChiTietKhamRang r ON hs.maBenhAn = r.maBenhAn " +
-            "LEFT JOIN ChiTietChiDinh ctd ON hs.maBenhAn = ctd.maBenhAn AND (r.maRang = ctd.maRang OR ctd.maRang IS NULL) " +
-            "LEFT JOIN DichVu dv ON ctd.maDichVu = dv.maDichVu " +
-            "WHERE hs.trangThai LIKE N'%lập kế hoạch%'";
-
         int count = 0;
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
+        try {
+            for (Object[] data : prescriptionDAO.getPlannedPatients()) {
                 count++;
-                String maBN = rs.getString("maBenhAn");
-                String tenBN = rs.getString("tenKH");
-                String tenDV = rs.getString("tenDichVu");
-                int maRang = rs.getInt("maRang");
-                int soLuong = rs.getInt("soLuong");
+                String maBN = (String) data[0];
+                String tenBN = (String) data[1];
+                String tenDV = (String) data[2];
+                int maRang = ((Number) data[3]).intValue();
+                int soLuong = ((Number) data[4]).intValue();
                 if (soLuong <= 0) soLuong = 1;
-                double donGia = rs.getDouble("donGia");
+                double donGia = ((Number) data[5]).doubleValue();
 
                 boolean isPrescribed = prescribedPatients.contains(maBN);
 
@@ -902,24 +882,8 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
             return;
         }
 
-        String sql = "INSERT INTO DonThuoc (maDonThuoc, maBenhAn, maNhanVien, maKhachHang, maThuoc, tenThuoc, ngayKe, soLuong, cachDung, ghiChu) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, GETDATE(), ?, ?, ?)";
-
-        try (Connection conn = DBConnection.getConnection()) {
-            String maKH = "";
-            String maNV = "";
-            String infoSql = "SELECT hs.maKhachHang, hs.maNhanVien FROM HoSoBenhAn hs WHERE hs.maBenhAn = ?";
-            try (PreparedStatement psInfo = conn.prepareStatement(infoSql)) {
-                psInfo.setString(1, maBenhAn);
-                try (ResultSet rs = psInfo.executeQuery()) {
-                    if (rs.next()) {
-                        maKH = rs.getString("maKhachHang");
-                        maNV = rs.getString("maNhanVien");
-                    }
-                }
-            }
-
-            int successCount = 0;
+        try {
+            java.util.List<Object[]> items = new java.util.ArrayList<>();
             for (int i = 0; i < prescriptionModel.getRowCount(); i++) {
                 String maThuoc = String.valueOf(prescriptionModel.getValueAt(i, 1));
                 String tenThuoc = String.valueOf(prescriptionModel.getValueAt(i, 2));
@@ -928,22 +892,9 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
                 String cachDung = String.valueOf(prescriptionModel.getValueAt(i, 5));
                 String lieuDung = String.valueOf(prescriptionModel.getValueAt(i, 6));
 
-                String maDonThuoc = "DT_" + System.currentTimeMillis() + "_" + (i + 1);
-
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, maDonThuoc);
-                    ps.setString(2, maBenhAn);
-                    ps.setString(3, maNV != null ? maNV : "NV002");
-                    ps.setString(4, maKH != null ? maKH : "KH001");
-                    ps.setString(5, maThuoc);
-                    ps.setString(6, tenThuoc);
-                    ps.setInt(7, soLuong);
-                    ps.setString(8, "ĐVT: " + donVi + " | Cách dùng: " + cachDung + " | Liều dùng: " + lieuDung);
-                    ps.setString(9, "Đã kê đơn điện tử");
-                    ps.executeUpdate();
-                    successCount++;
-                }
+                items.add(new Object[]{maThuoc, tenThuoc, soLuong, donVi, cachDung, lieuDung});
             }
+            int successCount = prescriptionDAO.savePrescriptionBatch(maBenhAn, items);
 
             prescribedPatients.add(maBenhAn);
 
@@ -966,22 +917,12 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
         sharedMaKeHoach = maLH;
         if (lblPatientCode != null) lblPatientCode.setText(maLH);
 
-        String sql = 
-            "SELECT kh.tenKH, kh.sdt, nv.tenNhanVien " +
-            "FROM HoSoBenhAn hs " +
-            "JOIN KhachHang kh ON hs.maKhachHang = kh.maKhachHang " +
-            "LEFT JOIN NhanVien nv ON hs.maNhanVien = nv.maNhanVien " +
-            "WHERE hs.maBenhAn = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maLH);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    if (lblPatientName != null) lblPatientName.setText(rs.getString("tenKH"));
-                    if (lblPatientPhone != null) lblPatientPhone.setText(rs.getString("sdt"));
-                    if (lblPatientDoctor != null) lblPatientDoctor.setText(rs.getString("tenNhanVien") != null ? rs.getString("tenNhanVien") : "Bác sĩ nha khoa");
-                }
+        try {
+            String[] patient = prescriptionDAO.getPatientSummary(maLH);
+            if (patient != null) {
+                if (lblPatientName != null) lblPatientName.setText(patient[0]);
+                if (lblPatientPhone != null) lblPatientPhone.setText(patient[1]);
+                if (lblPatientDoctor != null) lblPatientDoctor.setText(patient[2] != null ? patient[2] : "Bác sĩ nha khoa");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -991,29 +932,12 @@ public class ManHinhKeDonThuocDienTu extends JPanel {
     private void loadMedicineComboboxData() {
         cboChonThuoc.removeAllItems();
 
-        String query = 
-            "SELECT T.MaThuoc, T.TenThuoc, T.HoatChatChinh, " +
-            "N.TenNhomThuoc, DBC.TenDangBaoChe, DD.TenDuongDung, T.NhaSanXuat, T.QuyCachDongGoi, T.HinhAnh " +
-            "FROM THUOC T " +
-            "LEFT JOIN NHOMTHUOC N ON T.MaNhomThuoc = N.MaNhomThuoc " +
-            "LEFT JOIN DANGBAOCHE DBC ON T.MaDangBaoChe = DBC.MaDangBaoChe " +
-            "LEFT JOIN DUONGDUNG DD ON T.MaDuongDung = DD.MaDuongDung " +
-            "WHERE T.TrangThai = 1 ORDER BY T.TenThuoc";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
+        try {
+            for (Object[] row : prescriptionDAO.getAvailableMedicines()) {
                 DuLieuThuoc m = new DuLieuThuoc();
-                m.code = rs.getString("MaThuoc");
-                m.name = rs.getString("TenThuoc");
-                m.activeIngredient = rs.getString("HoatChatChinh");
-                m.group = rs.getString("TenNhomThuoc");
-                m.form = rs.getString("TenDangBaoChe");
-                m.route = rs.getString("TenDuongDung");
-                m.manufacturer = rs.getString("NhaSanXuat");
-                m.packageInfo = rs.getString("QuyCachDongGoi");
-                m.imagePath = rs.getString("HinhAnh");
+                m.code = (String) row[0]; m.name = (String) row[1]; m.activeIngredient = (String) row[2];
+                m.group = (String) row[3]; m.form = (String) row[4]; m.route = (String) row[5];
+                m.manufacturer = (String) row[6]; m.packageInfo = (String) row[7]; m.imagePath = (String) row[8];
 
                 cboChonThuoc.addItem(new MucThuocHopChon(m));
             }

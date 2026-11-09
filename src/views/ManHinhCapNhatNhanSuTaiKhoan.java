@@ -1,6 +1,7 @@
 package views;
 
 import models.dao.NhanSuTaiKhoanDAO;
+import models.dao.ChucVuDAO;
 import controllers.XuatBangPDF;
 import controllers.KiemSoatTruyCap;
 
@@ -40,10 +41,12 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
     private final JTextField id = new JTextField(), name = new JTextField(), username = new JTextField();
     private final JTextField phone = new JTextField(), salary = new JTextField();
     private final JPasswordField password = new JPasswordField();
-    private final JComboBox<String> role = new JComboBox<>(new String[]{"Admin", "Nha sĩ", "Lễ tân", "Y tá"});
+    private final JComboBox<String> role = new JComboBox<>();
     private final JComboBox<String> status = new JComboBox<>(new String[]{"Hoạt động", "Tạm khóa"});
     private boolean editing;
     private String originalUsername;
+    private JButton saveButton;
+    private JButton deleteButton;
 
     // bộ sắp xếp/lọc của bảng, tạo một lần dùng mãi
     private TableRowSorter<DefaultTableModel> sorter;
@@ -57,6 +60,11 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
     private final JLabel lblMode = new JLabel("Đang thêm nhân sự mới");
 
     public ManHinhCapNhatNhanSuTaiKhoan() {
+        try {
+            for (String roleName : new ChucVuDAO().getNames()) role.addItem(roleName);
+        } catch (SQLException ex) {
+            for (String roleName : new String[]{"Nha sĩ", "Lễ tân", "Y tá"}) role.addItem(roleName);
+        }
         setLayout(new BorderLayout(0, 20));
         setBackground(BG);
         setBorder(new EmptyBorder(25, 30, 25, 30));
@@ -379,18 +387,18 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
 
         JPanel buttons = new JPanel(new GridLayout(3, 1, 0, 9));
         buttons.setOpaque(false);
-        JButton save = createButton("Lưu thông tin", GREEN);
-        JButton delete = createButton("Xóa nhân sự", RED);
+        saveButton = createButton("Lưu thông tin", GREEN);
+        deleteButton = createButton("Xóa nhân sự", RED);
         JButton clear = createButton("Làm mới biểu mẫu", BLUE);
-        save.addActionListener(e -> save());
-        delete.addActionListener(e -> delete());
+        saveButton.addActionListener(e -> save());
+        deleteButton.addActionListener(e -> delete());
         clear.addActionListener(e -> clearForm());
-        buttons.add(save);
-        buttons.add(delete);
+        buttons.add(saveButton);
+        buttons.add(deleteButton);
         buttons.add(clear);
         if (!KiemSoatTruyCap.isAdministrator()) {
-            save.setEnabled(false);
-            delete.setEnabled(false);
+            saveButton.setEnabled(false);
+            deleteButton.setEnabled(false);
         }
         card.add(heading, BorderLayout.NORTH);
         card.add(formScroll, BorderLayout.CENTER);
@@ -611,6 +619,12 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
         username.setEditable(!protectedAccount);
         role.setEnabled(!protectedAccount);
         status.setEnabled(!protectedAccount);
+        name.setEditable(!protectedAccount);
+        phone.setEditable(!protectedAccount);
+        salary.setEditable(!protectedAccount);
+        password.setEditable(!protectedAccount);
+        if (saveButton != null) saveButton.setEnabled(KiemSoatTruyCap.isAdministrator() && !protectedAccount);
+        if (deleteButton != null) deleteButton.setEnabled(KiemSoatTruyCap.isAdministrator() && !protectedAccount);
         updateModeLabel();
     }
 
@@ -659,6 +673,12 @@ public class ManHinhCapNhatNhanSuTaiKhoan extends JPanel {
         username.setEditable(true);
         role.setEnabled(true);
         status.setEnabled(true);
+        name.setEditable(true);
+        phone.setEditable(true);
+        salary.setEditable(true);
+        password.setEditable(true);
+        if (saveButton != null) saveButton.setEnabled(KiemSoatTruyCap.isAdministrator());
+        if (deleteButton != null) deleteButton.setEnabled(false);
         role.setSelectedIndex(0);
         status.setSelectedIndex(0);
         table.clearSelection();

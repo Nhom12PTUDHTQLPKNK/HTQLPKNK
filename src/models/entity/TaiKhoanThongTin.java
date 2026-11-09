@@ -8,6 +8,8 @@ public class TaiKhoanThongTin {
     public String password;
     public String fullName;
     public VaiTro role;
+    /** Tên chức vụ lưu trực tiếp trong TaiKhoan.quyen; giữ được các chức vụ tùy biến. */
+    public String roleName;
 
     public TaiKhoanThongTin() {}
 
@@ -16,6 +18,12 @@ public class TaiKhoanThongTin {
         this.password = password;
         this.fullName = fullName;
         this.role = role;
+        this.roleName = role == null ? null : role.toString();
+    }
+
+    public TaiKhoanThongTin(String username, String password, String fullName, VaiTro role, String roleName) {
+        this(username, password, fullName, role);
+        this.roleName = roleName;
     }
 
     public String getFullName() {
@@ -23,7 +31,7 @@ public class TaiKhoanThongTin {
     }
 
     public String getRole() {
-        return role == null ? null : role.toString();
+        return roleName != null ? roleName : (role == null ? null : role.toString());
     }
 
     public String getUsername() {

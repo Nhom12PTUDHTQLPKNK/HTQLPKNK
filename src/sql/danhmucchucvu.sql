@@ -13,7 +13,7 @@ GO
 
 MERGE dbo.ChucVu AS target
 USING (VALUES
-    (N'Nha sĩ trưởng'), (N'Nha sĩ'), (N'Y tá'), (N'Lễ tân'), (N'Quản lý')
+    (N'Nha sĩ trưởng'), (N'Nha sĩ'), (N'Y tá'), (N'Lễ tân'), (N'Quản lý'), (N'Admin')
 ) AS source(tenChucVu)
 ON target.tenChucVu = source.tenChucVu
 WHEN NOT MATCHED THEN INSERT (tenChucVu) VALUES (source.tenChucVu);
@@ -25,9 +25,22 @@ FROM dbo.NhanVien nv
 WHERE nv.chucVu IS NOT NULL AND LTRIM(RTRIM(nv.chucVu)) <> N''
   AND NOT EXISTS (SELECT 1 FROM dbo.ChucVu cv WHERE cv.tenChucVu = nv.chucVu);
 GO
+
+INSERT INTO dbo.ChucVu (tenChucVu)
+SELECT DISTINCT tk.quyen
+FROM dbo.TaiKhoan tk
+WHERE tk.quyen IS NOT NULL AND LTRIM(RTRIM(tk.quyen)) <> N''
+  AND NOT EXISTS (SELECT 1 FROM dbo.ChucVu cv WHERE cv.tenChucVu = tk.quyen);
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_NhanVien_ChucVu')
     ALTER TABLE dbo.NhanVien ADD CONSTRAINT FK_NhanVien_ChucVu
         FOREIGN KEY (chucVu) REFERENCES dbo.ChucVu(tenChucVu);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_TaiKhoan_ChucVu')
+    ALTER TABLE dbo.TaiKhoan ADD CONSTRAINT FK_TaiKhoan_ChucVu
+        FOREIGN KEY (quyen) REFERENCES dbo.ChucVu(tenChucVu);
 GO
 
 IF COL_LENGTH(N'dbo.NhanVien', N'hinhAnh') IS NULL
