@@ -19,11 +19,13 @@ import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +112,8 @@ public class ManHinhXuLyKhamBenh extends JPanel {
     private DefaultTableModel planToothModel, planServiceModel;
     private JTextField txtPlanName;
     private JComboBox<String> cboPlanStatus;
+    private JButton btnAddPlanService, btnAddPlanRouteStep, btnConfirmTreatmentPlan;
+    private boolean treatmentPlanReadOnly;
     private JLabel lblPlanBottomCost;
     
     private JPanel stepsContainer;
@@ -255,12 +259,20 @@ public class ManHinhXuLyKhamBenh extends JPanel {
     }
     
     private void showTreatmentPlan() {
+        if (btnAddPlanService != null) btnAddPlanService.setVisible(true);
+        if (btnAddPlanRouteStep != null) btnAddPlanRouteStep.setVisible(true);
+        if (btnConfirmTreatmentPlan != null) btnConfirmTreatmentPlan.setVisible(true);
+        rebuildRouteStepsUI();
         cardLayout.show(cardPanel, "TREATMENT_PLAN");
         setActiveMenuButton(btnTreatmentPlan);
     }
 
-    private void showTreatmentPlanForPatient(String maLichHen) {
+    private void showTreatmentPlanForPatient(String maLichHen, boolean readOnly) {
         currentSelectedMaLichHen = maLichHen;
+        if (btnAddPlanService != null) btnAddPlanService.setVisible(!readOnly);
+        if (btnAddPlanRouteStep != null) btnAddPlanRouteStep.setVisible(!readOnly);
+        if (btnConfirmTreatmentPlan != null) btnConfirmTreatmentPlan.setVisible(!readOnly);
+        rebuildRouteStepsUI();
         cardLayout.show(cardPanel, "TREATMENT_PLAN");
         setActiveMenuButton(btnTreatmentPlan);
         if (maLichHen != null && !maLichHen.isEmpty()) {
@@ -1011,9 +1023,9 @@ private JPanel createPhieuKhamCardPage() {
             "       dv.tenDichVu, ctd.soLuong, ctd.donVi, ctd.ghiChu AS ghiChuDV, ba.trangThai AS trangThaiBA " +
             "FROM LichHen lh " +
             "JOIN KhachHang kh ON lh.maKhachHang = kh.maKhachHang " +
-            "JOIN HoSoBenhAn ba ON ba.maKhachHang = kh.maKhachHang " +
-            "JOIN ChiTietKhamRang r ON ba.maBenhAn = r.maBenhAn " + 
-            "LEFT JOIN ChiTietChiDinh ctd ON ba.maBenhAn = ctd.maBenhAn " +
+            "JOIN HoSoBenhAn ba ON ba.maBenhAn = lh.maLichHen " +
+            "OUTER APPLY (SELECT TOP 1 r0.maRang, r0.tinhTrang, r0.mucDo, r0.trieuChung, r0.chanDoan, r0.ghiChu FROM ChiTietKhamRang r0 WHERE r0.maBenhAn = ba.maBenhAn ORDER BY r0.maChiTietKham DESC) r " +
+            "OUTER APPLY (SELECT TOP 1 c0.maDichVu, c0.soLuong, c0.donVi, c0.ghiChu FROM ChiTietChiDinh c0 WHERE c0.maBenhAn = ba.maBenhAn ORDER BY c0.maChiDinh DESC) ctd " +
             "LEFT JOIN DichVu dv ON ctd.maDichVu = dv.maDichVu ";
 
         if (keyword != null && !keyword.isEmpty()) {
@@ -1109,14 +1121,14 @@ private JPanel createPhieuKhamCardPage() {
         if (isPlanned) {
             JButton btnViewPlan = createButton("👁 Xem kế hoạch", new Color(0, 120, 215));
             btnViewPlan.setPreferredSize(new Dimension(130, 28));
-            btnViewPlan.addActionListener(e -> showTreatmentPlanForPatient(maLichHen));
+            btnViewPlan.addActionListener(e -> showTreatmentPlanForPatient(maLichHen, true));
             rightHeaderPanel.add(btnViewPlan);
         } else {
             JButton btnPlanFromCard = createButton("▣ Lập kế hoạch", BLUE);
             btnPlanFromCard.setPreferredSize(new Dimension(125, 28));
             btnPlanFromCard.addActionListener(e -> {
                 if (maLichHen != null && !maLichHen.isEmpty()) {
-                    showTreatmentPlanForPatient(maLichHen);
+                    showTreatmentPlanForPatient(maLichHen, false);
                 }
             });
             rightHeaderPanel.add(btnPlanFromCard);
@@ -1661,20 +1673,8 @@ private JPanel createPatientHeader() {
         body.add(createFieldLabel("Tình trạng răng"));
         body.add(Box.createVerticalStrut(6));
 
-        cboCondition = new JComboBox<>(new String[]{
-            "Bình thường",
-            "Sâu răng",
-            "Viêm nướu",
-            "Mẻ răng",
-            "Mất răng",
-            "Đã điều trị",
-            "Viêm tủy",
-            "Mòn cổ răng",
-            "Răng khôn mọc lệch"
-        });
-
-        // Cho phép vừa chọn vừa nhập nội dung
-        cboCondition.setEditable(true);
+        cboCondition = new JComboBox<>();
+        loadToothConditionCatalog(cboCondition);
 
         styleCombo(cboCondition);
         cboCondition.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -1857,14 +1857,15 @@ private JPanel createPatientHeader() {
                     String chanDoan = String.valueOf(examinedModel.getValueAt(modelRow, 5));
                     String ghiChu = String.valueOf(examinedModel.getValueAt(modelRow, 6));
 
-                    if (lblToothHeaderCode != null) lblToothHeaderCode.setText(maRang);
+                    boolean hasTooth = !"null".equalsIgnoreCase(maRang) && !maRang.trim().isEmpty();
+                    if (lblToothHeaderCode != null) lblToothHeaderCode.setText(hasTooth ? maRang : "Tổng quát");
                     if (cboCondition != null) cboCondition.setSelectedItem(tinhTrang);
                     if (cboSeverity != null) cboSeverity.setSelectedItem(mucDo);
                     if (txtSymptom != null) txtSymptom.setText(trieuChung);
                     if (txtDiagnosis != null) txtDiagnosis.setText(chanDoan);
                     if (txtNote != null) txtNote.setText(ghiChu);
 
-                    loadServiceInfoForTooth(maRang);
+                    if (hasTooth) loadServiceInfoForTooth(maRang);
                 }
             }
         });
@@ -1995,8 +1996,9 @@ private JPanel createPatientHeader() {
                 ps.setString(1, maLichHen);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        int code = rs.getInt("maRang");
-                        String tenRang = ChiTietKhamRangDAO.loadTeethFromDatabase(code);
+                        Object rawCode = rs.getObject("maRang");
+                        Integer code = rawCode == null ? null : ((Number) rawCode).intValue();
+                        String tenRang = code == null ? "Khám tổng quát" : ChiTietKhamRangDAO.loadTeethFromDatabase(code);
                         
                         examinedModel.addRow(new Object[]{
                             code,
@@ -2039,18 +2041,13 @@ private JPanel createPatientHeader() {
     }
 
     private void saveExaminedTooth() {
-        if (selectedTooth == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn răng trên sơ đồ FDI cần lưu thông tin!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
         String maLichHen = lblPatientCode != null ? lblPatientCode.getText().trim() : "";
         if (maLichHen.equals("--") || maLichHen.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Chưa chọn thông tin bệnh nhân!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        int code = selectedTooth.code;
+        Integer code = selectedTooth == null ? null : selectedTooth.code;
         String tinhTrang = cboCondition != null && cboCondition.getSelectedItem() != null ? cboCondition.getSelectedItem().toString() : "";
         String mucDo = cboSeverity != null && cboSeverity.getSelectedItem() != null ? cboSeverity.getSelectedItem().toString() : "";
         String trieuChung = txtSymptom != null ? txtSymptom.getText().trim() : "";
@@ -2060,13 +2057,14 @@ private JPanel createPatientHeader() {
         try (Connection conn = DBConnection.getConnection()) {
             ensureHoSoBenhAnExists(maLichHen, maLichHen);
             
-            String checkSql = "SELECT COUNT(*) FROM ChiTietKhamRang WHERE maBenhAn = ? AND maRang = ?";
+            String checkSql = "SELECT COUNT(*) FROM ChiTietKhamRang WHERE maBenhAn = ? AND (maRang = ? OR (maRang IS NULL AND ? IS NULL))";
             try (PreparedStatement psCheck = conn.prepareStatement(checkSql)) {
                 psCheck.setString(1, maLichHen);
-                psCheck.setInt(2, code);
+                if (code == null) { psCheck.setNull(2, java.sql.Types.INTEGER); psCheck.setNull(3, java.sql.Types.INTEGER); }
+                else { psCheck.setInt(2, code); psCheck.setInt(3, code); }
                 try (ResultSet rs = psCheck.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        String updateSql = "UPDATE ChiTietKhamRang SET tinhTrang = ?, mucDo = ?, trieuChung = ?, chanDoan = ?, ghiChu = ? WHERE maBenhAn = ? AND maRang = ?";
+                        String updateSql = "UPDATE ChiTietKhamRang SET tinhTrang = ?, mucDo = ?, trieuChung = ?, chanDoan = ?, ghiChu = ? WHERE maBenhAn = ? AND (maRang = ? OR (maRang IS NULL AND ? IS NULL))";
                         try (PreparedStatement psUp = conn.prepareStatement(updateSql)) {
                             psUp.setString(1, tinhTrang);
                             psUp.setString(2, mucDo);
@@ -2074,14 +2072,15 @@ private JPanel createPatientHeader() {
                             psUp.setString(4, chanDoan);
                             psUp.setString(5, ghiChu);
                             psUp.setString(6, maLichHen);
-                            psUp.setInt(7, code);
+                            if (code == null) { psUp.setNull(7, java.sql.Types.INTEGER); psUp.setNull(8, java.sql.Types.INTEGER); }
+                            else { psUp.setInt(7, code); psUp.setInt(8, code); }
                             psUp.executeUpdate();
                         }
                     } else {
                         String insertSql = "INSERT INTO ChiTietKhamRang (maBenhAn, maRang, tinhTrang, mucDo, trieuChung, chanDoan, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?)";
                         try (PreparedStatement psIns = conn.prepareStatement(insertSql)) {
                             psIns.setString(1, maLichHen);
-                            psIns.setInt(2, code);
+                            if (code == null) psIns.setNull(2, java.sql.Types.INTEGER); else psIns.setInt(2, code);
                             psIns.setString(3, tinhTrang);
                             psIns.setString(4, mucDo);
                             psIns.setString(5, trieuChung);
@@ -2098,6 +2097,17 @@ private JPanel createPatientHeader() {
 
         loadExistingExaminationData(maLichHen);
         JOptionPane.showMessageDialog(this, "Đã lưu thông tin răng thành công!");
+    }
+
+    private void loadToothConditionCatalog(JComboBox<String> combo) {
+        combo.removeAllItems();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT tenTinhTrang FROM DanhMucTinhTrangRang WHERE trangThai = 1 ORDER BY tenTinhTrang");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) combo.addItem(rs.getString(1));
+        } catch (SQLException ex) {
+            for (String value : new String[]{"Bình thường", "Sâu răng", "Viêm nướu", "Mẻ răng", "Mất răng", "Đã điều trị", "Viêm tủy", "Mòn cổ răng", "Răng khôn mọc lệch"}) combo.addItem(value);
+        }
     }
 
     private void saveMedicalSessionToDatabase() {
@@ -2710,7 +2720,11 @@ private JPanel createPatientHeader() {
         body.add(Box.createVerticalStrut(12));
         body.add(createPlanRow(createPlanToothCardPlan(), createPlanServiceCardPlan(), 0.37, 0.63, 220));
         body.add(Box.createVerticalStrut(12));
-        body.add(createPlanRow(createPlanInformationCardPlan(), createTreatmentRouteCardPlan(), 0.31, 0.69, 220));
+        JPanel treatmentRoute = createTreatmentRouteCardPlan();
+        treatmentRoute.setPreferredSize(new Dimension(1400, 220));
+        treatmentRoute.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+        treatmentRoute.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(treatmentRoute);
 
         JScrollPane scroll = new JScrollPane(body);
         scroll.setBorder(null);
@@ -2827,15 +2841,16 @@ private JPanel createPatientHeader() {
         buttons.setOpaque(false);
 
         JButton btnAddCustomService = createButton("+ Thêm dịch vụ", PINK);
+        btnAddPlanService = btnAddCustomService;
         btnAddCustomService.addActionListener(e -> openAddServiceDialog());
         buttons.add(btnAddCustomService);
 
         header.add(title, BorderLayout.WEST);
         header.add(buttons, BorderLayout.EAST);
 
-        String[] columns = {"Dịch vụ điều trị", "Răng / Vị trí", "Số lượng", "Đơn giá", "Thành tiền", "Ngày dự kiến", "Trạng thái"};
+        String[] columns = {"Dịch vụ điều trị", "Răng / Vị trí", "Số lượng", "Đơn giá", "Thành tiền", "Ngày dự kiến"};
         planServiceModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return true; }
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
         JTable table = new JTable(planServiceModel);
@@ -2878,6 +2893,7 @@ private JPanel createPatientHeader() {
         routeHeader.add(createTitle("♧  Lộ trình điều trị"), BorderLayout.WEST);
         
         JButton btnAddRouteStep = createButton("+ Thêm đợt", PINK);
+        btnAddPlanRouteStep = btnAddRouteStep;
         btnAddRouteStep.addActionListener(e -> addNewRouteStep());
         routeHeader.add(btnAddRouteStep, BorderLayout.EAST);
         
@@ -2901,15 +2917,12 @@ private JPanel createPatientHeader() {
             new EmptyBorder(12, 12, 12, 12)
         ));
 
-        JLabel lblStatus = new JLabel("⚑  Trạng thái");
-        cboPlanStatus = new JComboBox<>(new String[]{"Chờ duyệt", "Đã duyệt", "Đang thực hiện", "Hoàn thành"});
-        styleCombo(cboPlanStatus);
-
         lblPlanBottomCost = new JLabel("Tổng chi phí: --");
         lblPlanBottomCost.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblPlanBottomCost.setForeground(PINK);
 
         JButton btnConfirmRoute = createButton("✓ Xác nhận", BLUE);
+        btnConfirmTreatmentPlan = btnConfirmRoute;
         btnConfirmRoute.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnConfirmRoute.addActionListener(e -> {
             if (currentSelectedMaLichHen == null || currentSelectedMaLichHen.isEmpty()) {
@@ -2921,17 +2934,18 @@ private JPanel createPatientHeader() {
                 ps.setString(1, currentSelectedMaLichHen);
                 ps.executeUpdate();
                 JOptionPane.showMessageDialog(this, "Đã xác nhận kế hoạch điều trị thành công!");
-                showPhieuKhamList();
+                Window owner = SwingUtilities.getWindowAncestor(this);
+                if (owner instanceof ManHinhMenuChinh) {
+                    ((ManHinhMenuChinh) owner).showView(ManHinhMenuChinh.CARD_SALES_INVOICE);
+                } else {
+                    showPhieuKhamList();
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật trạng thái: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        statusPanel.add(lblStatus);
-        statusPanel.add(Box.createVerticalStrut(5));
-        statusPanel.add(cboPlanStatus);
-        statusPanel.add(Box.createVerticalStrut(15));
         statusPanel.add(lblPlanBottomCost);
         statusPanel.add(Box.createVerticalStrut(15));
         statusPanel.add(btnConfirmRoute);
@@ -2999,6 +3013,7 @@ private JPanel createPatientHeader() {
 
         JTextField datePickerRoute = new JTextField();
         datePickerRoute.setText(data.date);
+        datePickerRoute.setEditable(!treatmentPlanReadOnly);
         styleTextField(datePickerRoute);
         datePickerRoute.setMaximumSize(new Dimension(150, 30));
 
@@ -3030,7 +3045,7 @@ private JPanel createPatientHeader() {
         panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                openEditRouteStepDialog(data, index);
+                if (!treatmentPlanReadOnly) openEditRouteStepDialog(data, index);
             }
         });
 
@@ -3120,8 +3135,22 @@ private JPanel createPatientHeader() {
         JButton btnSave = createButton("Lưu thay đổi", BLUE);
         btnSave.setPreferredSize(new Dimension(120, 38));
         btnSave.addActionListener(e -> {
+            LocalDate proposedDate;
+            try { proposedDate = LocalDate.parse(txtDate.getText().trim()); }
+            catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Ngày dự kiến phải theo định dạng yyyy-MM-dd.");
+                return;
+            }
+            if (index > 0 && proposedDate.isBefore(LocalDate.parse(routeStepsList.get(index - 1).date))) {
+                JOptionPane.showMessageDialog(dialog, "Ngày đợt điều trị phải sau hoặc bằng ngày của đợt trước.");
+                return;
+            }
+            if (index + 1 < routeStepsList.size() && proposedDate.isAfter(LocalDate.parse(routeStepsList.get(index + 1).date))) {
+                JOptionPane.showMessageDialog(dialog, "Ngày đợt điều trị phải trước hoặc bằng ngày của đợt kế tiếp.");
+                return;
+            }
             data.title = txtTitle.getText().trim();
-            data.date = txtDate.getText().trim();
+            data.date = proposedDate.toString();
             ServiceComboItem selected = (ServiceComboItem) cboServices.getSelectedItem();
             if (selected != null) {
                 data.service = selected.tenDV;
@@ -3292,6 +3321,25 @@ private JPanel createPatientHeader() {
             double subTotal = qty * selected.donGia;
             String rangStr = txtTooth.getText().trim();
 
+            if (currentSelectedMaLichHen == null || currentSelectedMaLichHen.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Hãy chọn phiếu khám trước khi thêm dịch vụ vào kế hoạch.");
+                return;
+            }
+            try {
+                ensureHoSoBenhAnExists(currentSelectedMaLichHen, currentSelectedMaLichHen);
+                ChiTietChiDinh ctd = new ChiTietChiDinh();
+                ctd.setMaBenhAn(currentSelectedMaLichHen);
+                ctd.setMaDichVu(selected.maDV);
+                ctd.setMaRang(rangStr.isEmpty() ? null : Integer.valueOf(rangStr));
+                ctd.setSoLuong(qty);
+                ctd.setDonVi(selected.donVi);
+                ctd.setGhiChu(txtDescription.getText().trim());
+                if (!new ChiTietChiDinhDAO().insert(ctd)) throw new SQLException("Không lưu được chỉ định dịch vụ.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Không thể lưu dịch vụ vào bệnh án: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             if (planServiceModel != null) {
                 planServiceModel.addRow(new Object[]{
                     selected.tenDV,
@@ -3299,8 +3347,7 @@ private JPanel createPatientHeader() {
                     qty,
                     selected.donGia,
                     subTotal,
-                    LocalDate.now().toString(),
-                    "Chờ thực hiện"
+                    LocalDate.now().toString()
                 });
                 updatePlanTotalsFromServiceTable();
             }
@@ -3337,9 +3384,10 @@ private JPanel createPatientHeader() {
 
             if (planToothModel != null) planToothModel.setRowCount(0);
             if (planServiceModel != null) planServiceModel.setRowCount(0);
+            double totalPlanCost = 0;
 
             String sqlDetails = 
-                "SELECT ctd.maRang, r.tinhTrang, r.chanDoan, dv.tenDichVu " +
+                "SELECT ctd.maRang, r.tinhTrang, r.chanDoan, dv.tenDichVu, ctd.soLuong, dv.donGia " +
                 "FROM ChiTietChiDinh ctd " +
                 "LEFT JOIN ChiTietKhamRang r ON ctd.maBenhAn = r.maBenhAn AND ctd.maRang = r.maRang " +
                 "LEFT JOIN DichVu dv ON ctd.maDichVu = dv.maDichVu " +
@@ -3355,6 +3403,9 @@ private JPanel createPatientHeader() {
                         String tinhTrang = rs.getString("tinhTrang");
                         String chanDoan = rs.getString("chanDoan");
                         String tenDichVu = rs.getString("tenDichVu");
+                        int quantity = rs.getInt("soLuong");
+                        double unitPrice = rs.getDouble("donGia");
+                        double lineTotal = unitPrice * quantity;
 
                         planToothModel.addRow(new Object[]{
                             false,
@@ -3363,6 +3414,12 @@ private JPanel createPatientHeader() {
                             chanDoan != null && !chanDoan.isEmpty() ? chanDoan : "Chưa có chẩn đoán",
                             tenDichVu != null ? tenDichVu : "--"
                         });
+                        if (planServiceModel != null) planServiceModel.addRow(new Object[]{
+                            tenDichVu != null ? tenDichVu : "--",
+                            maRang > 0 ? "Răng " + maRang : "Chung / Không gắn răng",
+                            quantity, unitPrice, lineTotal, LocalDate.now().toString()
+                        });
+                        totalPlanCost += lineTotal;
                     }
 
                     if (!hasData) {
@@ -3384,6 +3441,9 @@ private JPanel createPatientHeader() {
                     }
                 }
             }
+            if (lblPlanTongChiPhi != null) lblPlanTongChiPhi.setText(String.format("%,.0f đ", totalPlanCost));
+            if (lblPlanBottomCost != null) lblPlanBottomCost.setText(String.format("Tổng chi phí: %,.0f đ", totalPlanCost));
+            if (lblPlanTongDichVu != null && planServiceModel != null) lblPlanTongDichVu.setText(String.valueOf(planServiceModel.getRowCount()));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -3411,8 +3471,7 @@ private JPanel createPatientHeader() {
                     1,
                     donGia,
                     thanhTien,
-                    LocalDate.now().toString(),
-                    "Chờ thực hiện"
+                    LocalDate.now().toString()
                 });
             }
         }

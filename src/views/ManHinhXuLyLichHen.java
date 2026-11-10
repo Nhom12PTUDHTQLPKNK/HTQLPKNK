@@ -510,7 +510,7 @@ public class ManHinhXuLyLichHen extends JPanel {
         KhungVienBoGoc panel = new KhungVienBoGoc(18, CARD_BG);
         panel.setLayout(new BorderLayout(0, 18));
         panel.setBorder(new EmptyBorder(22, 22, 22, 22));
-        panel.setPreferredSize(new Dimension(430, 0));
+        panel.setPreferredSize(new Dimension(490, 0));
 
         JPanel heading = new JPanel();
         heading.setOpaque(false);

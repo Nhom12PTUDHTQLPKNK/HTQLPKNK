@@ -36,6 +36,7 @@ public class ManHinhMenuChinh extends JFrame {
     private ManHinhNhatKyHoatDong activityLogPanel;
     private ManHinhDatLichHen appointmentBookingPanel;
     private ManHinhXuLyLichHen bookingPanel;
+    private ManHinhXuLyBanHang invoicePanel;
     private JPanel roleMenuContainer;
 
    // hệ thống[cite: 48, 52]
@@ -295,7 +296,8 @@ public class ManHinhMenuChinh extends JFrame {
 
         appointmentBookingPanel = new ManHinhDatLichHen();
         mainContentPanel.add(appointmentBookingPanel, CARD_BOOKING);
-        mainContentPanel.add(new ManHinhXuLyBanHang(), CARD_SALES_INVOICE);
+        invoicePanel = new ManHinhXuLyBanHang();
+        mainContentPanel.add(invoicePanel, CARD_SALES_INVOICE);
         mainContentPanel.add(new ManHinhPhanCaLamViec(), CARD_WORK_SHIFT);
         mainContentPanel.add(new ManHinhXuLyKhuyenMai(), CARD_PROMO_PROCESS);
 
@@ -348,6 +350,9 @@ public class ManHinhMenuChinh extends JFrame {
         }
         if (CARD_APPOINTMENT_UPDATE.equals(cardName) && bookingPanel != null) {
             bookingPanel.refreshData();
+        }
+        if (CARD_SALES_INVOICE.equals(cardName) && invoicePanel != null) {
+            invoicePanel.refreshData();
         }
     }
 
@@ -459,16 +464,16 @@ public class ManHinhMenuChinh extends JFrame {
 
         JMenu update = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
         addItem(update, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);
-        addItem(update, "Tiếp nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
         addItem(update, "Cập nhật nhân sự & Tài khoản", "/img/user_update.png", CARD_PERSONNEL_UPDATE, KeyEvent.VK_U, ActionEvent.CTRL_MASK);
         bar.add(update);
 
         JMenu process = createStyledMenu("4. Xử lý", "/img/xuly.png");
         addItem(process, "Đặt lịch hẹn", "/img/calendar.png", CARD_BOOKING, KeyEvent.VK_B, ActionEvent.CTRL_MASK);
+        addItem(process, "Quản lý / xác nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
         addItem(process, "Khám bệnh & Chỉ định", "/img/medical.png", CARD_EXAMINATION, KeyEvent.VK_F1, 0);
         addItem(process, "Lập kế hoạch điều trị", "/img/medical.png", CARD_TREATMENT_PLAN, 0, 0);
-        addItem(process, "Kê đơn thuốc điện tử", "/img/service.png", CARD_PRESCRIPTION, KeyEvent.VK_F3, 0);
         addItem(process, "Bán hàng & Hóa đơn (POS)", "/img/billing.png", CARD_SALES_INVOICE, KeyEvent.VK_F4, 0);
+        addItem(process, "Kê đơn thuốc điện tử", "/img/service.png", CARD_PRESCRIPTION, KeyEvent.VK_F3, 0);
         addItem(process, "Phân ca lịch làm việc", "/img/shift.png", CARD_WORK_SHIFT, KeyEvent.VK_F5, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
         addItem(process, "Xử lý khuyến mãi", "/img/promo.png", CARD_PROMO_PROCESS, 0, 0);
         bar.add(process);
@@ -533,14 +538,15 @@ public class ManHinhMenuChinh extends JFrame {
 
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
         addItem(mnuUpdate, "Cập nhật kho vật tư, thiết bị", "/img/warehouse.png", CARD_INVENTORY_UPDATE, KeyEvent.VK_H, ActionEvent.CTRL_MASK);
-        addItem(mnuUpdate, "Tiếp nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
         if (KiemSoatTruyCap.isAdministrator()) addItem(mnuUpdate, "Cập nhật nhân sự & Tài khoản", "/img/user_update.png", CARD_PERSONNEL_UPDATE, KeyEvent.VK_U, ActionEvent.CTRL_MASK);
 
         JMenu mnuProcess = createStyledMenu("4. Xử lý", "/img/xuly.png");
         addItem(mnuProcess, "Đặt lịch hẹn", "/img/calendar.png", CARD_BOOKING, KeyEvent.VK_B, ActionEvent.CTRL_MASK);
+        addItem(mnuProcess, "Quản lý / xác nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
         addItem(mnuProcess, "Khám bệnh & Chỉ định", "/img/medical.png", CARD_EXAMINATION, KeyEvent.VK_F1, 0);
-        addItem(mnuProcess, "Kê đơn thuốc điện tử", "/img/service.png", CARD_PRESCRIPTION, KeyEvent.VK_F3, 0);
+        addItem(mnuProcess, "Lập kế hoạch điều trị", "/img/medical.png", CARD_TREATMENT_PLAN, 0, 0);
         addItem(mnuProcess, "Bán hàng & Hóa đơn (POS)", "/img/billing.png", CARD_SALES_INVOICE, KeyEvent.VK_F4, 0);
+        addItem(mnuProcess, "Kê đơn thuốc điện tử", "/img/service.png", CARD_PRESCRIPTION, KeyEvent.VK_F3, 0);
         addItem(mnuProcess, "Phân ca lịch làm việc", "/img/shift.png", CARD_WORK_SHIFT, KeyEvent.VK_F5, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK);
 
         JMenu mnuSearch = createStyledMenu("5. Tìm kiếm", "/img/timkiem.png");
@@ -675,10 +681,10 @@ public class ManHinhMenuChinh extends JFrame {
 
 
         JMenu mnuUpdate = createStyledMenu("3. Cập nhật", "/img/capnhat.png");
-        addItem(mnuUpdate, "Tiếp nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
 
         JMenu mnuProcess = createStyledMenu("4. Xử lý", "/img/xuly.png");
         addItem(mnuProcess, "Đặt lịch hẹn", "/img/calendar.png", CARD_BOOKING, KeyEvent.VK_B, ActionEvent.CTRL_MASK);
+        addItem(mnuProcess, "Quản lý / xác nhận lịch hẹn", "/img/appointment.png", CARD_APPOINTMENT_UPDATE, KeyEvent.VK_N, ActionEvent.CTRL_MASK);
         addItem(mnuProcess, "Bán hàng & Hóa đơn (POS)", "/img/billing.png", CARD_SALES_INVOICE, KeyEvent.VK_F4, 0);
 
 

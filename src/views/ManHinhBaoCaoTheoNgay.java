@@ -26,6 +26,7 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
     private final String[] columns;
     private final DefaultTableModel model;
     private final JTable table;
+    private final ReportChartPanel chart = new ReportChartPanel();
     private final TruongChonNgay fromDate = new TruongChonNgay();
     private final TruongChonNgay toDate = new TruongChonNgay();
     private final JComboBox<ChuKyBaoCao> period = new JComboBox<>(ChuKyBaoCao.values());
@@ -77,7 +78,12 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT, 1));
         scroll.getViewport().setBackground(CARD_BG);
-        add(scroll, BorderLayout.CENTER);
+        JPanel reportBody = new JPanel(new BorderLayout(0, 10));
+        reportBody.setOpaque(false);
+        chart.setPreferredSize(new Dimension(0, 220));
+        reportBody.add(chart, BorderLayout.NORTH);
+        reportBody.add(scroll, BorderLayout.CENTER);
+        add(reportBody, BorderLayout.CENTER);
         status.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         status.setForeground(MUTED);
         add(status, BorderLayout.SOUTH);
@@ -122,6 +128,7 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
                     KetQuaBaoCao result = get();
                     model.setRowCount(0);
                     for (Object[] row : result.rows) model.addRow(row);
+                    chart.setRows(result.rows, columns);
                     reportSubtitle = "Từ " + from.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             + " đến " + to.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             + " — nhóm theo " + selected.label;
@@ -129,6 +136,7 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
                     status.setText(result.summary + "  |  " + reportSubtitle);
                 } catch (Exception ex) {
                     model.setRowCount(0);
+                    chart.setRows(java.util.Collections.<Object[]>emptyList(), columns);
                     Throwable cause = ex.getCause();
                     status.setForeground(new Color(180, 45, 55));
                     status.setText("Không thể tải báo cáo SQL Server: "
@@ -216,5 +224,79 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
 
     private void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Lỗi báo cáo", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static final class ReportChartPanel extends JPanel {
+        private List<Object[]> rows = java.util.Collections.emptyList();
+        private String[] headers = new String[0];
+        private int valueColumn = -1;
+
+        ReportChartPanel() {
+            setBackground(Color.WHITE);
+            setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_LIGHT), new EmptyBorder(10, 14, 10, 14)));
+        }
+
+        void setRows(List<Object[]> rows, String[] headers) {
+            this.rows = new ArrayList<>(rows);
+            this.headers = headers.clone();
+            valueColumn = -1;
+            for (int c = headers.length - 1; c >= 0; c--) {
+                for (Object[] row : rows) if (number(row[c]) != null) { valueColumn = c; break; }
+                if (valueColumn >= 0) break;
+            }
+            repaint();
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(TEXT_DARK);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            String metric = valueColumn < 0 ? "Tổng quan báo cáo" : "Biểu đồ: " + headers[valueColumn];
+            g2.drawString(metric, 12, 22);
+            if (rows.isEmpty() || valueColumn < 0) {
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                g2.setColor(MUTED);
+                g2.drawString("Chọn khoảng thời gian và bấm Thống kê để hiển thị dữ liệu.", 12, 54);
+                g2.dispose();
+                return;
+            }
+            int count = Math.min(rows.size(), 12);
+            int left = 48, top = 38, bottom = getHeight() - 35, width = getWidth() - left - 22;
+            double max = 0;
+            for (int i = rows.size() - count; i < rows.size(); i++) {
+                Double n = number(rows.get(i)[valueColumn]);
+                if (n != null) max = Math.max(max, n);
+            }
+            if (max <= 0) max = 1;
+            g2.setColor(new Color(231, 238, 248));
+            g2.drawLine(left, bottom, left + width, bottom);
+            int slot = Math.max(1, width / count);
+            for (int i = 0; i < count; i++) {
+                Object[] row = rows.get(rows.size() - count + i);
+                Double value = number(row[valueColumn]);
+                if (value == null) continue;
+                int barHeight = (int) ((Math.max(0, value) / max) * Math.max(1, bottom - top));
+                int x = left + i * slot + Math.max(2, slot / 5);
+                int barWidth = Math.max(8, slot * 3 / 5);
+                g2.setColor(new Color(42, 122, 219));
+                g2.fillRoundRect(x, bottom - barHeight, barWidth, barHeight, 7, 7);
+                g2.setColor(MUTED);
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                String label = row.length == 0 || row[0] == null ? String.valueOf(i + 1) : row[0].toString();
+                if (label.length() > 9) label = label.substring(0, 9);
+                g2.drawString(label, x - 2, bottom + 15);
+            }
+            g2.dispose();
+        }
+
+        private static Double number(Object value) {
+            if (value instanceof Number) return ((Number) value).doubleValue();
+            if (value == null) return null;
+            String text = value.toString().replaceAll("[^0-9,.-]", "").replace(",", "");
+            try { return text.isEmpty() ? null : Double.valueOf(text); }
+            catch (NumberFormatException ex) { return null; }
+        }
     }
 }

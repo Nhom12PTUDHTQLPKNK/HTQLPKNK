@@ -21,6 +21,7 @@ GO
 -- Xóa bảng theo đúng thứ tự từ Bảng Con (có FK) đến Bảng Cha (Độc lập)
 IF OBJECT_ID('ChiTietChiDinh', 'U') IS NOT NULL DROP TABLE ChiTietChiDinh;
 IF OBJECT_ID('ChiTietKhamRang', 'U') IS NOT NULL DROP TABLE ChiTietKhamRang;
+IF OBJECT_ID('DanhMucTinhTrangRang', 'U') IS NOT NULL DROP TABLE DanhMucTinhTrangRang;
 IF OBJECT_ID('PhieuThanhToan', 'U') IS NOT NULL DROP TABLE PhieuThanhToan;
 IF OBJECT_ID('ChiTietHoaDon', 'U') IS NOT NULL DROP TABLE ChiTietHoaDon;
 IF OBJECT_ID('HoaDon', 'U') IS NOT NULL DROP TABLE HoaDon;
@@ -402,7 +403,7 @@ CREATE TABLE ChiTietKhamRang (
     maChiTietKham INT IDENTITY(1,1) PRIMARY KEY,
 
     maBenhAn VARCHAR(20) NOT NULL,
-    maRang INT NOT NULL,
+    maRang INT NULL,
 
     tinhTrang NVARCHAR(100),
     mucDo NVARCHAR(50),
@@ -421,6 +422,17 @@ CREATE TABLE ChiTietKhamRang (
     CONSTRAINT UQ_ChiTietKhamRang
         UNIQUE (maBenhAn, maRang)
 );
+GO
+
+CREATE TABLE DanhMucTinhTrangRang (
+    maTinhTrang VARCHAR(10) NOT NULL PRIMARY KEY,
+    tenTinhTrang NVARCHAR(100) NOT NULL UNIQUE,
+    trangThai BIT NOT NULL CONSTRAINT DF_DanhMucTinhTrangRang_trangThai DEFAULT 1
+);
+INSERT DanhMucTinhTrangRang (maTinhTrang, tenTinhTrang) VALUES
+('TTR001', N'Bình thường'), ('TTR002', N'Sâu răng'), ('TTR003', N'Viêm nướu'),
+('TTR004', N'Mẻ răng'), ('TTR005', N'Mất răng'), ('TTR006', N'Đã điều trị'),
+('TTR007', N'Viêm tủy'), ('TTR008', N'Mòn cổ răng'), ('TTR009', N'Răng khôn mọc lệch');
 GO
 
 

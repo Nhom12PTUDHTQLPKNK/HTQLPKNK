@@ -183,6 +183,7 @@ public class ManHinhDatLichHen extends JPanel {
     private boolean loading = false;
 
     private Set<String> busyTimes = new HashSet<String>();
+    private Set<String> availableTimes = new HashSet<String>();
 
     // tên lễ tân đang đăng nhập, sẽ in ở góc dưới bên trái của file PDF
     private String receptionistName = "";
@@ -411,9 +412,9 @@ public class ManHinhDatLichHen extends JPanel {
             }
         });
 
-        cbService.setEditable(true);
+        cbService.setEditable(false);
         cbService.setMaximumRowCount(8);
-        cbService.setEditable(true);
+        cbService.setEditable(false);
         cbService.setMaximumRowCount(8);
 
         // Luôn hiển thị nút mũi tên xổ xuống
@@ -507,14 +508,14 @@ public class ManHinhDatLichHen extends JPanel {
         // Lưới giờ trống
         timeGridPanel = new JPanel();
         timeGridPanel.setOpaque(false);
-        timeGridPanel.setLayout(new BoxLayout(timeGridPanel, BoxLayout.Y_AXIS));
+        timeGridPanel.setLayout(new BoxLayout(timeGridPanel, BoxLayout.X_AXIS));
         JScrollPane timeScroll = new JScrollPane(timeGridPanel);
         timeScroll.setBorder(BorderFactory.createLineBorder(BORDER_LIGHT));
         timeScroll.setPreferredSize(new Dimension(340, 125));
         timeScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 125));
         timeScroll.setMinimumSize(new Dimension(0, 125));
-
-        timeScroll.getVerticalScrollBar().setUnitIncrement(12);
+        timeScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        timeScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         appointmentGroup.add(timeScroll);
 
         // Chú thích màu giờ hẹn
@@ -1776,6 +1777,12 @@ public class ManHinhDatLichHen extends JPanel {
         return time;
     }
 
+    private LocalTime parseShiftTime(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        try { return LocalTime.parse(formatTime(value)); }
+        catch (RuntimeException ex) { return null; }
+    }
+
     // tải all cái lịch hẹn
 
     private void loadAllAppointments() {
@@ -1861,7 +1868,7 @@ public class ManHinhDatLichHen extends JPanel {
         JPanel afternoonPanel = createTimeGroup("Buổi chiều",8,STANDARD_TIMES.length,busy,date);
 
         timeGridPanel.add(morningPanel);
-        timeGridPanel.add(Box.createVerticalStrut(10));
+        timeGridPanel.add(Box.createHorizontalStrut(12));
         timeGridPanel.add(afternoonPanel);
         timeGridPanel.revalidate();
         timeGridPanel.repaint();
@@ -1874,15 +1881,16 @@ public class ManHinhDatLichHen extends JPanel {
             Set<String> busy,
             LocalDate date
     ) {
-    	JPanel group = new JPanel(new GridLayout(0, 4, 7, 7));
+        JPanel group = new JPanel(new GridLayout(0, 4, 5, 4));
 
         group.setOpaque(false);
-        group.setBorder(new EmptyBorder(5, 7, 8, 7));
+        group.setBorder(new EmptyBorder(2, 2, 3, 2));
         for (int i = start; i < end; i++) {
 
             final String slot = STANDARD_TIMES[i];
 
             boolean occupied = busy.contains(slot);
+            boolean outsideShift = !availableTimes.contains(slot);
             boolean expired = date.isBefore(LocalDate.now())
                     || (date.equals(LocalDate.now())
                     && !LocalTime.parse(slot).isAfter(LocalTime.now()));
@@ -1903,10 +1911,10 @@ public class ManHinhDatLichHen extends JPanel {
                 button.setToolTipText("Giờ đã có lịch hẹn");
                 button.setEnabled(false);
 
-            } else if (expired) {
+            } else if (expired || outsideShift) {
                 button.setBackground(new Color(232, 235, 240));
                 button.setForeground(new Color(125, 135, 150));
-                button.setToolTipText("Không thể chọn giờ này");
+                button.setToolTipText(outsideShift ? "Bác sĩ không làm việc trong ca này" : "Không thể chọn giờ này");
                 button.setEnabled(false);
 
             } else {
@@ -2003,11 +2011,32 @@ public class ManHinhDatLichHen extends JPanel {
         LocalDate date = getSelectedDate();
         if (doctor == null) {
             busyTimes.clear();
+            availableTimes.clear();
             renderTimeGrid(busyTimes, date);
             return;
         }
 
         busyTimes.clear();
+
+        availableTimes.clear();
+        String shiftSql = "SELECT gioBatDau, gioKetThuc FROM LichLamViec WHERE maNhanVien = ? AND ngayLamViec = ? AND (trangThai IS NULL OR trangThai NOT LIKE N'%nghỉ%')";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(shiftSql)) {
+            ps.setString(1, doctor.id);
+            ps.setDate(2, java.sql.Date.valueOf(date));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalTime start = parseShiftTime(rs.getString("gioBatDau"));
+                    LocalTime end = parseShiftTime(rs.getString("gioKetThuc"));
+                    if (start != null && end != null) for (String slot : STANDARD_TIMES) {
+                        LocalTime value = LocalTime.parse(slot);
+                        if (!value.isBefore(start) && value.isBefore(end)) availableTimes.add(slot);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            showError("Không thể kiểm tra ca làm việc!\n" + e.getMessage());
+            return;
+        }
 
         String sql ="SELECT gioKham, trangThai FROM LichHen "+ "WHERE maNhanVien = ? AND ngayHen = ?";
 
@@ -2043,7 +2072,7 @@ public class ManHinhDatLichHen extends JPanel {
         LocalDate today = LocalDate.now();
         for (String slot : STANDARD_TIMES) {
 
-            if (busyTimes.contains(slot)) {
+            if (busyTimes.contains(slot) || !availableTimes.contains(slot)) {
                 continue;
             }
 
@@ -2074,7 +2103,7 @@ public class ManHinhDatLichHen extends JPanel {
         String phone = txtPhone.getText().trim();
         String name = txtCustName.getText().trim();
         MucKhachHang selectedCustomer = (MucKhachHang) cbCustomer.getSelectedItem();
-        Object selectedService = cbService.getEditor().getItem();
+        Object selectedService = cbService.getSelectedItem();
 
         String serviceName = selectedService == null? "": selectedService.toString().trim();
 
@@ -2102,6 +2131,11 @@ public class ManHinhDatLichHen extends JPanel {
         }
         if (busyTimes.contains(time)) {
             showWarning( "Giờ hẹn này đã có người đặt. "+ "Vui lòng chọn giờ khác!");
+            refreshAvailability();
+            return;
+        }
+        if (!availableTimes.contains(time)) {
+            showWarning("Giờ hẹn phải nằm trong ca làm việc của bác sĩ đã chọn!");
             refreshAvailability();
             return;
         }

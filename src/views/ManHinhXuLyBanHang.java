@@ -45,6 +45,11 @@ public class ManHinhXuLyBanHang extends JPanel {
     private JLabel lblStatTotalInvoices, lblStatTotalRevenue, lblStatMonthInvoices, lblStatPaidInvoices;
     private String maHoaDonMoiNhat;
 
+    public void refreshData() {
+        loadPatientMedicalRecords();
+        loadInvoiceDataFromDatabase();
+    }
+
     public ManHinhXuLyBanHang() {
         setLayout(new BorderLayout(0, 20));
         setBackground(BG_CANVAS);
@@ -111,11 +116,20 @@ public class ManHinhXuLyBanHang extends JPanel {
         add(headerCard, BorderLayout.NORTH);
 
         // --- 2. CONTAINER CHÍNH CHIA 2 CỘT ---
-        JPanel mainContentPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        JPanel mainContentPanel = new JPanel(new GridBagLayout());
         mainContentPanel.setOpaque(false);
-
-        mainContentPanel.add(createLeftCreateFormPanel());
-        mainContentPanel.add(createRightListPanel());
+        GridBagConstraints contentGbc = new GridBagConstraints();
+        contentGbc.gridy = 0;
+        contentGbc.fill = GridBagConstraints.BOTH;
+        contentGbc.weighty = 1;
+        contentGbc.insets = new Insets(0, 0, 0, 10);
+        contentGbc.gridx = 0;
+        contentGbc.weightx = 0.42;
+        mainContentPanel.add(createLeftCreateFormPanel(), contentGbc);
+        contentGbc.gridx = 1;
+        contentGbc.weightx = 0.58;
+        contentGbc.insets = new Insets(0, 10, 0, 0);
+        mainContentPanel.add(createRightListPanel(), contentGbc);
 
         add(mainContentPanel, BorderLayout.CENTER);
 
@@ -656,7 +670,7 @@ public class ManHinhXuLyBanHang extends JPanel {
 
     private double calculateInvoiceTotal(Connection conn, String maBenhAn, String maHoaDon) throws SQLException {
         String sql = "SELECT ISNULL((SELECT SUM(d.donGia*c.soLuong) FROM ChiTietChiDinh c JOIN DichVu d ON c.maDichVu=d.maDichVu WHERE c.maBenhAn=?),0) " +
-                "+ ISNULL((SELECT SUM(ct.donGia*ct.soLuong) FROM ChiTietHoaDon ct WHERE ct.maHoaDon=?),0)";
+                "+ ISNULL((SELECT SUM(ct.donGia*ct.soLuong) FROM ChiTietHoaDon ct WHERE ct.maHoaDon=? AND ct.maVatTu IS NOT NULL),0)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maBenhAn); ps.setString(2, maHoaDon);
             try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getDouble(1) : 0d; }
