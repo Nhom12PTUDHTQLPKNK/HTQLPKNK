@@ -19,7 +19,7 @@ public final class BaoCaoPhongKhamDAO {
                 + "LEFT JOIN (SELECT maHoaDon, SUM(CAST(soLuong AS DECIMAL(18,2)) * donGia) AS tongTien "
                 + "FROM ChiTietHoaDon GROUP BY maHoaDon) T ON H.maHoaDon = T.maHoaDon "
                 + "LEFT JOIN (SELECT maHoaDon, SUM(daThanhToan) AS daThu FROM PhieuThanhToan GROUP BY maHoaDon) P "
-                + "ON H.maHoaDon = P.maHoaDon WHERE H.ngayLap >= ? AND H.ngayLap <= ? "
+                + "ON H.maHoaDon = P.maHoaDon WHERE H.ngayLap >= ? AND H.ngayLap < DATEADD(DAY, 1, ?) "
                 + "GROUP BY " + key + " ORDER BY MIN(H.ngayLap)";
     }
 
@@ -32,7 +32,7 @@ public final class BaoCaoPhongKhamDAO {
                 + "LEFT JOIN HoaDon H ON H.maBenhAn = BA.maBenhAn "
                 + "LEFT JOIN ChiTietHoaDon CT ON CT.maHoaDon = H.maHoaDon "
                 + "LEFT JOIN DichVu D ON D.maDichVu = CT.maDichVu "
-                + "WHERE BA.ngayKham >= ? AND BA.ngayKham <= ? "
+                + "WHERE BA.ngayKham >= ? AND BA.ngayKham < DATEADD(DAY, 1, ?) "
                 + "AND (N.chucVu LIKE N'%Bác sĩ%' OR N.chucVu LIKE N'%Nha sĩ%') "
                 + "GROUP BY " + key + ", N.maNhanVien, N.tenNhanVien, D.maDichVu, D.tenDichVu "
                 + "ORDER BY MIN(BA.ngayKham), N.tenNhanVien, D.tenDichVu";

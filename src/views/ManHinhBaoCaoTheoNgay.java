@@ -1,12 +1,12 @@
 package views;
 
-import controllers.TruongChonNgay;
-import models.dao.TruyVanBaoCaoNgayDAO;
-import models.dao.BaoCaoPhongKhamDAO;
+import controllers.DieuKhienBaoCaoNgay;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.print.PrinterException;
 import java.time.LocalDate;
@@ -23,20 +23,24 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
     protected static final Color CARD_BG = Color.WHITE;
 
     private final String title;
+    private final String reportType;
+    private final DieuKhienBaoCaoNgay reportController = new DieuKhienBaoCaoNgay();
     private final String[] columns;
     private final DefaultTableModel model;
     private final JTable table;
     private final ReportChartPanel chart = new ReportChartPanel();
-    private final TruongChonNgay fromDate = new TruongChonNgay();
-    private final TruongChonNgay toDate = new TruongChonNgay();
+    private final TruongChonNgayBaoCao fromDate = new TruongChonNgayBaoCao();
+    private final TruongChonNgayBaoCao toDate = new TruongChonNgayBaoCao();
     private final JComboBox<ChuKyBaoCao> period = new JComboBox<>(ChuKyBaoCao.values());
     private final JLabel status = new JLabel("Chọn khoảng thời gian rồi bấm Thống kê.");
     private final JButton runButton = new JButton("Thống kê");
-    private SwingWorker<KetQuaBaoCao, Void> activeWorker;
+    private SwingWorker<DieuKhienBaoCaoNgay.KetQua, Void> activeWorker;
     private String reportSubtitle = "";
+    private final Timer filterRefreshTimer = new Timer(500, e -> refreshReport());
 
-    protected ManHinhBaoCaoTheoNgay(String title, String description, String[] columns) {
+    protected ManHinhBaoCaoTheoNgay(String title, String description, String[] columns, String reportType) {
         this.title = title;
+        this.reportType = reportType;
         this.columns = columns.clone();
         setLayout(new BorderLayout(0, 12));
         setBackground(BG_CANVAS);
@@ -49,6 +53,10 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         heading.setOpaque(false);
         heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
         heading.add(titleLabel);
+        JLabel descriptionLabel = new JLabel(description);
+        descriptionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        descriptionLabel.setForeground(MUTED);
+        heading.add(descriptionLabel);
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         filters.setOpaque(false);
@@ -58,6 +66,13 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         filters.add(toDate);
         filters.add(label("Thống kê theo"));
         period.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        filterRefreshTimer.setRepeats(false);
+        period.addActionListener(e -> scheduleFilterRefresh());
+        ChangeListener dateListener = new ChangeListener() {
+            @Override public void stateChanged(ChangeEvent e) { scheduleFilterRefresh(); }
+        };
+        fromDate.addChangeListener(dateListener);
+        toDate.addChangeListener(dateListener);
         filters.add(period);
         styleButton(runButton, new Color(0, 126, 255));
         JButton print = new JButton("In");
@@ -95,18 +110,31 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         print.addActionListener(e -> printReport());
     }
 
-    protected abstract KetQuaBaoCao fetchReport(LocalDate from, LocalDate to, ChuKyBaoCao period) throws Exception;
+    /** Override when a report has a specific metric that should drive its chart. */
+    protected int chartValueColumn(String[] headers) { return -1; }
+
+    private void scheduleFilterRefresh() {
+        filterRefreshTimer.restart();
+    }
+
+    private void clearDisplayedReport() {
+        if (activeWorker != null) activeWorker.cancel(true);
+        runButton.setEnabled(true);
+        model.setRowCount(0);
+        chart.setRows(java.util.Collections.<Object[]>emptyList(), columns, chartValueColumn(columns));
+    }
 
     protected final void refreshReport() {
         if (!fromDate.isValidDate() || !toDate.isValidDate()) {
+            clearDisplayedReport();
             status.setForeground(new Color(180, 45, 55));
             status.setText("Vui lòng nhập ngày hợp lệ theo định dạng dd/MM/yyyy.");
             return;
         }
-        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        LocalDate from = LocalDate.parse(fromDate.getText(), dateFormat);
-        LocalDate to = LocalDate.parse(toDate.getText(), dateFormat);
+        LocalDate from = fromDate.getLocalDate();
+        LocalDate to = toDate.getLocalDate();
         if (from.isAfter(to)) {
+            clearDisplayedReport();
             status.setForeground(new Color(180, 45, 55));
             status.setText("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.");
             return;
@@ -116,19 +144,19 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         runButton.setEnabled(false);
         status.setForeground(MUTED);
         status.setText("Đang lấy số liệu từ SQL Server...");
-        activeWorker = new SwingWorker<KetQuaBaoCao, Void>() {
-            @Override protected KetQuaBaoCao doInBackground() throws Exception {
-                return fetchReport(from, to, selected);
+        activeWorker = new SwingWorker<DieuKhienBaoCaoNgay.KetQua, Void>() {
+            @Override protected DieuKhienBaoCaoNgay.KetQua doInBackground() throws Exception {
+                return reportController.fetch(reportType, from, to, selected.name());
             }
 
             @Override protected void done() {
                 if (isCancelled()) return;
                 runButton.setEnabled(true);
                 try {
-                    KetQuaBaoCao result = get();
+                    DieuKhienBaoCaoNgay.KetQua result = get();
                     model.setRowCount(0);
                     for (Object[] row : result.rows) model.addRow(row);
-                    chart.setRows(result.rows, columns);
+                    chart.setRows(result.rows, columns, chartValueColumn(columns));
                     reportSubtitle = "Từ " + from.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             + " đến " + to.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             + " — nhóm theo " + selected.label;
@@ -136,7 +164,7 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
                     status.setText(result.summary + "  |  " + reportSubtitle);
                 } catch (Exception ex) {
                     model.setRowCount(0);
-                    chart.setRows(java.util.Collections.<Object[]>emptyList(), columns);
+                    chart.setRows(java.util.Collections.<Object[]>emptyList(), columns, chartValueColumn(columns));
                     Throwable cause = ex.getCause();
                     status.setForeground(new Color(180, 45, 55));
                     status.setText("Không thể tải báo cáo SQL Server: "
@@ -152,25 +180,6 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
         final String label;
         ChuKyBaoCao(String label) { this.label = label; }
         @Override public String toString() { return label; }
-    }
-
-    protected static final class KetQuaBaoCao {
-        final List<Object[]> rows;
-        final String summary;
-        protected KetQuaBaoCao(List<Object[]> rows, String summary) {
-            this.rows = rows;
-            this.summary = summary;
-        }
-    }
-
-    protected static String periodExpression(String dateColumn, ChuKyBaoCao period) {
-        return BaoCaoPhongKhamDAO.periodExpression(dateColumn, period.name());
-    }
-
-    protected static KetQuaBaoCao query(String sql, LocalDate from, LocalDate to,
-                                        int columnCount) throws Exception {
-        List<Object[]> rows = new TruyVanBaoCaoNgayDAO().query(sql, from, to, columnCount);
-        return new KetQuaBaoCao(rows, "Số dòng báo cáo: " + rows.size());
     }
 
     private JLabel label(String text) {
@@ -236,11 +245,11 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
             setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_LIGHT), new EmptyBorder(10, 14, 10, 14)));
         }
 
-        void setRows(List<Object[]> rows, String[] headers) {
+        void setRows(List<Object[]> rows, String[] headers, int preferredColumn) {
             this.rows = new ArrayList<>(rows);
             this.headers = headers.clone();
-            valueColumn = -1;
-            for (int c = headers.length - 1; c >= 0; c--) {
+            valueColumn = preferredColumn >= 0 && preferredColumn < headers.length ? preferredColumn : -1;
+            for (int c = headers.length - 1; valueColumn < 0 && c >= 0; c--) {
                 for (Object[] row : rows) if (number(row[c]) != null) { valueColumn = c; break; }
                 if (valueColumn >= 0) break;
             }
@@ -262,21 +271,33 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
                 g2.dispose();
                 return;
             }
-            int count = Math.min(rows.size(), 12);
+            java.util.LinkedHashMap<String, Double> grouped = new java.util.LinkedHashMap<>();
+            for (Object[] row : rows) {
+                if (row.length == 0) continue;
+                Double value = number(row[valueColumn]);
+                if (value != null) grouped.merge(String.valueOf(row[0]), value, Double::sum);
+            }
+            List<java.util.Map.Entry<String, Double>> points = new ArrayList<>(grouped.entrySet());
+            if (points.isEmpty()) {
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                g2.setColor(MUTED);
+                g2.drawString("Không có số liệu cho chỉ số này trong kỳ đã chọn.", 12, 54);
+                g2.dispose();
+                return;
+            }
+            int count = Math.min(points.size(), 12);
             int left = 48, top = 38, bottom = getHeight() - 35, width = getWidth() - left - 22;
             double max = 0;
-            for (int i = rows.size() - count; i < rows.size(); i++) {
-                Double n = number(rows.get(i)[valueColumn]);
-                if (n != null) max = Math.max(max, n);
+            for (int i = points.size() - count; i < points.size(); i++) {
+                max = Math.max(max, points.get(i).getValue());
             }
             if (max <= 0) max = 1;
             g2.setColor(new Color(231, 238, 248));
             g2.drawLine(left, bottom, left + width, bottom);
             int slot = Math.max(1, width / count);
             for (int i = 0; i < count; i++) {
-                Object[] row = rows.get(rows.size() - count + i);
-                Double value = number(row[valueColumn]);
-                if (value == null) continue;
+                java.util.Map.Entry<String, Double> point = points.get(points.size() - count + i);
+                Double value = point.getValue();
                 int barHeight = (int) ((Math.max(0, value) / max) * Math.max(1, bottom - top));
                 int x = left + i * slot + Math.max(2, slot / 5);
                 int barWidth = Math.max(8, slot * 3 / 5);
@@ -284,8 +305,9 @@ public abstract class ManHinhBaoCaoTheoNgay extends JPanel {
                 g2.fillRoundRect(x, bottom - barHeight, barWidth, barHeight, 7, 7);
                 g2.setColor(MUTED);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-                String label = row.length == 0 || row[0] == null ? String.valueOf(i + 1) : row[0].toString();
-                if (label.length() > 9) label = label.substring(0, 9);
+                String label = point.getKey();
+                if (label.matches("\\d{2}/\\d{2}/\\d{4}")) label = label.substring(0, 5);
+                else if (label.length() > 9) label = label.substring(0, 9);
                 g2.drawString(label, x - 2, bottom + 15);
             }
             g2.dispose();

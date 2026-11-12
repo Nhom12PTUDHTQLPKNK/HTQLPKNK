@@ -21,7 +21,7 @@ public class BaoCaoKhoDAO {
                 + "COALESCE(T.TenThuoc, D.tenThuoc, N'(Chưa có tên thuốc)') AS tenThuoc, "
                 + "SUM(COALESCE(D.soLuong, 0)) AS soLuong, N'Số lượng kê trong đơn' AS ghiChu "
                 + "FROM DonThuoc D LEFT JOIN THUOC T ON D.maThuoc = T.MaThuoc "
-                + "WHERE D.ngayKe >= ? AND D.ngayKe <= ? GROUP BY " + key + ", D.maThuoc, T.TenThuoc, D.tenThuoc";
+                + "WHERE D.ngayKe >= ? AND D.ngayKe < DATEADD(DAY, 1, ?) GROUP BY " + key + ", D.maThuoc, T.TenThuoc, D.tenThuoc";
         try (Connection c = DBConnection.getConnection(); PreparedStatement p = c.prepareStatement(issueSql)) {
             p.setDate(1, java.sql.Date.valueOf(from)); p.setDate(2, java.sql.Date.valueOf(to));
             try (ResultSet r = p.executeQuery()) {
